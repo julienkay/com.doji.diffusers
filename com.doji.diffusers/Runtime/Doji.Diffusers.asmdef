@@ -2,7 +2,8 @@
     "name": "Doji.Diffusers",
     "rootNamespace": "",
     "references": [
-        "GUID:c98377141161c7746a178fb5cb1af075"
+        "GUID:c98377141161c7746a178fb5cb1af075",
+        "GUID:792a551df4a0292469be78bbb192f6d6"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
