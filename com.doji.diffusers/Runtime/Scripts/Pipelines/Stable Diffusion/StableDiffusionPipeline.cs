@@ -28,14 +28,29 @@ namespace Doji.AI.Diffusers {
             _textEncoder = new TextEncoder(textEncoder);
         }
 
-        private void Execute(string prompt) {
-            var promptEmbeds = EncodePrompt(prompt);
+        public void Execute(
+            string prompt,
+            int numInferenceSteps = 50,
+            float guidanceScale = 7.5f)
+        {
+            int batchSize = 1;
+            bool doClassifierFreeGuidance = guidanceScale > 1.0f;
+
+            var promptEmbeds = EncodePrompt(prompt, doClassifierFreeGuidance);
+            var latents = GenerateRandomArray(batchSize * 4 * 512 * 512);
+
+            //var scheduler = ...;
         }
 
-        private int EncodePrompt(string prompt) {
+        private Tensor EncodePrompt(
+            string prompt,
+            bool doClassifierFreeGuidance)
+        {
             if (prompt == null) {
                 throw new ArgumentNullException(nameof(prompt));
             }
+
+            int batchSize = 1;
 
             var text_inputs = _tokenizer.Encode(
                 prompt,
@@ -45,11 +60,9 @@ namespace Doji.AI.Diffusers {
             );
             List<int> textInputIds = text_inputs.InputIds ?? throw new Exception("Failed to get input ids from tokenizer.");
 
-            TensorInt tensor = new TensorInt(new TensorShape(1, textInputIds.Count), textInputIds.ToArray());
-            Tensor promptEmbeds = _textEncoder.ExecuteModel(tensor);
-
-
-            throw new NotImplementedException();
+            TensorInt tensor = new TensorInt(new TensorShape(batchSize, textInputIds.Count), textInputIds.ToArray());
+            TensorFloat promptEmbeds = _textEncoder.ExecuteModel(tensor) as TensorFloat;
+            return promptEmbeds;
         }
 
         private int EncodePrompt(List<string> prompt) {
@@ -58,6 +71,16 @@ namespace Doji.AI.Diffusers {
             }
 
             throw new NotImplementedException();
+        }
+
+        private float[] GenerateRandomArray(int size) {
+            float[] randomArray = new float[size];
+
+            for (int i = 0; i < size; i++) {
+                randomArray[i] = UnityEngine.Random.Range(-1f, 1f);
+            }
+
+            return randomArray;
         }
 
         public void Dispose() {

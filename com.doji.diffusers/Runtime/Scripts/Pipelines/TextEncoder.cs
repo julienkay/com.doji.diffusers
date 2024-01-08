@@ -49,7 +49,7 @@ namespace Doji.AI.Diffusers {
             }
 
             _worker.Execute(inputIds);
-            return _worker.PeekOutput();
+            return _worker.PeekOutput("last_hidden_state");
         }
 
         public void Dispose() {
