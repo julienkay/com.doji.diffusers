@@ -26,6 +26,7 @@ namespace Doji.AI.Diffusers {
 
     public enum Spacing { Leading, Trailing, Linspace }
 
+    public enum AlphaTransform { Cosine, Exp }
 
     public class PNDMScheduler {
 
@@ -33,6 +34,10 @@ namespace Doji.AI.Diffusers {
         public float BetaStart { get; set; }
         public float BetaEnd { get; set; }
         public Schedule BetaSchedule { get; set; }
+        public bool SkipPrkSteps { get; set; }
+        public Prediction PredictionType { get; set; }
+        public Spacing TimestepSpacing { get; set; }
+        public int StepsOffset { get; set; }
         public float[] Betas { get; private set; }
         public float[] Alphas { get; private set; }
         public float[] AlphasCumprod { get; private set; }
@@ -43,7 +48,7 @@ namespace Doji.AI.Diffusers {
         public int Counter { get; set; }
         public object CurSample { get; set; }
         public List<object> Ets { get; private set; }
-        public int? NumInferenceSteps { get; set; }
+        public int NumInferenceSteps { get; set; }
         public int[] Timesteps { get; private set; }
         public int[] PrkTimesteps { get; set; }
         public int[] PlmsTimesteps { get; set; }
@@ -64,6 +69,10 @@ namespace Doji.AI.Diffusers {
             BetaStart = betaStart;
             BetaEnd = betaEnd;
             BetaSchedule = betaSchedule;
+            SkipPrkSteps = skipPrkSteps;
+            PredictionType = predictionType;
+            TimestepSpacing = timestepSpacing;
+            StepsOffset = stepsOffset;
             Ets = new List<object>();
             Counter = 0;
             CurSample = null;
@@ -86,26 +95,83 @@ namespace Doji.AI.Diffusers {
             }
 
             Alphas = Betas.Select(beta => 1.0f - beta).ToArray();
-            AlphasCumprod = CumProd(Alphas);
+            AlphasCumprod = Alphas.CumProd();
             FinalAlphaCumprod = setAlphaToOne ? 1.0f : AlphasCumprod[0];
 
             InitNoiseSigma = 1.0f;
 
+            // For now we only support F-PNDM, i.e. the runge-kutta method
+            // For more information on the algorithm please take a look at the paper: https://arxiv.org/pdf/2202.09778.pdf
+            // mainly at formula (9), (12), (13) and the Algorithm 2.
             PndmOrder = 4;
             CurModelOutput = 0;
-            NumInferenceSteps = null;
             Timesteps = Enumerable.Range(0, numTrainTimesteps).Reverse().ToArray();
-            PrkTimesteps = null;
-            PlmsTimesteps = null;
         }
 
-        private static float[] BetasForAlphaBar(int numDiffusionTimesteps, float maxBeta = 0.999f, string alphaTransformType = "cosine") {
+        /// <summary>
+        /// Sets the discrete timesteps used for the diffusion chain (to be run before inference).
+        /// </summary>
+        public void SetTimesteps(int numInferenceSteps) {
+            NumInferenceSteps = numInferenceSteps;
+
+            // "linspace", "leading", "trailing" corresponds to annotation of Table 2. of https://arxiv.org/abs/2305.08891
+            if (TimestepSpacing == Spacing.Linspace) {
+                Timesteps = GetTimeStepsLinspace();
+            } else if (TimestepSpacing == Spacing.Leading) {
+                Timesteps = GetTimeStepsLeading();
+            } else if (TimestepSpacing == Spacing.Trailing) {
+                Timesteps = GetTimeStepsTrailing();
+            } else {
+                throw new ArgumentException($"{TimestepSpacing} is not supported. Please choose one of {string.Join(", ", Enum.GetNames(typeof(Spacing)))}.");
+            }
+
+            if (SkipPrkSteps) {
+                // # for some models like stable diffusion the prk steps can/should be skipped to
+                // # produce better results. When using PNDM with `self.config.skip_prk_steps` the implementation
+                // # is based on crowsonkb's PLMS sampler implementation: https://github.com/CompVis/latent-diffusion/pull/51
+                PrkTimesteps = new int[] { };
+                PlmsTimesteps = Timesteps.Take(Timesteps.Length - 2)
+                                         .Concat(Timesteps.Skip(Timesteps.Length - 2).Take(1))
+                                         .Concat(Timesteps.Skip(Timesteps.Length - 1))
+                                         .Reverse()
+                                         .ToArray();
+            } else {
+                PrkTimesteps = Timesteps.Skip(Timesteps.Length - PndmOrder)
+                                        .SelectMany(t => Enumerable.Repeat(t, 2))
+                                        .ToArray();
+                PrkTimesteps = PrkTimesteps.Zip(new int[] { 0, NumTrainTimesteps / numInferenceSteps / 2 }
+                                           .SelectMany(v => Enumerable.Repeat(v, PndmOrder))
+                                           .ToArray(), (a, b) => a + b).ToArray();
+
+                PrkTimesteps = PrkTimesteps.Take(PrkTimesteps.Length - 1)
+                                           .SelectMany((t, i) => i % 2 == 0 ? new int[] { } : new int[] { t })
+                                           .Reverse()
+                                           .ToArray();
+
+                PlmsTimesteps = Timesteps.Take(Timesteps.Length - 3)
+                                         .Reverse()
+                                         .ToArray();
+            }
+
+            int[] allTimesteps = PrkTimesteps.Concat(PlmsTimesteps);
+            Timesteps = allTimesteps;
+
+            Ets = new List<object>();
+            Counter = 0;
+            CurModelOutput = 0;
+        }
+
+        private static float[] BetasForAlphaBar(
+            int numDiffusionTimesteps,
+            float maxBeta = 0.999f,
+            AlphaTransform alphaTransformType = AlphaTransform.Cosine)
+        {
             float[] betas = new float[numDiffusionTimesteps];
 
             Func<float, float> alphaBarFn;
-            if (alphaTransformType == "cosine") {
+            if (alphaTransformType == AlphaTransform.Cosine) {
                 alphaBarFn = t => (float)Math.Pow(Math.Cos((t + 0.008) / 1.008 * Math.PI / 2), 2);
-            } else if (alphaTransformType == "exp") {
+            } else if (alphaTransformType == AlphaTransform.Exp) {
                 alphaBarFn = t => (float)Math.Exp(t * -12.0);
             } else {
                 throw new ArgumentException($"Unsupported alpha_transform_type: {alphaTransformType}");
@@ -120,14 +186,60 @@ namespace Doji.AI.Diffusers {
             return betas;
         }
 
-        private static float[] CumProd(float[] array) {
-            int length = array.Length;
-            float[] result = new float[length];
-            float product = 1.0f;
+        /// <summary>
+        /// timesteps = np.linspace(0, num_train_timesteps - 1, num_inference_steps).round()
+        /// </summary>
+        private int[] GetTimeStepsLinspace() {
+            int start = 0;
+            int stop = NumTrainTimesteps - 1;
+            int num = NumInferenceSteps;
 
+            int[] result = new int[num];
+            float step = (stop - start) / (float)(num - 1);
+
+            for (int i = 0; i < num; i++) {
+                result[i] = (int)Math.Round(start + i * step);
+            }
+
+            return result;
+        }
+
+        /// <summary>
+        /// timesteps = np.arange(0, num_inference_steps) * step_ratio).round()
+        /// timesteps += steps_offset
+        /// </summary>
+        private int[] GetTimeStepsLeading() {
+            int stepRatio = NumTrainTimesteps / NumInferenceSteps;
+            int start = 0;
+            int stop = NumInferenceSteps;
+            int step = 1;
+
+            int length = ((stop - start - 1) / step) + 1;
+            int[] result = new int[length];
+
+            for (int i = 0, value = start; i < length; i++, value += step) {
+                result[i] = (value * stepRatio) + StepsOffset;
+            }
+
+            return result;
+        }
+
+        /// <summary>
+        /// timesteps = np.round(np.arange(num_train_timesteps, 0, -step_ratio))[::-1]
+        /// timesteps -= 1
+        /// </summary>
+        private int[] GetTimeStepsTrailing() {
+            int start = NumTrainTimesteps;
+            int stop = 0;
+            float step = -NumTrainTimesteps / (float)NumInferenceSteps;
+
+            int length = ((int)((stop - start - 1) / step)) + 1;
+            int[] result = new int[length];
+
+            float value = start;
             for (int i = 0; i < length; i++) {
-                product *= array[i];
-                result[i] = product;
+                result[length - i - 1] = (int)Math.Round(value) - 1;
+                value += step;
             }
 
             return result;

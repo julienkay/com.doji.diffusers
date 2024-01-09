@@ -15,6 +15,7 @@ namespace Doji.AI.Diffusers {
 
         private ClipTokenizer _tokenizer;
         private TextEncoder _textEncoder;
+        private PNDMScheduler _scheduler;
 
         /// <summary>
         /// Initializes a new stable diffusion pipeline.
@@ -22,10 +23,12 @@ namespace Doji.AI.Diffusers {
         public StableDiffusionPipeline(
             ModelAsset textEncoder,
             ClipTokenizer tokenizer,
+            PNDMScheduler scheduler,
             BackendType backend = BackendType.GPUCompute)
         {
             _tokenizer = tokenizer;
             _textEncoder = new TextEncoder(textEncoder);
+            _scheduler = scheduler;
         }
 
         public void Execute(
@@ -39,7 +42,7 @@ namespace Doji.AI.Diffusers {
             var promptEmbeds = EncodePrompt(prompt, doClassifierFreeGuidance);
             var latents = GenerateRandomArray(batchSize * 4 * 512 * 512);
 
-            //var scheduler = ...;
+            _scheduler.SetTimesteps(numInferenceSteps);
         }
 
         private Tensor EncodePrompt(
