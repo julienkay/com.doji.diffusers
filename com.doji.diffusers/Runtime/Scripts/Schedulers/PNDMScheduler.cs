@@ -42,7 +42,7 @@ namespace Doji.AI.Diffusers {
         public float[] Alphas { get; private set; }
         public float[] AlphasCumprod { get; private set; }
         public float FinalAlphaCumprod { get; private set; }
-        public float InitNoiseSigma { get; private set; }
+        public float InitNoiseSigma { get { return 1.0f; } }
         public int PndmOrder { get; private set; }
         public int CurModelOutput { get; set; }
         public int Counter { get; set; }
@@ -52,6 +52,7 @@ namespace Doji.AI.Diffusers {
         public int[] Timesteps { get; private set; }
         public int[] PrkTimesteps { get; set; }
         public int[] PlmsTimesteps { get; set; }
+        public bool AcceptsEta { get { return false; } }
 
         public PNDMScheduler(
             int numTrainTimesteps = 1000,
@@ -74,8 +75,6 @@ namespace Doji.AI.Diffusers {
             TimestepSpacing = timestepSpacing;
             StepsOffset = stepsOffset;
             Ets = new List<object>();
-            Counter = 0;
-            CurSample = null;
 
             if (trainedBetas != null) {
                 Betas = trainedBetas;
@@ -98,13 +97,10 @@ namespace Doji.AI.Diffusers {
             AlphasCumprod = Alphas.CumProd();
             FinalAlphaCumprod = setAlphaToOne ? 1.0f : AlphasCumprod[0];
 
-            InitNoiseSigma = 1.0f;
-
             // For now we only support F-PNDM, i.e. the runge-kutta method
             // For more information on the algorithm please take a look at the paper: https://arxiv.org/pdf/2202.09778.pdf
             // mainly at formula (9), (12), (13) and the Algorithm 2.
             PndmOrder = 4;
-            CurModelOutput = 0;
             Timesteps = Enumerable.Range(0, numTrainTimesteps).Reverse().ToArray();
         }
 
@@ -225,6 +221,14 @@ namespace Doji.AI.Diffusers {
             }
 
             return result;
+        }
+
+        /// <summary>
+        /// Ensures interchangeability with schedulers that need to scale
+        /// the denoising model input depending on the current timestep.
+        /// </summary>
+        public float[] ScaleModelInput(float[] latentModelInput, int t) {
+            return latentModelInput;
         }
     }
 }

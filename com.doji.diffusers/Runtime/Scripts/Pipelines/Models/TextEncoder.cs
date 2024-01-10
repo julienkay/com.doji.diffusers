@@ -40,7 +40,10 @@ namespace Doji.AI.Diffusers {
             _allocator = new TensorCachingAllocator();
         }
 
-        public Tensor ExecuteModel(Tensor inputIds) {
+        public Tensor ExecuteModel(TensorInt inputIds) {
+            if (inputIds is null) {
+                throw new ArgumentNullException(nameof(inputIds));
+            }
             if (_model == null) {
                 throw new NullReferenceException($"{nameof(_model)} was null");
             }

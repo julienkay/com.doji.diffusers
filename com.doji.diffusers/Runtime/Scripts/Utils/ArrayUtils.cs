@@ -8,22 +8,22 @@ namespace Doji.AI.Diffusers {
         /// Return samples from the “standard normal” distribution.
         /// (Gaussian distribution of mean 0 and variance 1.)
         /// </summary>
-        public static float[] Randn(int size) {
+        public static float[] Randn(int size, double mean = 0, double stdDev = 1) {
             Random random = new Random();
             float[] randomArray = new float[size];
 
             for (int i = 0; i < size; i++) {
-                randomArray[i] = (float)random.SampleGaussian();
+                randomArray[i] = (float)random.SampleGaussian(mean, stdDev);
             }
 
             return randomArray;
         }
 
-        private static double SampleGaussian(this Random random, double mean = 0, double stddev = 1) {
+        private static double SampleGaussian(this Random random, double mean = 0, double stdDev = 1) {
             double u1 = 1 - random.NextDouble();
             double u2 = 1 - random.NextDouble();
             double z = Math.Sqrt(-2.0 * Math.Log(u1)) * Math.Cos(2.0 * Math.PI * u2);
-            return z * stddev + mean;
+            return z * stdDev + mean;
         }
 
         public static T[] Concat<T>(this T[] array1, T[] array2) {
@@ -39,6 +39,36 @@ namespace Doji.AI.Diffusers {
             Array.Copy(array1, resultArray, array1.Length);
             Array.Copy(array2, 0, resultArray, array1.Length, array2.Length);
             return resultArray;
+        }
+
+        /// <summary>
+        /// Takes a array, repeats it twice and returns the repeated sequence as a new array.
+        /// </summary>
+        public static T[] Repeat<T>(this T[] array) {
+            if (array == null) {
+                throw new ArgumentNullException(nameof(array));
+            }
+            T[] repeatedArray = new T[array.Length * 2];
+            Array.Copy(array, 0, repeatedArray, 0, array.Length);
+            Array.Copy(array, 0, repeatedArray, array.Length, array.Length);
+            return repeatedArray;
+        }
+
+        /// <summary>
+        /// numpy.full
+        /// </summary>
+        public static int[] Full(this int n, int x) {
+            if (n < 0) {
+                throw new ArgumentException("Value of n must be non-negative.");
+            }
+
+            int[] array = new int[n];
+
+            for (int i = 0; i < n; i++) {
+                array[i] = x;
+            }
+
+            return array;
         }
 
         /// <summary>
