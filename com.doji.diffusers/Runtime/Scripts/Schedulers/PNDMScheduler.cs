@@ -124,37 +124,19 @@ namespace Doji.AI.Diffusers {
             } else {
                 throw new ArgumentException($"{TimestepSpacing} is not supported. Please choose one of {string.Join(", ", Enum.GetNames(typeof(Spacing)))}.");
             }
-
+            
             if (SkipPrkSteps) {
                 // # for some models like stable diffusion the prk steps can/should be skipped to
                 // # produce better results. When using PNDM with `self.config.skip_prk_steps` the implementation
                 // # is based on crowsonkb's PLMS sampler implementation: https://github.com/CompVis/latent-diffusion/pull/51
-                PrkTimesteps = new int[] { };
-                PlmsTimesteps = Timesteps.Take(Timesteps.Length - 2)
-                                         .Concat(Timesteps.Skip(Timesteps.Length - 2).Take(1))
-                                         .Concat(Timesteps.Skip(Timesteps.Length - 1))
-                                         .Reverse()
-                                         .ToArray();
+                PlmsTimesteps = Timesteps[..^1].Concat(Timesteps[^2..^1])
+                                               .Concat(Timesteps[^1..])
+                                               .Reverse()
+                                               .ToArray();
+                Timesteps = PlmsTimesteps;
             } else {
-                PrkTimesteps = Timesteps.Skip(Timesteps.Length - PndmOrder)
-                                        .SelectMany(t => Enumerable.Repeat(t, 2))
-                                        .ToArray();
-                PrkTimesteps = PrkTimesteps.Zip(new int[] { 0, NumTrainTimesteps / numInferenceSteps / 2 }
-                                           .SelectMany(v => Enumerable.Repeat(v, PndmOrder))
-                                           .ToArray(), (a, b) => a + b).ToArray();
-
-                PrkTimesteps = PrkTimesteps.Take(PrkTimesteps.Length - 1)
-                                           .SelectMany((t, i) => i % 2 == 0 ? new int[] { } : new int[] { t })
-                                           .Reverse()
-                                           .ToArray();
-
-                PlmsTimesteps = Timesteps.Take(Timesteps.Length - 3)
-                                         .Reverse()
-                                         .ToArray();
+                //throw new NotImplementedException("SkipPrkSteps not implemented yet.");
             }
-
-            int[] allTimesteps = PrkTimesteps.Concat(PlmsTimesteps);
-            Timesteps = allTimesteps;
 
             Ets = new List<object>();
             Counter = 0;
