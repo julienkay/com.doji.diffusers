@@ -40,7 +40,7 @@ namespace Doji.AI.Diffusers {
             bool doClassifierFreeGuidance = guidanceScale > 1.0f;
 
             var promptEmbeds = EncodePrompt(prompt, doClassifierFreeGuidance);
-            var latents = GenerateRandomArray(batchSize * 4 * 512 * 512);
+            var latents = ArrayUtils.Randn(batchSize * 4 * 512 * 512);
 
             _scheduler.SetTimesteps(numInferenceSteps);
         }
@@ -74,16 +74,6 @@ namespace Doji.AI.Diffusers {
             }
 
             throw new NotImplementedException();
-        }
-
-        private float[] GenerateRandomArray(int size) {
-            float[] randomArray = new float[size];
-
-            for (int i = 0; i < size; i++) {
-                randomArray[i] = UnityEngine.Random.Range(-1f, 1f);
-            }
-
-            return randomArray;
         }
 
         public void Dispose() {
