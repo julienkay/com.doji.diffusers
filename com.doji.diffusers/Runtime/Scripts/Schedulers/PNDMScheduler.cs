@@ -165,6 +165,28 @@ namespace Doji.AI.Diffusers {
         }
 
         /// <summary>
+        /// Predict the sample from the previous timestep by reversing the SDE.
+        /// This function propagates the diffusion process from the learned model
+        /// outputs (most often the predicted noise), and calls step_prk or
+        /// step_plms depending on the internal variable <see cref="Counter"/>.
+        /// </summary>
+        public SchedulerOutput Step(float[] modelOutput, int timestep, float[] sample) {
+            if (Counter < PrkTimesteps.Length && !SkipPrkSteps) {
+                return StepPrk(modelOutput: modelOutput, timestep: timestep, sample: sample);
+            } else {
+                return StepPlms(modelOutput: modelOutput, timestep: timestep, sample: sample);
+            }
+        }
+
+        private SchedulerOutput StepPrk(float[] modelOutput, int timestep, float[] sample) {
+            throw new NotImplementedException();
+        }
+
+        private SchedulerOutput StepPlms(float[] modelOutput, int timestep, float[] sample) {
+            throw new NotImplementedException();
+        }
+
+        /// <summary>
         /// timesteps = np.linspace(0, num_train_timesteps - 1, num_inference_steps).round()
         /// </summary>
         private int[] GetTimeStepsLinspace() {

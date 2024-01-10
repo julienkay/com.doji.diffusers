@@ -4,7 +4,7 @@ using UnityEngine;
 
 namespace Doji.AI.Diffusers {
 
-    public class TextEncoder : IDisposable {
+    internal class TextEncoder : IDisposable {
 
         /// <summary>
         /// Which <see cref="BackendType"/> to run the model with.

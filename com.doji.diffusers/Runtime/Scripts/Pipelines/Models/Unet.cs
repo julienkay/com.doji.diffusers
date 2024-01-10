@@ -5,7 +5,7 @@ using UnityEngine;
 
 namespace Doji.AI.Diffusers {
 
-    public class Unet : IDisposable {
+    internal class Unet : IDisposable {
 
         /// <summary>
         /// Which <see cref="BackendType"/> to run the model with.
@@ -39,7 +39,7 @@ namespace Doji.AI.Diffusers {
             _worker = WorkerFactory.CreateWorker(Backend, _model);
         }
 
-        public Tensor ExecuteModel(TensorFloat latentInputTensor, TensorInt timestep, TensorFloat promptEmbeds) {
+        public TensorFloat ExecuteModel(TensorFloat latentInputTensor, TensorInt timestep, TensorFloat promptEmbeds) {
             if (latentInputTensor is null) {
                 throw new ArgumentNullException(nameof(latentInputTensor));
             }
@@ -61,7 +61,7 @@ namespace Doji.AI.Diffusers {
             _inputs["encoder_hidden_states"] = promptEmbeds;
 
             _worker.Execute(_inputs);
-            return _worker.PeekOutput("out_sample");
+            return _worker.PeekOutput("out_sample") as TensorFloat;
         }
 
         public void Dispose() {
