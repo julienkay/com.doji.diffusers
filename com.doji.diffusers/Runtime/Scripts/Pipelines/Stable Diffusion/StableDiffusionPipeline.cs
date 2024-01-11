@@ -35,11 +35,11 @@ namespace Doji.AI.Diffusers {
             ModelAsset unet,
             BackendType backend = BackendType.GPUCompute)
         {
-            _vaeDecoder = new VaeDecoder(vaeDecoder);
+            _vaeDecoder = new VaeDecoder(vaeDecoder, backend);
             _tokenizer = tokenizer;
-            _textEncoder = new TextEncoder(textEncoder);
+            _textEncoder = new TextEncoder(textEncoder, backend);
             _scheduler = scheduler;
-            _unet = new Unet(unet);
+            _unet = new Unet(unet, backend);
         }
 
         public TensorFloat Execute(
