@@ -70,9 +70,7 @@ namespace Doji.AI.Diffusers {
                 TensorFloat latentInputTensor = new TensorFloat(GetLatentsShape(), latentModelInput);
 
                 // predict the noise residual
-                TensorInt timestep = _batchSize == 1 ?
-                    new TensorInt(t) :
-                    new TensorInt(new TensorShape(_batchSize), ArrayUtils.Full(_batchSize, t));
+                TensorInt timestep = new TensorInt(new TensorShape(_batchSize), ArrayUtils.Full(_batchSize, t));
                 TensorFloat noisePred = _unet.ExecuteModel(latentInputTensor, timestep, promptEmbeds);
                 noisePred.MakeReadable();
                 float[] noise = noisePred.ToReadOnlyArray();
