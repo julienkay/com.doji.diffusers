@@ -4,7 +4,7 @@ using UnityEngine;
 
 namespace Doji.AI.Diffusers {
 
-    internal class TextEncoder : IDisposable {
+    public class TextEncoder : IDisposable {
 
         /// <summary>
         /// Which <see cref="BackendType"/> to run the model with.
@@ -26,10 +26,6 @@ namespace Doji.AI.Diffusers {
         }
 
         private void InitializeNetwork(ModelAsset textEncoder) {
-            InitializeTextEncoder(textEncoder);
-        }
-
-        private void InitializeTextEncoder(ModelAsset textEncoder) {
             if (textEncoder == null) {
                 throw new ArgumentException("TextEncoder ModelAsset was null", nameof(textEncoder));
             }

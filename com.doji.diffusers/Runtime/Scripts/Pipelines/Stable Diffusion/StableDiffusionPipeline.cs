@@ -14,6 +14,7 @@ namespace Doji.AI.Diffusers {
     /// </remarks>
     public class StableDiffusionPipeline : IDisposable {
 
+        private VaeDecoder _vaeDecoder;
         private ClipTokenizer _tokenizer;
         private TextEncoder _textEncoder;
         private PNDMScheduler _scheduler;
@@ -27,24 +28,27 @@ namespace Doji.AI.Diffusers {
         /// Initializes a new stable diffusion pipeline.
         /// </summary>
         public StableDiffusionPipeline(
+            ModelAsset vaeDecoder,
             ModelAsset textEncoder,
             ClipTokenizer tokenizer,
             PNDMScheduler scheduler,
             ModelAsset unet,
             BackendType backend = BackendType.GPUCompute)
         {
+            _vaeDecoder = new VaeDecoder(vaeDecoder);
             _tokenizer = tokenizer;
             _textEncoder = new TextEncoder(textEncoder);
             _scheduler = scheduler;
             _unet = new Unet(unet);
         }
 
-        public void Execute(
+        public TensorFloat Execute(
             string prompt,
             int height = 512,
             int width = 512,
             int numInferenceSteps = 50,
-            float guidanceScale = 7.5f)
+            float guidanceScale = 7.5f,
+            Action<int, int, float[]> callback = null)
         {
             _height = height;
             _width = width;
@@ -82,10 +86,21 @@ namespace Doji.AI.Diffusers {
 
                 // compute the previous noisy sample x_t -> x_t-1
                 var schedulerOutput = _scheduler.Step(noise, t, latents);
-
                 latents = schedulerOutput.PrevSample;
+
+                callback?.Invoke(i / _scheduler.Order, t, latents);
             }
 
+            for (int l = 0; l < latents.Length; l++) {
+                latents[l] = 1.0f / 0.18215f * latents[l];
+            }
+
+            // batch
+            if (_batchSize > 1) {
+                throw new NotImplementedException();
+            } else {
+                return _vaeDecoder.ExecuteModel(new TensorFloat(GetLatentsShape(), latents));
+            }
         }
 
         private TensorFloat EncodePrompt(

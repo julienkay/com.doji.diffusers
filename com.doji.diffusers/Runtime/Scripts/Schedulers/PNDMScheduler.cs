@@ -30,6 +30,7 @@ namespace Doji.AI.Diffusers {
 
     public class PNDMScheduler {
 
+        public int Order { get { return 1; } }
         public int NumTrainTimesteps { get; set; }
         public float BetaStart { get; set; }
         public float BetaEnd { get; set; }
