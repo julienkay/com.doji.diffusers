@@ -123,6 +123,7 @@ namespace Doji.AI.Diffusers {
             }
             
             if (SkipPrkSteps) {
+                PrkTimesteps = new int[0];
                 // for some models like stable diffusion the prk steps can/should be skipped to
                 // produce better results. When using PNDM with SkipPrkSteps the implementation
                 // is based on crowsonkb's PLMS sampler implementation: https://github.com/CompVis/latent-diffusion/pull/51
