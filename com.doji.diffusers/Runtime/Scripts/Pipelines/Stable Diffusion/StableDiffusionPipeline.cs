@@ -72,6 +72,8 @@ namespace Doji.AI.Diffusers {
                 // predict the noise residual
                 TensorInt timestep = new TensorInt(new TensorShape(_batchSize), ArrayUtils.Full(_batchSize, t));
                 TensorFloat noisePred = _unet.ExecuteModel(latentInputTensor, timestep, promptEmbeds);
+                latentInputTensor.Dispose();
+                timestep.Dispose();
                 noisePred.MakeReadable();
                 float[] noise = noisePred.ToReadOnlyArray();
 
@@ -97,7 +99,10 @@ namespace Doji.AI.Diffusers {
             if (_batchSize > 1) {
                 throw new NotImplementedException();
             } else {
-                return _vaeDecoder.ExecuteModel(new TensorFloat(GetLatentsShape(), latents));
+                TensorFloat latentSample = new TensorFloat(GetLatentsShape(), latents);
+                TensorFloat image = _vaeDecoder.ExecuteModel(latentSample);
+                latentSample.Dispose();
+                return image;
             }
         }
 
