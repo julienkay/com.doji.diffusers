@@ -159,6 +159,9 @@ namespace Doji.AI.Diffusers {
 
         public void Dispose() {
             _textEncoder?.Dispose();
+            _vaeDecoder?.Dispose();
+            _textEncoder?.Dispose();
+            _unet?.Dispose();
         }
     }
 }
