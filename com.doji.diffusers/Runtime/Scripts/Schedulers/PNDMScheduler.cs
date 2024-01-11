@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 using System;
 
@@ -122,16 +122,16 @@ namespace Doji.AI.Diffusers {
             }
             
             if (SkipPrkSteps) {
-                // # for some models like stable diffusion the prk steps can/should be skipped to
-                // # produce better results. When using PNDM with `self.config.skip_prk_steps` the implementation
-                // # is based on crowsonkb's PLMS sampler implementation: https://github.com/CompVis/latent-diffusion/pull/51
+                // for some models like stable diffusion the prk steps can/should be skipped to
+                // produce better results. When using PNDM with SkipPrkSteps the implementation
+                // is based on crowsonkb's PLMS sampler implementation: https://github.com/CompVis/latent-diffusion/pull/51
                 PlmsTimesteps = Timesteps[..^1].Concat(Timesteps[^2..^1])
                                                .Concat(Timesteps[^1..])
                                                .Reverse()
                                                .ToArray();
                 Timesteps = PlmsTimesteps;
             } else {
-                //throw new NotImplementedException("SkipPrkSteps not implemented yet.");
+                throw new NotImplementedException("PrkTimesteps not implemented yet.");
             }
 
             Ets = new List<object>();
@@ -178,12 +178,101 @@ namespace Doji.AI.Diffusers {
             }
         }
 
+        /// <summary>
+        /// Predict the sample from the previous timestep by reversing the SDE.
+        /// This function propagates the sample with the Runge-Kutta method.
+        /// It performs four forward passes to approximate the solution to the
+        /// differential equation.
+        /// </summary>
         private SchedulerOutput StepPrk(float[] modelOutput, int timestep, float[] sample) {
-            throw new NotImplementedException();
+            throw new NotImplementedException("PrkTimesteps not implemented yet.");
         }
 
+        /// <summary>
+        /// Predict the sample from the previous timestep by reversing the SDE.
+        /// This function propagates the sample with the linear multistep method.
+        /// It performs one forward pass multiple times to approximate the solution.
+        /// </summary>
         private SchedulerOutput StepPlms(float[] modelOutput, int timestep, float[] sample) {
-            throw new NotImplementedException();
+            if (NumInferenceSteps == 0) {
+                throw new ArgumentException("Number of inference steps is 0. " +
+                    "Make sure to run SetTimesteps() after creating the scheduler");
+            }
+
+            if (!SkipPrkSteps && Ets.Count < 3) {
+                throw new ArgumentException($"{GetType()} can only be run AFTER scheduler has been run " +
+                    "in 'prk' mode for at least 12 iterations.");
+            }
+
+            int prevTimestep = timestep - NumTrainTimesteps / NumInferenceSteps;
+
+            if (Counter != 1) {
+                Ets = Ets.GetRange(Math.Max(0, Ets.Count - 3), Math.Min(Ets.Count, 3));
+                Ets.Add(modelOutput);
+            } else {
+                prevTimestep = timestep;
+                timestep += NumTrainTimesteps / NumInferenceSteps;
+            }
+
+            float[] prevSample = GetPrevSample(sample, timestep, prevTimestep, modelOutput);
+            Counter++;
+
+            return new SchedulerOutput(prevSample);
+        }
+
+        /// <summary>
+        /// Ensures interchangeability with schedulers that need to scale
+        /// the denoising model input depending on the current timestep.
+        /// </summary>
+        public float[] ScaleModelInput(float[] latentModelInput, int t) {
+            return latentModelInput;
+        }
+
+        /// <summary>
+        /// See formula (9) of PNDM paper https://arxiv.org/pdf/2202.09778.pdf
+        /// this function computes x_(t−δ) using the formula of (9)
+        /// Note that x_t needs to be added to both sides of the equation
+        /// </summary>
+        private float[] GetPrevSample(float[] sample, int timestep, int prevTimestep, float[] modelOutput) {
+            // Notation (<variable name> -> <name in paper>
+            // alphaProdT -> α_t
+            // alphaProdTPrev -> α_(t−δ)
+            // betaProdT -> (1 - α_t)
+            // betaProdTPrev -> (1 - α_(t−δ))
+            // sample -> x_t
+            // model_output -> e_θ(x_t, t)
+            // prev_sample -> x_(t−δ)
+
+            double alphaProdT = AlphasCumprod[timestep];
+            double alphaProdTPrev = (prevTimestep >= 0) ? AlphasCumprod[prevTimestep] : FinalAlphaCumprod;
+            double betaProdT = 1 - alphaProdT;
+            double betaProdTPrev = 1 - alphaProdTPrev;
+
+            if (PredictionType == Prediction.V_Prediction) {
+                for (int i = 0; i < modelOutput.Length; i++) {
+                    modelOutput[i] = (float)(Math.Sqrt(alphaProdT) * modelOutput[i] + Math.Sqrt(betaProdT) * sample[i]);
+                }
+            } else if (PredictionType != Prediction.Epsilon) {
+                throw new ArgumentException($"prediction_type given as {PredictionType} must be one of `epsilon` or `v_prediction`");
+            }
+
+            // corresponds to (α_(t−δ) - α_t) divided by
+            // denominator of x_t in formula (9) and plus 1
+            // Note: (α_(t−δ) - α_t) / (sqrt(α_t) * (sqrt(α_(t−δ)) + sqr(α_t))) =
+            // sqrt(α_(t−δ)) / sqrt(α_t))
+            double sampleCoeff = Math.Pow(alphaProdTPrev / alphaProdT, 0.5);
+
+            // corresponds to denominator of e_θ(x_t, t) in formula (9)
+            double modelOutputDenomCoeff = alphaProdT * Math.Pow(betaProdTPrev, 0.5) +
+                Math.Pow(alphaProdT * betaProdT * alphaProdTPrev, 0.5);
+
+            // full formula (9)
+            float[] prevSample = new float[sample.Length];
+            for (int i = 0; i < sample.Length; i++) {
+                prevSample[i] = (float)(sampleCoeff * sample[i] - (alphaProdTPrev - alphaProdT) * modelOutput[i] / modelOutputDenomCoeff);
+            }
+
+            return prevSample;
         }
 
         /// <summary>
@@ -243,14 +332,6 @@ namespace Doji.AI.Diffusers {
             }
 
             return result;
-        }
-
-        /// <summary>
-        /// Ensures interchangeability with schedulers that need to scale
-        /// the denoising model input depending on the current timestep.
-        /// </summary>
-        public float[] ScaleModelInput(float[] latentModelInput, int t) {
-            return latentModelInput;
         }
     }
 }

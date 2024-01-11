@@ -136,7 +136,7 @@ namespace Doji.AI.Diffusers {
         }
 
         private float[] GenerateLatents() {
-            int size = _batchSize * 4 * _height * _width;
+            int size = GetLatentsShape().length;
             return ArrayUtils.Randn(size, 0, _scheduler.InitNoiseSigma);
         }
 
