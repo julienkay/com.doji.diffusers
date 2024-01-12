@@ -119,16 +119,16 @@ namespace Doji.AI.Diffusers {
 
             int batchSize = 1;
 
-            var text_inputs = _tokenizer.Encode(
+            var textInputs = _tokenizer.Encode(
                 prompt,
                 padding: Padding.MaxLength,
                 maxLength: _tokenizer.ModelMaxLength,
                 truncation: Truncation.LongestFirst
             );
-            List<int> textInputIds = text_inputs.InputIds ?? throw new Exception("Failed to get input ids from tokenizer.");
+            List<int> textInputIds = textInputs.InputIds ?? throw new Exception("Failed to get input ids from tokenizer.");
 
             TensorInt tensor = new TensorInt(new TensorShape(batchSize, textInputIds.Count), textInputIds.ToArray());
-            promptEmbeds = _textEncoder.ExecuteModel(tensor) as TensorFloat;
+            promptEmbeds = _textEncoder.ExecuteModel(tensor);
             tensor.Dispose();
 
             // get unconditional embeddings for classifier free guidance

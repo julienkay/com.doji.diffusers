@@ -36,7 +36,7 @@ namespace Doji.AI.Diffusers {
             _allocator = new TensorCachingAllocator();
         }
 
-        public Tensor ExecuteModel(TensorInt inputIds) {
+        public TensorFloat ExecuteModel(TensorInt inputIds) {
             if (inputIds is null) {
                 throw new ArgumentNullException(nameof(inputIds));
             }
@@ -48,7 +48,7 @@ namespace Doji.AI.Diffusers {
             }
 
             _worker.Execute(inputIds);
-            return _worker.PeekOutput("last_hidden_state");
+            return _worker.PeekOutput("last_hidden_state") as TensorFloat;
         }
 
         public void Dispose() {
