@@ -34,12 +34,12 @@ namespace Doji.AI.Diffusers {
 
             // bake normallization into model
             // would rather use temp ops, but that leaks memory
-            string output = _model.outputs[0];
+            /*string output = _model.outputs[0];
             _model.layers.Add(new Unity.Sentis.Layers.ConstantOfShape("TWO", output, 2f));
             _model.layers.Add(new Unity.Sentis.Layers.ConstantOfShape("HALF", output, 0.5f));
             _model.layers.Add(new Unity.Sentis.Layers.Div("out / 2", output, "TWO"));
             _model.layers.Add(new Unity.Sentis.Layers.Add("sample_normalized", "out / 2", "HALF"));
-            _model.outputs = new List<string>() { output, "sample_normalized" };
+            _model.outputs = new List<string>() { output, "sample_normalized" };*/
 
             _worker = WorkerFactory.CreateWorker(Backend, _model);
         }
@@ -56,7 +56,7 @@ namespace Doji.AI.Diffusers {
             }
 
             _worker.Execute(latentSample);
-            return _worker.PeekOutput("sample_normalized") as TensorFloat;
+            return _worker.PeekOutput("sample") as TensorFloat;
         }
 
         public void Dispose() {
