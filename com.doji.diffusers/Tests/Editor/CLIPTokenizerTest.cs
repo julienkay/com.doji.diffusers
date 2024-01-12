@@ -9,7 +9,6 @@ namespace Doji.AI.Diffusers.Editor.Tests {
 
         [Test]
         public void TestCLIPEncode() {
-
             ClipTokenizer tokenizer = new ClipTokenizer(Vocab, Merges);
 
             string prompt = "a cat";
@@ -28,7 +27,6 @@ namespace Doji.AI.Diffusers.Editor.Tests {
 
         [Test]
         public void TestCLIPTokenize() {
-
             ClipTokenizer tokenizer = new ClipTokenizer(Vocab, Merges);
 
             string prompt = "a cat";
