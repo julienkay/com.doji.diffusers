@@ -23,11 +23,11 @@ namespace Doji.AI.Diffusers.Editor.Tests {
             }
         }
 
-        public string[] Merges {
+        public string Merges {
             get {
                 string path = Path.Combine("tokenizer", "merges");
                 TextAsset mergesFile = Resources.Load<TextAsset>(path);
-                return mergesFile.text.Split(new[] { Environment.NewLine }, StringSplitOptions.None);
+                return mergesFile.text;
             }
         }
     }

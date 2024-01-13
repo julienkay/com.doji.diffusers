@@ -32,8 +32,6 @@ namespace Doji.AI.Diffusers.Editor.Tests {
             string prompt = "a cat";
             List<string> tokens = tokenizer.Tokenize(prompt);
 
-            Debug.Log(string.Join(", ", tokens));
-
             List<string> expected = new List<string>() { "a</w>", "cat</w>" };
             CollectionAssert.AreEqual(expected, tokens);
         }
