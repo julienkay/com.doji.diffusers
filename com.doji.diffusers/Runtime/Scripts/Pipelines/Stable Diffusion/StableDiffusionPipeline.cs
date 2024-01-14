@@ -53,6 +53,8 @@ namespace Doji.AI.Diffusers {
             _height = height;
             _width = width;
             _batchSize = 1;
+            CheckInputs();
+
             bool doClassifierFreeGuidance = guidanceScale > 1.0f;
 
             TensorFloat promptEmbeds = EncodePrompt(prompt, doClassifierFreeGuidance);
@@ -103,6 +105,12 @@ namespace Doji.AI.Diffusers {
                 TensorFloat image = _vaeDecoder.ExecuteModel(latentSample);
                 latentSample.Dispose();
                 return image;
+            }
+        }
+
+        private void CheckInputs() {
+            if (_height % 8 != 0 || _width % 8 != 0) {
+                throw new ArgumentException($"`height` and `width` have to be divisible by 8 but are {_height} and {_width}.");
             }
         }
 
