@@ -7,9 +7,29 @@ namespace Doji.AI.Diffusers.Editor.Tests {
 
     public class CLIPTokenizerTest : TestBase {
 
+        /// <summary>
+        /// Tests clip encoding without any padding and truncation
+        /// </summary>
+        [Test]
+        public void TestCLIPEncodeSimple() {
+            ClipTokenizer tokenizer = GetSDCLIPTokenizer();
+
+            string prompt = "a cat";
+            List<int> inputIds = tokenizer.Encode(prompt).InputIds;
+
+            Debug.Log(string.Join(", ", inputIds));
+
+            List<int> expected = new List<int>() { 49406, 320, 2368, 49407 };
+            CollectionAssert.AreEqual(expected, inputIds);
+        }
+
+        /// <summary>
+        /// Tests clip encoding with the same padding and truncation settings
+        /// as in the Stable Diffusion pipelines.
+        /// </summary>
         [Test]
         public void TestCLIPEncode() {
-            ClipTokenizer tokenizer = new ClipTokenizer(Vocab, Merges);
+            ClipTokenizer tokenizer = GetSDCLIPTokenizer();
 
             string prompt = "a cat";
             List<int> inputIds = tokenizer.Encode(
@@ -21,13 +41,22 @@ namespace Doji.AI.Diffusers.Editor.Tests {
 
             Debug.Log(string.Join(", ", inputIds));
 
-            List<int> expected = new List<int>() { 49406, 320, 2368, 49407 };
+            List<int> expected = new List<int>() {
+                49406,   320,  2368, 49407, 49407, 49407, 49407, 49407, 49407, 49407,
+                49407, 49407, 49407, 49407, 49407, 49407, 49407, 49407, 49407, 49407,
+                49407, 49407, 49407, 49407, 49407, 49407, 49407, 49407, 49407, 49407,
+                49407, 49407, 49407, 49407, 49407, 49407, 49407, 49407, 49407, 49407,
+                49407, 49407, 49407, 49407, 49407, 49407, 49407, 49407, 49407, 49407,
+                49407, 49407, 49407, 49407, 49407, 49407, 49407, 49407, 49407, 49407,
+                49407, 49407, 49407, 49407, 49407, 49407, 49407, 49407, 49407, 49407,
+                49407, 49407, 49407, 49407, 49407, 49407, 49407
+            };
             CollectionAssert.AreEqual(expected, inputIds);
         }
 
         [Test]
         public void TestCLIPTokenize() {
-            ClipTokenizer tokenizer = new ClipTokenizer(Vocab, Merges);
+            ClipTokenizer tokenizer = GetSDCLIPTokenizer();
 
             string prompt = "a cat";
             List<string> tokens = tokenizer.Tokenize(prompt);

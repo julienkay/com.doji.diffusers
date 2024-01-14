@@ -35,15 +35,15 @@ namespace Doji.AI.Diffusers {
             _worker = WorkerFactory.CreateWorker(Backend, _model);
         }
 
-        public TensorFloat ExecuteModel(TensorFloat latentInputTensor, TensorInt timestep, TensorFloat promptEmbeds) {
-            if (latentInputTensor is null) {
-                throw new ArgumentNullException(nameof(latentInputTensor));
+        public TensorFloat ExecuteModel(TensorFloat sample, TensorInt timestep, TensorFloat encoderHiddenStates) {
+            if (sample is null) {
+                throw new ArgumentNullException(nameof(sample));
             }
             if (timestep is null) {
                 throw new ArgumentNullException(nameof(timestep));
             }
-            if (promptEmbeds is null) {
-                throw new ArgumentNullException(nameof(promptEmbeds));
+            if (encoderHiddenStates is null) {
+                throw new ArgumentNullException(nameof(encoderHiddenStates));
             }
             if (_model == null) {
                 throw new NullReferenceException($"{nameof(_model)} was null");
@@ -52,9 +52,9 @@ namespace Doji.AI.Diffusers {
                 throw new NullReferenceException($"{nameof(_worker)} was null");
             }
 
-            _inputs["sample"] = latentInputTensor;
+            _inputs["sample"] = sample;
             _inputs["timestep"] = timestep;
-            _inputs["encoder_hidden_states"] = promptEmbeds;
+            _inputs["encoder_hidden_states"] = encoderHiddenStates;
 
             _worker.Execute(_inputs);
             return _worker.PeekOutput("out_sample") as TensorFloat;

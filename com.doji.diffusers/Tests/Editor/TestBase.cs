@@ -30,5 +30,19 @@ namespace Doji.AI.Diffusers.Editor.Tests {
                 return mergesFile.text;
             }
         }
+        public TokenizerConfig TokenizerConfig {
+            get {
+                string path = Path.Combine("tokenizer", "tokenizer_config");
+                TextAsset vocabFile = Resources.Load<TextAsset>(path);
+                return TokenizerConfig.Deserialize(vocabFile.text);
+            }
+        }
+
+        /// <summary>
+        /// Returns a CLIP tokenizer as used with Stable Diffusion 1.5
+        /// </summary>
+        protected ClipTokenizer GetSDCLIPTokenizer() {
+            return new ClipTokenizer(Vocab, Merges, TokenizerConfig);
+        }
     }
 }
