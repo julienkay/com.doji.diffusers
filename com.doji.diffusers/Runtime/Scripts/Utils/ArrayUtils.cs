@@ -114,7 +114,7 @@ namespace Doji.AI.Diffusers {
             }
 
             float[] result = new float[num];
-            float step = (stop - start) / (float)(num - 1);
+            float step = (stop - start) / (num - 1);
 
             for (int i = 0; i < num; i++) {
                 result[i] = start + i * step;

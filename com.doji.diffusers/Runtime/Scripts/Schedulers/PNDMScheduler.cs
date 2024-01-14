@@ -80,15 +80,13 @@ namespace Doji.AI.Diffusers {
             if (trainedBetas != null) {
                 Betas = trainedBetas;
             } else if (betaSchedule == Schedule.Linear) {
-                Betas = Enumerable.Range(0, numTrainTimesteps)
-                                  .Select(i => betaStart + (betaEnd - betaStart) * i / (numTrainTimesteps - 1))
-                                  .ToArray();
+                Betas = ArrayUtils.Linspace(betaStart, betaEnd, numTrainTimesteps);
             } else if (betaSchedule == Schedule.ScaledLinear) {
-                Betas = Enumerable.Range(0, numTrainTimesteps)
-                                  .Select(i => MathF.Pow(betaStart, 0.5f) + (MathF.Pow(betaEnd, 0.5f) - MathF.Pow(betaStart, 0.5f)) * i / (numTrainTimesteps - 1))
-                                  .Select(x => MathF.Pow(x, 2))
-                                  .ToArray();
+                // this schedule is very specific to the latent diffusion model.
+                Betas = ArrayUtils.Linspace(MathF.Pow(betaStart, 0.5f), MathF.Pow(betaEnd, 0.5f), numTrainTimesteps)
+                    .Select(x => MathF.Pow(x, 2)).ToArray();
             } else if (betaSchedule == Schedule.SquaredCosCapV2) {
+                // Glide cosine schedule
                 Betas = BetasForAlphaBar(numTrainTimesteps);
             } else {
                 throw new NotImplementedException($"{betaSchedule} is not implemented for {GetType().Name}");
@@ -141,6 +139,15 @@ namespace Doji.AI.Diffusers {
             CurModelOutput = 0;
         }
 
+        /// <summary>
+        /// Create a beta schedule that discretizes the given alpha_t_bar function,
+        /// which defines the cumulative product of (1-beta) over time from t = [0, 1].
+        /// Contains a function alpha_bar that takes an argument t and transforms it to
+        /// the cumulative product of(1-beta) up to that part of the diffusion process.
+        /// </summary>
+        /// <remarks>
+        /// TODO: needs tests
+        /// </remarks>
         private static float[] BetasForAlphaBar(
             int numDiffusionTimesteps,
             float maxBeta = 0.999f,
