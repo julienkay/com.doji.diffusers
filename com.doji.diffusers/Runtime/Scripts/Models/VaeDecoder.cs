@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using Unity.Sentis;
 using UnityEngine;
 
@@ -18,6 +17,8 @@ namespace Doji.AI.Diffusers {
         private Model _model;
 
         private IWorker _worker;
+        ITensorAllocator _allocator;
+        Ops _ops;
 
         public VaeDecoder(ModelAsset modelAsset, BackendType backend = BackendType.GPUCompute) {
             Backend = backend;
@@ -32,16 +33,9 @@ namespace Doji.AI.Diffusers {
             _model = ModelLoader.Load(vaeDecoder);
             Resources.UnloadAsset(vaeDecoder);
 
-            // bake normallization into model
-            // would rather use temp ops, but that leaks memory
-            /*string output = _model.outputs[0];
-            _model.layers.Add(new Unity.Sentis.Layers.ConstantOfShape("TWO", output, 2f));
-            _model.layers.Add(new Unity.Sentis.Layers.ConstantOfShape("HALF", output, 0.5f));
-            _model.layers.Add(new Unity.Sentis.Layers.Div("out / 2", output, "TWO"));
-            _model.layers.Add(new Unity.Sentis.Layers.Add("sample_normalized", "out / 2", "HALF"));
-            _model.outputs = new List<string>() { output, "sample_normalized" };*/
-
             _worker = WorkerFactory.CreateWorker(Backend, _model);
+            _allocator = new TensorCachingAllocator();
+            _ops = WorkerFactory.CreateOps(Backend, _allocator);
         }
 
         public TensorFloat ExecuteModel(TensorFloat latentSample) {
@@ -56,11 +50,17 @@ namespace Doji.AI.Diffusers {
             }
 
             _worker.Execute(latentSample);
-            return _worker.PeekOutput("sample") as TensorFloat;
+            TensorFloat sample = _worker.PeekOutput("sample") as TensorFloat;
+            TensorFloat image_div_2 = _ops.Div(sample, 2);
+            TensorFloat normalized = _ops.Add(image_div_2, 0.5f);
+            TensorFloat image = _ops.Clip(normalized, 0.0f, 1.0f);
+            return image;
         }
 
         public void Dispose() {
             _worker?.Dispose();
+            _ops?.Dispose();
+            _allocator.Dispose();
         }
     }
 }
