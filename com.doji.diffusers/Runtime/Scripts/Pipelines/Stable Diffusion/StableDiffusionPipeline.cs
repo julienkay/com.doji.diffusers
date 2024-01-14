@@ -159,7 +159,7 @@ namespace Doji.AI.Diffusers {
         }
 
         private TensorShape GetLatentsShape() {
-            return new TensorShape(_batchSize, 4, _height, _width);
+            return new TensorShape(_batchSize, 4 /* unet.in_channels */, _height / 8, _width / 8);
         }
 
         public void Dispose() {
