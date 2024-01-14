@@ -57,7 +57,7 @@ namespace Doji.AI.Diffusers {
 
             bool doClassifierFreeGuidance = guidanceScale > 1.0f;
 
-            TensorFloat promptEmbeds = EncodePrompt(prompt, doClassifierFreeGuidance);
+            using TensorFloat promptEmbeds = EncodePrompt(prompt, doClassifierFreeGuidance);
             _scheduler.SetTimesteps(numInferenceSteps);
 
             // get the initial random noise
@@ -69,13 +69,12 @@ namespace Doji.AI.Diffusers {
                 // expand the latents if doing classifier free guidance
                 float[] latentModelInput = doClassifierFreeGuidance ? latents.Repeat() : latents;
                 latentModelInput = _scheduler.ScaleModelInput(latentModelInput, t);
-                TensorFloat latentInputTensor = new TensorFloat(GetLatentsShape(), latentModelInput);
+                using TensorFloat latentInputTensor = new TensorFloat(GetLatentsShape(), latentModelInput);
 
                 // predict the noise residual
-                TensorInt timestep = new TensorInt(new TensorShape(_batchSize), ArrayUtils.Full(_batchSize, t));
+                using TensorInt timestep = new TensorInt(new TensorShape(_batchSize), ArrayUtils.Full(_batchSize, t));
                 TensorFloat noisePred = _unet.ExecuteModel(latentInputTensor, timestep, promptEmbeds);
-                latentInputTensor.Dispose();
-                timestep.Dispose();
+
                 noisePred.MakeReadable();
                 float[] noise = noisePred.ToReadOnlyArray();
 
@@ -101,9 +100,8 @@ namespace Doji.AI.Diffusers {
             if (_batchSize > 1) {
                 throw new NotImplementedException();
             } else {
-                TensorFloat latentSample = new TensorFloat(GetLatentsShape(), latents);
+                using TensorFloat latentSample = new TensorFloat(GetLatentsShape(), latents);
                 TensorFloat image = _vaeDecoder.ExecuteModel(latentSample);
-                latentSample.Dispose();
                 return image;
             }
         }
