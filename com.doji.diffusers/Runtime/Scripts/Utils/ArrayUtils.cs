@@ -26,7 +26,42 @@ namespace Doji.AI.Diffusers {
             return z * stdDev + mean;
         }
 
-        public static T[] Concat<T>(this T[] array1, T[] array2) {
+        /// <summary>
+        /// Convenience method to access <see cref="Array.Reverse(Array)"/>.
+        /// Reverses the array in-place and returns the original array.
+        /// </summary>
+        public static T[] Reverse<T>(this T[] array) {
+            if (array == null) {
+                throw new ArgumentNullException(nameof(array));
+            }
+            Array.Reverse(array);
+            return array;
+        }
+
+        /// <summary>
+        /// Concatenates multiple arrays of the specified generic type into a new array.
+        /// </summary>
+        public static T[] Concatenate<T>(params T[][] arrays) {
+            int totalLength = 0;
+            foreach (T[] array in arrays) {
+                totalLength += array.Length;
+            }
+
+            T[] result = new T[totalLength];
+
+            int currentIndex = 0;
+            foreach (T[] array in arrays) {
+                Array.Copy(array, 0, result, currentIndex, array.Length);
+                currentIndex += array.Length;
+            }
+
+            return result;
+        }
+
+        /// <summary>
+        /// Concatenates two arrays of the specified generic type into a new array.
+        /// </summary>
+        public static T[] Concatenate<T>(this T[] array1, T[] array2) {
             if (array1 == null) {
                 throw new ArgumentNullException(nameof(array1));
             }
@@ -41,17 +76,68 @@ namespace Doji.AI.Diffusers {
             return resultArray;
         }
 
+
         /// <summary>
-        /// Takes a array, repeats it twice and returns the repeated sequence as a new array.
+        /// Takes a array, repeats it returns the repeated sequence as a new array.
+        /// numpy.tile
         /// </summary>
-        public static T[] Repeat<T>(this T[] array) {
+        public static T[] Tile<T>(this T[] array, int repeats) {
             if (array == null) {
                 throw new ArgumentNullException(nameof(array));
             }
-            T[] repeatedArray = new T[array.Length * 2];
-            Array.Copy(array, 0, repeatedArray, 0, array.Length);
-            Array.Copy(array, 0, repeatedArray, array.Length, array.Length);
+            if (repeats <= 0) {
+                throw new ArgumentException("Repeat count must be greater than zero.", nameof(repeats));
+            }
+
+            T[] repeatedArray = new T[array.Length * repeats];
+
+            for (int i = 0; i < repeats; i++) {
+                Array.Copy(array, 0, repeatedArray, i * array.Length, array.Length);
+            }
+
             return repeatedArray;
+        }
+
+        /// <summary>
+        /// Repeat each element of an array after themselves
+        /// numpy.repeat
+        /// </summary>
+        public static T[] Repeat<T>(this T[] array, int repeats) {
+            if (array == null) {
+                throw new ArgumentNullException(nameof(array));
+            }
+            if (repeats <= 0) {
+                throw new ArgumentException("Number of repeats must be greater than zero.", nameof(repeats));
+            }
+
+            int length = array.Length;
+            T[] result = new T[length * repeats];
+
+            for (int i = 0; i < length; i++) {
+                T item = array[i];
+                for (int j = 0; j < repeats; j++) {
+                    result[i * repeats + j] = item;
+                }
+            }
+
+            return result;
+        }
+
+        /// <summary>
+        /// Performs element-wise addition on two integer arrays, producing a new array with the result.
+        /// </summary>
+        public static int[] Add(this int[] array1, int[] array2) {
+            if (array1.Length != array2.Length) {
+                throw new ArgumentException("Arrays must have the same length");
+            }
+
+            int[] resultArray = new int[array1.Length];
+
+            for (int i = 0; i < array1.Length; i++) {
+                resultArray[i] = array1[i] + array2[i];
+            }
+
+            return resultArray;
         }
 
         /// <summary>

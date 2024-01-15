@@ -67,7 +67,7 @@ namespace Doji.AI.Diffusers {
                 int t = _scheduler.Timesteps[i];
 
                 // expand the latents if doing classifier free guidance
-                float[] latentModelInput = doClassifierFreeGuidance ? latents.Repeat() : latents;
+                float[] latentModelInput = doClassifierFreeGuidance ? latents.Tile(2) : latents;
                 latentModelInput = _scheduler.ScaleModelInput(latentModelInput, t);
                 using TensorFloat latentInputTensor = new TensorFloat(GetLatentsShape(), latentModelInput);
 

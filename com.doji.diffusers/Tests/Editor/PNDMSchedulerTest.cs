@@ -1,5 +1,4 @@
 using NUnit.Framework;
-using System.Linq;
 using UnityEngine.TestTools.Utils;
 
 namespace Doji.AI.Diffusers.Editor.Tests {
@@ -157,7 +156,7 @@ namespace Doji.AI.Diffusers.Editor.Tests {
         [Test]
         public void TestInit() {
             Assert.That(_scheduler.Timesteps, Is.Not.Null);
-            Assert.That(_scheduler.Timesteps.Count, Is.EqualTo(1000));
+            Assert.That(_scheduler.Timesteps.Length, Is.EqualTo(1000));
             for (int i = 0; i < 1000; i++) {
                 Assert.That(_scheduler.Timesteps[i], Is.EqualTo(1000 - i - 1));
             }
@@ -165,6 +164,7 @@ namespace Doji.AI.Diffusers.Editor.Tests {
 
         /// <summary>
         /// Test the expected beta values for the default value <see cref="Schedule.ScaledLinear"/>
+        /// after initialization
         /// </summary>
         [Test]
         public void TestBetas() {
@@ -174,6 +174,28 @@ namespace Doji.AI.Diffusers.Editor.Tests {
         [Test]
         public void TestFinalAlphaCumprod() {
             Assert.That(_scheduler.FinalAlphaCumprod, Is.EqualTo(0.9991f).Using(new FloatEqualityComparer(0.0001f)));
+        }
+
+        private static int[][] _expectedTimesteps = new int[][] {
+            new int[] { 901, 801, 801, 701, 601, 501, 401, 301, 201, 101, 1 },
+            new int[] { 901, 851, 851, 801, 801, 751, 751, 701, 701, 651, 651, 601, 601, 501, 401, 301, 201, 101, 1 }
+        };
+
+        [Test, Sequential]
+        public void TestStepsOffset(
+            [Values(true, false)] bool skipPrkSteps,
+            [ValueSource(nameof(_expectedTimesteps))] int[] expected)
+        {
+            var scheduler = new PNDMScheduler(
+                  betaEnd: 0.02f,
+                  betaSchedule: Schedule.Linear,
+                  betaStart: 0.0001f,
+                  numTrainTimesteps: 1000,
+                  stepsOffset: 1,
+                  skipPrkSteps: skipPrkSteps
+            );
+            scheduler.SetTimesteps(10);
+            CollectionAssert.AreEqual(expected, scheduler.Timesteps);
         }
     }
 }

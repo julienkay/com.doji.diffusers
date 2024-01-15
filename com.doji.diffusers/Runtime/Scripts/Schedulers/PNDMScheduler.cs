@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
 using System;
+using static Doji.AI.Diffusers.ArrayUtils;
 
 namespace Doji.AI.Diffusers {
 
@@ -45,7 +46,7 @@ namespace Doji.AI.Diffusers {
         public float FinalAlphaCumprod { get; private set; }
         public float InitNoiseSigma { get { return 1.0f; } }
         public int PndmOrder { get; private set; }
-        public int CurModelOutput { get; set; }
+        public float[] CurModelOutput { get; set; }
         public int Counter { get; set; }
         public object CurSample { get; set; }
         public List<object> Ets { get; private set; }
@@ -80,10 +81,10 @@ namespace Doji.AI.Diffusers {
             if (trainedBetas != null) {
                 Betas = trainedBetas;
             } else if (betaSchedule == Schedule.Linear) {
-                Betas = ArrayUtils.Linspace(betaStart, betaEnd, numTrainTimesteps);
+                Betas = Linspace(betaStart, betaEnd, numTrainTimesteps);
             } else if (betaSchedule == Schedule.ScaledLinear) {
                 // this schedule is very specific to the latent diffusion model.
-                Betas = ArrayUtils.Linspace(MathF.Pow(betaStart, 0.5f), MathF.Pow(betaEnd, 0.5f), numTrainTimesteps)
+                Betas = Linspace(MathF.Pow(betaStart, 0.5f), MathF.Pow(betaEnd, 0.5f), numTrainTimesteps)
                     .Select(x => MathF.Pow(x, 2)).ToArray();
             } else if (betaSchedule == Schedule.SquaredCosCapV2) {
                 // Glide cosine schedule
@@ -100,7 +101,7 @@ namespace Doji.AI.Diffusers {
             // For more information on the algorithm please take a look at the paper: https://arxiv.org/pdf/2202.09778.pdf
             // mainly at formula (9), (12), (13) and the Algorithm 2.
             PndmOrder = 4;
-            Timesteps = Enumerable.Range(0, numTrainTimesteps).Reverse().ToArray();
+            Timesteps = Arange(0, numTrainTimesteps).Reverse();
         }
 
         /// <summary>
@@ -125,18 +126,24 @@ namespace Doji.AI.Diffusers {
                 // for some models like stable diffusion the prk steps can/should be skipped to
                 // produce better results. When using PNDM with SkipPrkSteps the implementation
                 // is based on crowsonkb's PLMS sampler implementation: https://github.com/CompVis/latent-diffusion/pull/51
-                PlmsTimesteps = Timesteps[..^1].Concat(Timesteps[^2..^1])
-                                               .Concat(Timesteps[^1..])
-                                               .Reverse()
-                                               .ToArray();
+                PlmsTimesteps = Concatenate(
+                    Timesteps[..^1],
+                    Timesteps[^2..^1],
+                    Timesteps[^1..])
+                    .Reverse();
                 Timesteps = PlmsTimesteps;
             } else {
-                throw new NotImplementedException("PrkTimesteps not implemented yet.");
+                int[] tileArray = new int[] { 0, NumTrainTimesteps / NumInferenceSteps / 2 }.Tile(PndmOrder);
+                PrkTimesteps = Timesteps[^PndmOrder..].Repeat(2).Add(tileArray);
+                PrkTimesteps = PrkTimesteps[..^1].Repeat(2)[1..^1].Reverse();
+                PlmsTimesteps = Timesteps[..^3].Reverse();
+
+                Timesteps = PrkTimesteps.Concatenate(PlmsTimesteps);
             }
 
-            Ets = new List<object>();
+            Ets.Clear();
             Counter = 0;
-            CurModelOutput = 0;
+            CurModelOutput = null;
         }
 
         /// <summary>
@@ -194,7 +201,47 @@ namespace Doji.AI.Diffusers {
         /// differential equation.
         /// </summary>
         private SchedulerOutput StepPrk(float[] modelOutput, int timestep, float[] sample) {
-            throw new NotImplementedException("PrkTimesteps not implemented yet.");
+            if (NumInferenceSteps == 0) {
+                throw new ArgumentException("Number of inference steps is '0', you need to run 'SetTimesteps' after creating the scheduler");
+            }
+
+            int diffToPrev = (Counter % 2 == 0) ? 0 : NumTrainTimesteps / NumInferenceSteps / 2;
+            int prevTimestep = timestep - diffToPrev;
+            timestep = PrkTimesteps[Counter / 4 * 4];
+
+            if (CurModelOutput == null || CurModelOutput.Length != modelOutput.Length) {
+                CurModelOutput = new float[CurModelOutput.Length];
+            }
+
+            if (Counter % 4 == 0) {
+                for (int i = 0; i < CurModelOutput.Length; i++) {
+                    CurModelOutput[i] += 1 / 6f * modelOutput[i];
+                }
+
+                Ets.Add(modelOutput);
+                CurSample = sample;
+            } else if ((Counter - 1) % 4 == 0) {
+                for (int i = 0; i < CurModelOutput.Length; i++) {
+                    CurModelOutput[i] += 1 / 3f * modelOutput[i];
+                }
+            } else if ((Counter - 2) % 4 == 0) {
+                for (int i = 0; i < CurModelOutput.Length; i++) {
+                    CurModelOutput[i] += 1 / 3f * modelOutput[i];
+                }
+            } else if ((Counter - 3) % 4 == 0) {
+                for (int i = 0; i < modelOutput.Length; i++) {
+                    modelOutput[i] = CurModelOutput[i] + 1 / 6f * modelOutput[i];
+                    CurModelOutput[i] = 0;
+                }
+            }
+
+            // CurSample should not be `null`
+            float[] curSample = (CurSample != null) ? (float[])CurSample : sample;
+
+            float[] prevSample = GetPrevSample(curSample, timestep, prevTimestep, modelOutput);
+            Counter++;
+
+            return new SchedulerOutput(prevSample);
         }
 
         /// <summary>
