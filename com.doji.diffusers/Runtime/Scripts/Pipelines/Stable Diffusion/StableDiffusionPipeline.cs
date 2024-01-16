@@ -23,6 +23,9 @@ namespace Doji.AI.Diffusers {
         private int _height;
         private int _width;
         private int _batchSize;
+        private int _numImagesPerPrompt;
+
+        private Ops _ops;
 
         /// <summary>
         /// Initializes a new stable diffusion pipeline.
@@ -40,24 +43,81 @@ namespace Doji.AI.Diffusers {
             _textEncoder = new TextEncoder(textEncoder, backend);
             _scheduler = scheduler;
             _unet = new Unet(unet, backend);
+            _ops = WorkerFactory.CreateOps(backend, null);
         }
 
-        public TensorFloat Execute(
+        /// <inheritdoc cref="Generate(object, int, int, int, float, int, Action{int, int, float[]})"/>
+        public TensorFloat Generate(
             string prompt,
             int height = 512,
             int width = 512,
             int numInferenceSteps = 50,
             float guidanceScale = 7.5f,
+            int numImagesPerPrompt = 1,
+            Action<int, int, float[]> callback = null)
+        {
+            return Generate(prompt, height, width, numInferenceSteps, guidanceScale, numImagesPerPrompt, callback);
+        }
+
+        /// <param name="prompt">The prompts used to generate the batch of images for.</param>
+        /// <inheritdoc cref="Generate(object, int, int, int, float, int, Action{int, int, float[]})"/>
+        public TensorFloat Generate(
+            List<string> prompt,
+            int height = 512,
+            int width = 512,
+            int numInferenceSteps = 50,
+            float guidanceScale = 7.5f,
+            int numImagesPerPrompt = 1,
+            Action<int, int, float[]> callback = null)
+        {
+            return Generate(prompt, height, width, numInferenceSteps, guidanceScale, numImagesPerPrompt, callback);
+        }
+
+        /// <summary>
+        /// Execute the pipeline to generate images.
+        /// </summary>
+        /// <param name="prompt">The prompt or prompts to guide the image generation.
+        /// If not defined, one has to pass `prompt_embeds` instead.</param>
+        /// <param name="height"></param>
+        /// <param name="width"></param>
+        /// <param name="numInferenceSteps"> The number of denoising steps.
+        /// More denoising steps usually lead to a higher quality image
+        /// at the expense of slower inference.</param>
+        /// <param name="guidanceScale">Guidance scale as defined in [Classifier-Free Diffusion Guidance](https://arxiv.org/abs/2207.12598).
+        /// `guidance_scale` is defined as `w` of equation 2. of[Imagen Paper] (https://arxiv.org/pdf/2205.11487.pdf).
+        /// Guidance scale is enabled by setting `guidance_scale > 1`. Higher guidance scale encourages to generate images
+        /// that are closely linked to the text `prompt`, usually at the expense of lower image quality.</param>
+        /// <param name="numImagesPerPrompt">The number of images to generate per prompt.</param>
+        /// <param name="callback">A function that will be called at every step during inference.
+        /// The function will be called with the following arguments:
+        /// `callback(step: int, timestep: int, latents: torch.FloatTensor)`.</param>
+        public TensorFloat Generate(
+            object prompt,
+            int height = 512,
+            int width = 512,
+            int numInferenceSteps = 50,
+            float guidanceScale = 7.5f,
+            int numImagesPerPrompt = 1,
             Action<int, int, float[]> callback = null)
         {
             _height = height;
             _width = width;
-            _batchSize = 1;
+            _numImagesPerPrompt = numImagesPerPrompt;
             CheckInputs();
+
+            if (prompt != null && prompt is string) {
+                _batchSize = 1;
+            } else if (prompt != null && prompt is List<string> prompts) {
+                _batchSize = prompts.Count;
+            } else if (prompt == null) {
+                throw new ArgumentNullException(nameof(prompt));
+            } else {
+                throw new ArgumentException($"Invalid prompt argument {nameof(prompt)}");
+            }
 
             bool doClassifierFreeGuidance = guidanceScale > 1.0f;
 
-            using TensorFloat promptEmbeds = EncodePrompt(prompt, doClassifierFreeGuidance);
+            TensorFloat promptEmbeds = EncodePrompt(prompt, numImagesPerPrompt, doClassifierFreeGuidance);
             _scheduler.SetTimesteps(numInferenceSteps);
 
             // get the initial random noise
@@ -110,53 +170,71 @@ namespace Doji.AI.Diffusers {
             if (_height % 8 != 0 || _width % 8 != 0) {
                 throw new ArgumentException($"`height` and `width` have to be divisible by 8 but are {_height} and {_width}.");
             }
+            if (_numImagesPerPrompt > 1) {
+                throw new ArgumentException($"More than one image per prompt not supported yet. `numImagesPerPrompt` was {_numImagesPerPrompt}.");
+            }
         }
 
         private TensorFloat EncodePrompt(
-            string prompt,
+            object prompt,
+            int numImagesPerPrompt,
             bool doClassifierFreeGuidance,
-            string negative_prompt = null,
+            object negativePrompt = null,
             TensorFloat promptEmbeds = null,
             TensorFloat negativePromptEmbeds = null)
         {
-            if (prompt == null) {
-                throw new ArgumentNullException(nameof(prompt));
+
+            if (promptEmbeds == null) {
+                var textInputs = _tokenizer.Encode(
+                    text: (TextInput)prompt,
+                    padding: Padding.MaxLength,
+                    maxLength: _tokenizer.ModelMaxLength,
+                    truncation: Truncation.LongestFirst
+                );
+                int[] textInputIds = textInputs.InputIds.ToArray() ?? throw new Exception("Failed to get input ids from tokenizer.");
+
+                using TensorInt textIdTensor = new TensorInt(new TensorShape(_batchSize, textInputIds.Length), textInputIds);
+                promptEmbeds = _textEncoder.ExecuteModel(textIdTensor);
             }
-
-            int batchSize = 1;
-
-            var textInputs = _tokenizer.Encode(
-                prompt,
-                padding: Padding.MaxLength,
-                maxLength: _tokenizer.ModelMaxLength,
-                truncation: Truncation.LongestFirst
-            );
-            List<int> textInputIds = textInputs.InputIds ?? throw new Exception("Failed to get input ids from tokenizer.");
-
-            TensorInt tensor = new TensorInt(new TensorShape(batchSize, textInputIds.Count), textInputIds.ToArray());
-            promptEmbeds = _textEncoder.ExecuteModel(tensor);
-            tensor.Dispose();
 
             // get unconditional embeddings for classifier free guidance
             if (doClassifierFreeGuidance && negativePromptEmbeds == null) {
-                UnityEngine.Debug.LogError("TODO: implement classifier free guidance not implemented yet. Ignoring...");
-                return promptEmbeds;
+                List<string> uncondTokens;
+                if (negativePrompt == null) {
+                    uncondTokens = Enumerable.Repeat("", _batchSize).ToList();
+                } else if (prompt.GetType() != negativePrompt.GetType()) {
+                    throw new ArgumentException($"`negativePrompt` should be the same type as `prompt`, but got {negativePrompt.GetType()} != {prompt.GetType()}.");
+                } else if (negativePrompt is string) {
+                    uncondTokens = Enumerable.Repeat(negativePrompt as string, _batchSize).ToList();
+                } else if (_batchSize != negativePromptEmbeds.shape.length) {
+                    throw new ArgumentException($"`negativePrompt`: {negativePrompt} has batch size {negativePromptEmbeds.shape.length}, " +
+                        $"but `prompt`: {promptEmbeds} has batch size {_batchSize}. Please make sure that passed `negativePrompt` matches " +
+                        $"the batch size of `prompt`.");
+                } else {
+                    uncondTokens = negativePrompt as List<string>;
+                }
+
+                int maxLength = promptEmbeds.shape[1];
+                var uncondInput = _tokenizer.Encode<BatchInput>(
+                    text: uncondTokens,
+                    padding: Padding.MaxLength,
+                    maxLength: maxLength,
+                    truncation: Truncation.LongestFirst
+                );
+                int[] uncondInputIds = uncondInput.InputIds.ToArray() ?? throw new Exception("Failed to get unconditioned input ids.");
+
+                using TensorInt uncondIdTensor = new TensorInt(new TensorShape(_batchSize, uncondInputIds.Length), uncondInputIds);
+                negativePromptEmbeds = _textEncoder.ExecuteModel(uncondIdTensor);
             }
 
             if (doClassifierFreeGuidance) {
-                UnityEngine.Debug.LogError("TODO: implement classifier free guidance not implemented yet. Ignoring...");
-                return promptEmbeds;
+                // For classifier free guidance, we need to do two forward passes.
+                // Here we concatenate the unconditional and text embeddings into a single batch
+                // to avoid doing two forward passes
+                promptEmbeds = _ops.Concat(new Tensor[] { negativePromptEmbeds, promptEmbeds }, 0) as TensorFloat;
             }
 
             return promptEmbeds;
-        }
-
-        private int EncodePrompt(List<string> prompt) {
-            if (prompt == null) {
-                throw new ArgumentNullException(nameof(prompt));
-            }
-
-            throw new NotImplementedException();
         }
 
         private float[] GenerateLatents() {
@@ -165,7 +243,11 @@ namespace Doji.AI.Diffusers {
         }
 
         private TensorShape GetLatentsShape() {
-            return new TensorShape(_batchSize, 4 /* unet.in_channels */, _height / 8, _width / 8);
+            return new TensorShape(
+                _batchSize * _numImagesPerPrompt,
+                4, // unet.in_channels
+                _height / 8,
+                _width / 8);
         }
 
         public void Dispose() {
@@ -173,6 +255,7 @@ namespace Doji.AI.Diffusers {
             _vaeDecoder?.Dispose();
             _textEncoder?.Dispose();
             _unet?.Dispose();
+            _ops?.Dispose();
         }
     }
 }

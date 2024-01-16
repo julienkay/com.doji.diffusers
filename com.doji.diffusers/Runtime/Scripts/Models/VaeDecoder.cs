@@ -17,8 +17,7 @@ namespace Doji.AI.Diffusers {
         private Model _model;
 
         private IWorker _worker;
-        ITensorAllocator _allocator;
-        Ops _ops;
+        private Ops _ops;
 
         public VaeDecoder(ModelAsset modelAsset, BackendType backend = BackendType.GPUCompute) {
             Backend = backend;
@@ -34,8 +33,7 @@ namespace Doji.AI.Diffusers {
             Resources.UnloadAsset(vaeDecoder);
 
             _worker = WorkerFactory.CreateWorker(Backend, _model);
-            _allocator = new TensorCachingAllocator();
-            _ops = WorkerFactory.CreateOps(Backend, _allocator);
+            _ops = WorkerFactory.CreateOps(Backend, null);
         }
 
         public TensorFloat ExecuteModel(TensorFloat latentSample) {
@@ -60,7 +58,6 @@ namespace Doji.AI.Diffusers {
         public void Dispose() {
             _worker?.Dispose();
             _ops?.Dispose();
-            _allocator.Dispose();
         }
     }
 }
