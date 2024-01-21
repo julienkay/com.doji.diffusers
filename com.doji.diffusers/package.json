@@ -4,7 +4,7 @@
   "displayName": "Diffusers",
   "description": "State-of-the-art diffusion models for image and audio generation with Unity Sentis",
   "dependencies": {
-    "com.unity.sentis": "1.3.0-pre.2",
+    "com.unity.sentis": "1.3.0-pre.3",
     "com.doji.transformers": ""
   },
   "author": {
