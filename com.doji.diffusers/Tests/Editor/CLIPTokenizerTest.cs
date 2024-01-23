@@ -15,9 +15,7 @@ namespace Doji.AI.Diffusers.Editor.Tests {
             ClipTokenizer tokenizer = GetSDCLIPTokenizer();
 
             string prompt = "a cat";
-            List<int> inputIds = tokenizer.Encode(prompt).InputIds;
-
-            Debug.Log(string.Join(", ", inputIds));
+            var inputIds = tokenizer.Encode(prompt).InputIds;
 
             List<int> expected = new List<int>() { 49406, 320, 2368, 49407 };
             CollectionAssert.AreEqual(expected, inputIds);
@@ -32,14 +30,12 @@ namespace Doji.AI.Diffusers.Editor.Tests {
             ClipTokenizer tokenizer = GetSDCLIPTokenizer();
 
             string prompt = "a cat";
-            List<int> inputIds = tokenizer.Encode(
+            var inputIds = tokenizer.Encode(
                 prompt,
                 padding: Padding.MaxLength,
                 maxLength: tokenizer.ModelMaxLength,
                 truncation: Truncation.LongestFirst
             ).InputIds;
-
-            Debug.Log(string.Join(", ", inputIds));
 
             List<int> expected = new List<int>() {
                 49406,   320,  2368, 49407, 49407, 49407, 49407, 49407, 49407, 49407,

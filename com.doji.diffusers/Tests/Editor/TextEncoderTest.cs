@@ -1,14 +1,14 @@
 using Doji.AI.Transformers;
 using NUnit.Framework;
-using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using Unity.Sentis;
 using UnityEngine;
 
 namespace Doji.AI.Diffusers.Editor.Tests {
 
     /// <summary>
-    /// Test the <see cref="Diffusers.TextEncoder"/> of a <see cref="StableDiffusionPipeline"/>.
+    /// Test the <see cref="TextEncoder"/> of a <see cref="StableDiffusionPipeline"/>.
     /// Requires the models for runwayml/stable-diffusion-v1-5 to be downloaded.
     /// </summary>
     public class TextEncoderTest : TestBase {
@@ -48,14 +48,14 @@ namespace Doji.AI.Diffusers.Editor.Tests {
             ClipTokenizer tokenizer = GetSDCLIPTokenizer();
 
             string prompt = "a cat";
-            List<int> inputIds = tokenizer.Encode(
+            var inputIds = tokenizer.Encode(
                 prompt,
                 padding: Padding.MaxLength,
                 maxLength: tokenizer.ModelMaxLength,
                 truncation: Truncation.LongestFirst
             ).InputIds;
 
-            using TensorInt tokens = new TensorInt(new TensorShape(1, inputIds.Count), inputIds.ToArray());
+            using TensorInt tokens = new TensorInt(new TensorShape(1, inputIds.Count()), inputIds.ToArray());
             using TextEncoder textEncoder = new TextEncoder(model);
             TensorFloat output = textEncoder.ExecuteModel(tokens);
             output.MakeReadable();

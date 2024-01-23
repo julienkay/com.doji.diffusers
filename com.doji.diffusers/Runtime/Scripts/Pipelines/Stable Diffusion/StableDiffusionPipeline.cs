@@ -56,7 +56,7 @@ namespace Doji.AI.Diffusers {
             int numImagesPerPrompt = 1,
             Action<int, int, float[]> callback = null)
         {
-            return Generate(prompt, height, width, numInferenceSteps, guidanceScale, numImagesPerPrompt, callback);
+            return Generate((TextInput)prompt, height, width, numInferenceSteps, guidanceScale, numImagesPerPrompt, callback);
         }
 
         /// <param name="prompt">The prompts used to generate the batch of images for.</param>
@@ -70,7 +70,7 @@ namespace Doji.AI.Diffusers {
             int numImagesPerPrompt = 1,
             Action<int, int, float[]> callback = null)
         {
-            return Generate(prompt, height, width, numInferenceSteps, guidanceScale, numImagesPerPrompt, callback);
+            return Generate((BatchInput)prompt, height, width, numInferenceSteps, guidanceScale, numImagesPerPrompt, callback);
         }
 
         /// <summary>
@@ -92,7 +92,7 @@ namespace Doji.AI.Diffusers {
         /// The function will be called with the following arguments:
         /// `callback(step: int, timestep: int, latents: torch.FloatTensor)`.</param>
         public TensorFloat Generate(
-            object prompt,
+            Input prompt,
             int height = 512,
             int width = 512,
             int numInferenceSteps = 50,
@@ -105,10 +105,10 @@ namespace Doji.AI.Diffusers {
             _numImagesPerPrompt = numImagesPerPrompt;
             CheckInputs();
 
-            if (prompt != null && prompt is string) {
+            if (prompt != null && prompt is TextInput) {
                 _batchSize = 1;
-            } else if (prompt != null && prompt is List<string> prompts) {
-                _batchSize = prompts.Count;
+            } else if (prompt != null && prompt is BatchInput prompts) {
+                _batchSize = prompts.Sequence.Count;
             } else if (prompt == null) {
                 throw new ArgumentNullException(nameof(prompt));
             } else {
@@ -134,6 +134,11 @@ namespace Doji.AI.Diffusers {
                 // predict the noise residual
                 using TensorInt timestep = new TensorInt(new TensorShape(_batchSize), ArrayUtils.Full(_batchSize, t));
                 TensorFloat noisePred = _unet.ExecuteModel(latentInputTensor, timestep, promptEmbeds);
+
+                // perform guidance
+                if (doClassifierFreeGuidance) {
+                    TensorFloat noisePredUncond = _ops.Split(noisePred, 0, 0, 2);
+                }
 
                 noisePred.MakeReadable();
                 float[] noise = noisePred.ToReadOnlyArray();
@@ -176,7 +181,7 @@ namespace Doji.AI.Diffusers {
         }
 
         private TensorFloat EncodePrompt(
-            object prompt,
+            Input prompt,
             int numImagesPerPrompt,
             bool doClassifierFreeGuidance,
             object negativePrompt = null,
@@ -186,11 +191,11 @@ namespace Doji.AI.Diffusers {
 
             if (promptEmbeds == null) {
                 var textInputs = _tokenizer.Encode(
-                    text: (TextInput)prompt,
+                    text: prompt,
                     padding: Padding.MaxLength,
                     maxLength: _tokenizer.ModelMaxLength,
                     truncation: Truncation.LongestFirst
-                );
+                ) as InputEncoding;
                 int[] textInputIds = textInputs.InputIds.ToArray() ?? throw new Exception("Failed to get input ids from tokenizer.");
 
                 using TensorInt textIdTensor = new TensorInt(new TensorShape(_batchSize, textInputIds.Length), textInputIds);
@@ -220,8 +225,8 @@ namespace Doji.AI.Diffusers {
                     padding: Padding.MaxLength,
                     maxLength: maxLength,
                     truncation: Truncation.LongestFirst
-                );
-                int[] uncondInputIds = uncondInput.InputIds.ToArray() ?? throw new Exception("Failed to get unconditioned input ids.");
+                ) as BatchEncoding;
+                int[] uncondInputIds = uncondInput.InputIds as int[] ?? throw new Exception("Failed to get unconditioned input ids.");
 
                 using TensorInt uncondIdTensor = new TensorInt(new TensorShape(_batchSize, uncondInputIds.Length), uncondInputIds);
                 negativePromptEmbeds = _textEncoder.ExecuteModel(uncondIdTensor);
