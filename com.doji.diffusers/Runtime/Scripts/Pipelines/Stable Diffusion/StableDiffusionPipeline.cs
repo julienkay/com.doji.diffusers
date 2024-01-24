@@ -118,10 +118,15 @@ namespace Doji.AI.Diffusers {
             bool doClassifierFreeGuidance = guidanceScale > 1.0f;
 
             TensorFloat promptEmbeds = EncodePrompt(prompt, numImagesPerPrompt, doClassifierFreeGuidance);
-            _scheduler.SetTimesteps(numInferenceSteps);
 
             // get the initial random noise
-            float[] latents = GenerateLatents();
+            TensorShape latentsShape = GetLatentsShape();
+            float[] latents = GenerateLatents(latentsShape);
+            if (doClassifierFreeGuidance) {
+                latentsShape[0] *= 2;
+            }
+
+            _scheduler.SetTimesteps(numInferenceSteps);
 
             for (int i = 0; i < _scheduler.Timesteps.Length; i++) {
                 int t = _scheduler.Timesteps[i];
@@ -129,16 +134,11 @@ namespace Doji.AI.Diffusers {
                 // expand the latents if doing classifier free guidance
                 float[] latentModelInput = doClassifierFreeGuidance ? latents.Tile(2) : latents;
                 latentModelInput = _scheduler.ScaleModelInput(latentModelInput, t);
-                using TensorFloat latentInputTensor = new TensorFloat(GetLatentsShape(), latentModelInput);
+                using TensorFloat latentInputTensor = new TensorFloat(latentsShape, latentModelInput);
 
                 // predict the noise residual
                 using TensorInt timestep = new TensorInt(new TensorShape(_batchSize), ArrayUtils.Full(_batchSize, t));
                 TensorFloat noisePred = _unet.ExecuteModel(latentInputTensor, timestep, promptEmbeds);
-
-                // perform guidance
-                if (doClassifierFreeGuidance) {
-                    TensorFloat noisePredUncond = _ops.Split(noisePred, 0, 0, 2);
-                }
 
                 noisePred.MakeReadable();
                 float[] noise = noisePred.ToReadOnlyArray();
@@ -184,7 +184,7 @@ namespace Doji.AI.Diffusers {
             Input prompt,
             int numImagesPerPrompt,
             bool doClassifierFreeGuidance,
-            object negativePrompt = null,
+            Input negativePrompt = null,
             TensorFloat promptEmbeds = null,
             TensorFloat negativePromptEmbeds = null)
         {
@@ -209,14 +209,14 @@ namespace Doji.AI.Diffusers {
                     uncondTokens = Enumerable.Repeat("", _batchSize).ToList();
                 } else if (prompt.GetType() != negativePrompt.GetType()) {
                     throw new ArgumentException($"`negativePrompt` should be the same type as `prompt`, but got {negativePrompt.GetType()} != {prompt.GetType()}.");
-                } else if (negativePrompt is string) {
-                    uncondTokens = Enumerable.Repeat(negativePrompt as string, _batchSize).ToList();
+                } else if (negativePrompt is SingleInput) {
+                    uncondTokens = Enumerable.Repeat((negativePrompt as SingleInput).Text, _batchSize).ToList();
                 } else if (_batchSize != negativePromptEmbeds.shape.length) {
                     throw new ArgumentException($"`negativePrompt`: {negativePrompt} has batch size {negativePromptEmbeds.shape.length}, " +
                         $"but `prompt`: {promptEmbeds} has batch size {_batchSize}. Please make sure that passed `negativePrompt` matches " +
                         $"the batch size of `prompt`.");
                 } else {
-                    uncondTokens = negativePrompt as List<string>;
+                    uncondTokens = (negativePrompt as BatchInput).Sequence as List<string>;
                 }
 
                 int maxLength = promptEmbeds.shape[1];
@@ -242,9 +242,16 @@ namespace Doji.AI.Diffusers {
             return promptEmbeds;
         }
 
-        private float[] GenerateLatents() {
-            int size = GetLatentsShape().length;
-            return ArrayUtils.Randn(size, 0, _scheduler.InitNoiseSigma);
+        private float[] GenerateLatents(TensorShape shape) {
+            int size = shape.length;
+            float[] noise =  ArrayUtils.Randn(size);
+            float sigma = _scheduler.InitNoiseSigma;
+            if (sigma != 1.0f) {
+                for(int i = 0; i < size; i++) {
+                    noise[i] *= sigma;
+                }
+            }
+            return noise;
         }
 
         private TensorShape GetLatentsShape() {
