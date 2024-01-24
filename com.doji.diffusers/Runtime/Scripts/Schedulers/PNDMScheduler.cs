@@ -48,8 +48,8 @@ namespace Doji.AI.Diffusers {
         public int PndmOrder { get; private set; }
         public float[] CurModelOutput { get; set; }
         public int Counter { get; set; }
-        public object CurSample { get; set; }
-        public List<object> Ets { get; private set; }
+        public float[] CurSample { get; set; }
+        public List<float[]> Ets { get; private set; }
         public int NumInferenceSteps { get; set; }
         public int[] Timesteps { get; private set; }
         public int[] PrkTimesteps { get; set; }
@@ -76,7 +76,7 @@ namespace Doji.AI.Diffusers {
             PredictionType = predictionType;
             TimestepSpacing = timestepSpacing;
             StepsOffset = stepsOffset;
-            Ets = new List<object>();
+            Ets = new List<float[]>();
 
             if (trainedBetas != null) {
                 Betas = trainedBetas;
@@ -205,7 +205,7 @@ namespace Doji.AI.Diffusers {
                 throw new ArgumentException("Number of inference steps is '0', you need to run 'SetTimesteps' after creating the scheduler");
             }
 
-            int diffToPrev = (Counter % 2 == 0) ? 0 : NumTrainTimesteps / NumInferenceSteps / 2;
+            int diffToPrev = (Counter % 2 != 0) ? 0 : NumTrainTimesteps / NumInferenceSteps / 2;
             int prevTimestep = timestep - diffToPrev;
             timestep = PrkTimesteps[Counter / 4 * 4];
 
@@ -236,7 +236,7 @@ namespace Doji.AI.Diffusers {
             }
 
             // CurSample should not be `null`
-            float[] curSample = (CurSample != null) ? (float[])CurSample : sample;
+            float[] curSample = (CurSample != null) ? CurSample : sample;
 
             float[] prevSample = GetPrevSample(curSample, timestep, prevTimestep, modelOutput);
             Counter++;
@@ -268,6 +268,20 @@ namespace Doji.AI.Diffusers {
             } else {
                 prevTimestep = timestep;
                 timestep += NumTrainTimesteps / NumInferenceSteps;
+            }
+
+            if (Ets.Count == 1 && Counter == 0) {
+                CurSample = sample;
+            } else if (Ets.Count == 1 && Counter == 1) {
+                modelOutput = modelOutput.Add(Ets[^1]).Div(2f);
+                sample = CurSample;
+                CurSample = null;
+            } else if (Ets.Count == 2) {
+                modelOutput = Ets.Last().Mul(3f).Sub(Ets[^2]).Div(2f);
+            } else if (Ets.Count == 3) {
+                modelOutput = Ets[^1].Mul(23f).Sub(Ets[^2].Mul(16f)).Add(Ets[^3].Mul(5f)).Div(12f);
+            } else {
+                modelOutput = Ets[^1].Mul(55f).Sub(Ets[^2].Mul(59f)).Add(Ets[^3].Mul(37f)).Sub(Ets[^4].Mul(9f)).Mul(1.0f / 24);
             }
 
             float[] prevSample = GetPrevSample(sample, timestep, prevTimestep, modelOutput);

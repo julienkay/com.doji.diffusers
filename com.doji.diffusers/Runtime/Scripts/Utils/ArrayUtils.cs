@@ -8,7 +8,7 @@ namespace Doji.AI.Diffusers {
         /// Return samples from the “standard normal” distribution.
         /// (Gaussian distribution of mean 0 and variance 1.)
         /// </summary>
-        public static float[] Randn(int size, double mean = 0, double stdDev = 1) {
+        public static float[] Randn(int size, double mean = 0.0d, double stdDev = 1.0) {
             Random random = new Random();
             float[] randomArray = new float[size];
 
@@ -126,24 +126,63 @@ namespace Doji.AI.Diffusers {
         /// <summary>
         /// Performs element-wise addition on two integer arrays, producing a new array with the result.
         /// </summary>
-        public static int[] Add(this int[] array1, int[] array2) {
-            if (array1.Length != array2.Length) {
+        public static int[] Add(this int[] a, int[] b) {
+            if (a.Length != b.Length) {
                 throw new ArgumentException("Arrays must have the same length");
             }
 
-            int[] resultArray = new int[array1.Length];
+            int[] result = new int[a.Length];
 
-            for (int i = 0; i < array1.Length; i++) {
-                resultArray[i] = array1[i] + array2[i];
+            for (int i = 0; i < a.Length; i++) {
+                result[i] = a[i] + b[i];
             }
 
-            return resultArray;
+            return result;
+        }
+
+        /// <inheritdoc cref="Add(int[], int[])"/>
+        public static float[] Add(this float[] a, float[] b) {
+            if (a.Length != b.Length) {
+                throw new ArgumentException("Arrays must have the same length");
+            }
+
+            float[] result = new float[a.Length];
+
+            for (int i = 0; i < a.Length; i++) {
+                result[i] = a[i] + b[i];
+            }
+
+            return result;
+        }
+
+        public static float[] Sub(this float[] a, float[] b) {
+            float[] result = new float[a.Length];
+            for (int i = 0; i < a.Length; i++) {
+                result[i] = a[i] - b[i];
+            }
+            return result;
+        }
+
+        public static float[] Div(this float[] a, float b) {
+            float[] result = new float[a.Length];
+            for (int i = 0; i < a.Length; i++) {
+                result[i] = a[i] / b;
+            }
+            return result;
+        }
+
+        public static float[] Mul(this float[] a, float b) {
+            float[] result = new float[a.Length];
+            for (int i = 0; i < a.Length; i++) {
+                result[i] = a[i] * b;
+            }
+            return result;
         }
 
         /// <summary>
         /// numpy.full
         /// </summary>
-        public static int[] Full(this int n, int x) {
+        public static int[] Full(int n, int x) {
             if (n < 0) {
                 throw new ArgumentException("Value of n must be non-negative.");
             }
