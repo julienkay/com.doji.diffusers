@@ -54,9 +54,10 @@ namespace Doji.AI.Diffusers {
             int numInferenceSteps = 50,
             float guidanceScale = 7.5f,
             int numImagesPerPrompt = 1,
+            float[] latents = null,
             Action<int, int, float[]> callback = null)
         {
-            return Generate((TextInput)prompt, height, width, numInferenceSteps, guidanceScale, numImagesPerPrompt, callback);
+            return Generate((TextInput)prompt, height, width, numInferenceSteps, guidanceScale, numImagesPerPrompt, latents, callback);
         }
 
         /// <param name="prompt">The prompts used to generate the batch of images for.</param>
@@ -68,9 +69,10 @@ namespace Doji.AI.Diffusers {
             int numInferenceSteps = 50,
             float guidanceScale = 7.5f,
             int numImagesPerPrompt = 1,
+            float[] latents = null,
             Action<int, int, float[]> callback = null)
         {
-            return Generate((BatchInput)prompt, height, width, numInferenceSteps, guidanceScale, numImagesPerPrompt, callback);
+            return Generate((BatchInput)prompt, height, width, numInferenceSteps, guidanceScale, numImagesPerPrompt, latents, callback);
         }
 
         /// <summary>
@@ -88,6 +90,8 @@ namespace Doji.AI.Diffusers {
         /// Guidance scale is enabled by setting `guidance_scale > 1`. Higher guidance scale encourages to generate images
         /// that are closely linked to the text `prompt`, usually at the expense of lower image quality.</param>
         /// <param name="numImagesPerPrompt">The number of images to generate per prompt.</param>
+        /// <param name="latents">Pre-generated noise, sampled from a Gaussian distribution, to be used as inputs for image
+        /// generation. If not provided, a latents tensor will be generated for you.</param>
         /// <param name="callback">A function that will be called at every step during inference.
         /// The function will be called with the following arguments:
         /// `callback(step: int, timestep: int, latents: torch.FloatTensor)`.</param>
@@ -98,6 +102,7 @@ namespace Doji.AI.Diffusers {
             int numInferenceSteps = 50,
             float guidanceScale = 7.5f,
             int numImagesPerPrompt = 1,
+            float[] latents = null,
             Action<int, int, float[]> callback = null)
         {
             _height = height;
@@ -121,7 +126,7 @@ namespace Doji.AI.Diffusers {
 
             // get the initial random noise
             TensorShape latentsShape = GetLatentsShape();
-            float[] latents = GenerateLatents(latentsShape);
+            latents ??= GenerateLatents(latentsShape);
             if (doClassifierFreeGuidance) {
                 latentsShape[0] *= 2;
             }
