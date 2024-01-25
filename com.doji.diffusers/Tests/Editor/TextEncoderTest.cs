@@ -14,7 +14,7 @@ namespace Doji.AI.Diffusers.Editor.Tests {
     public class TextEncoderTest : TestBase {
 
         /// <summary>
-        /// Loads the expected embedding for the prompt "a cat" with SD 1.5 defaults from a text file
+        /// Loads the expected (flattened) embedding for the prompt "a cat" with SD 1.5 defaults from a text file
         /// </summary>
         private float[] ExpectedEmbedding {
             get {
