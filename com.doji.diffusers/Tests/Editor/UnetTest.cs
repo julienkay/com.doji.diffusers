@@ -33,11 +33,7 @@ namespace Doji.AI.Diffusers.Editor.Tests {
         }
 
         private static Unet LoadUnet() {
-            string path = Path.Combine("unet", "model");
-            var model = Resources.Load<ModelAsset>(path);
-            if (model == null) {
-                throw new FileNotFoundException($"The model filed for the text encoder was not found at: '{path}'");
-            }
+            var model = StableDiffusionPipeline.LoadUnet();
             return new Unet(model);
         }
 

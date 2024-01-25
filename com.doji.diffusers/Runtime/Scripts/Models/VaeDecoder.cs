@@ -19,19 +19,17 @@ namespace Doji.AI.Diffusers {
         private IWorker _worker;
         private Ops _ops;
 
-        public VaeDecoder(ModelAsset modelAsset, BackendType backend = BackendType.GPUCompute) {
+        public VaeDecoder(Model model, BackendType backend = BackendType.GPUCompute) {
             Backend = backend;
-            InitializeNetwork(modelAsset);
+            InitializeNetwork(model);
         }
 
-        private void InitializeNetwork(ModelAsset vaeDecoder) {
+        private void InitializeNetwork(Model vaeDecoder) {
             if (vaeDecoder == null) {
-                throw new ArgumentException("VaeDecoder ModelAsset was null", nameof(vaeDecoder));
+                throw new ArgumentException("VaeDecoder Model was null", nameof(vaeDecoder));
             }
 
-            _model = ModelLoader.Load(vaeDecoder);
-            Resources.UnloadAsset(vaeDecoder);
-
+            _model = vaeDecoder;
             _worker = WorkerFactory.CreateWorker(Backend, _model);
             _ops = WorkerFactory.CreateOps(Backend, null);
         }

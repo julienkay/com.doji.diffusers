@@ -20,18 +20,17 @@ namespace Doji.AI.Diffusers {
         private IWorker _worker;
         private Dictionary<string, Tensor> _inputs = new Dictionary<string, Tensor>();
 
-        public Unet(ModelAsset modelAsset, BackendType backend = BackendType.GPUCompute) {
+        public Unet(Model model, BackendType backend = BackendType.GPUCompute) {
             Backend = backend;
-            InitializeNetwork(modelAsset);
+            InitializeNetwork(model);
         }
 
-        private void InitializeNetwork(ModelAsset unet) {
+        private void InitializeNetwork(Model unet) {
             if (unet == null) {
-                throw new ArgumentException("Unet ModelAsset was null", nameof(unet));
+                throw new ArgumentException("Unet Model was null", nameof(unet));
             }
 
-            _model = ModelLoader.Load(unet);
-            Resources.UnloadAsset(unet);
+            _model = unet;
             _worker = WorkerFactory.CreateWorker(Backend, _model);
         }
 

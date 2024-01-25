@@ -20,18 +20,17 @@ namespace Doji.AI.Diffusers {
         private ITensorAllocator _allocator;
         private Ops _ops;
 
-        public TextEncoder(ModelAsset modelAsset, BackendType backend = BackendType.GPUCompute) {
+        public TextEncoder(Model model, BackendType backend = BackendType.GPUCompute) {
             Backend = backend;
-            InitializeNetwork(modelAsset);
+            InitializeNetwork(model);
         }
 
-        private void InitializeNetwork(ModelAsset textEncoder) {
+        private void InitializeNetwork(Model textEncoder) {
             if (textEncoder == null) {
-                throw new ArgumentException("TextEncoder ModelAsset was null", nameof(textEncoder));
+                throw new ArgumentException("TextEncoder Model was null", nameof(textEncoder));
             }
 
-            _model = ModelLoader.Load(textEncoder);
-            Resources.UnloadAsset(textEncoder);
+            _model = textEncoder;
             _worker = WorkerFactory.CreateWorker(Backend, _model);
             _allocator = new TensorCachingAllocator();
         }

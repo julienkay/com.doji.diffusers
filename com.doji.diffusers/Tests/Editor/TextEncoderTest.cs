@@ -25,10 +25,9 @@ namespace Doji.AI.Diffusers.Editor.Tests {
         [Test]
         public void TestEncode() {
             string path = Path.Combine("text_encoder", "model");
-            var model = Resources.Load<ModelAsset>(path);
-            if (model == null) {
-                throw new FileNotFoundException($"The model filed for the text encoder was not found at: '{path}'");
-            }
+            var modelAsset = Resources.Load<ModelAsset>(path)
+                ?? throw new FileNotFoundException($"The modelAsset file for the text encoder was not found at: '{path}'");
+            var model = ModelLoader.Load(modelAsset);
 
             ClipTokenizer tokenizer = GetSDCLIPTokenizer();
 

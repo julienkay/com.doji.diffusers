@@ -12,7 +12,7 @@ namespace Doji.AI.Diffusers {
     /// <remarks>
     /// stable_diffusion/pipeline_onnx_stable_diffusion.py from huggingface/diffusers
     /// </remarks>
-    public class StableDiffusionPipeline : IDisposable {
+    public partial class StableDiffusionPipeline : IDisposable {
 
         private VaeDecoder _vaeDecoder;
         private ClipTokenizer _tokenizer;
@@ -31,11 +31,11 @@ namespace Doji.AI.Diffusers {
         /// Initializes a new stable diffusion pipeline.
         /// </summary>
         public StableDiffusionPipeline(
-            ModelAsset vaeDecoder,
-            ModelAsset textEncoder,
+            Model vaeDecoder,
+            Model textEncoder,
             ClipTokenizer tokenizer,
             PNDMScheduler scheduler,
-            ModelAsset unet,
+            Model unet,
             BackendType backend = BackendType.GPUCompute)
         {
             _vaeDecoder = new VaeDecoder(vaeDecoder, backend);
