@@ -18,22 +18,7 @@ namespace Doji.AI.Diffusers.Editor.Tests {
         /// </summary>
         private float[] ExpectedEmbedding {
             get {
-                string embeddingsFile = Resources.Load<TextAsset>("0_last_hidden_state").text;
-
-                string[] stringValues = embeddingsFile.Split(',');
-                
-                float[] floatValues = new float[stringValues.Length];
-
-                // Parse each string element into a float and store it in the float array
-                for (int i = 0; i < stringValues.Length; i++) {
-                    if (float.TryParse(stringValues[i], out float result)) {
-                        floatValues[i] = result;
-                    } else {
-                        // Handle parsing error if needed
-                        Debug.LogError($"Error parsing value at index {i}: {stringValues[i]}");
-                    }
-                }
-                return floatValues;
+                return TestUtils.LoadFromFile("encoder_test_last_hidden_state");
             }
         }
 
