@@ -1,8 +1,12 @@
+using System.IO;
+using System;
+using Unity.Sentis;
 using UnityEngine;
 
 namespace Doji.AI.Diffusers.Editor.Tests {
 
     public static class TestUtils {
+
         public static float[] LoadFromFile(string fileName) {
             TextAsset file = Resources.Load<TextAsset>(fileName);
             if (file == null) {
@@ -24,6 +28,21 @@ namespace Doji.AI.Diffusers.Editor.Tests {
                 }
             }
             return floatValues;
+        }
+
+        /// <summary>
+        /// Dumps a tensor to a png file.
+        /// </summary>
+        public static void ToFile(string prompt, int width, int height, TensorFloat generated) {
+            var tmp = RenderTexture.GetTemporary(width, height);
+            TextureConverter.RenderToTexture(generated, tmp);
+            var invalids = Path.GetInvalidFileNameChars();
+            var fileName = string.Join("_", prompt.Split(invalids, StringSplitOptions.RemoveEmptyEntries)).TrimEnd('.');
+            string filePath = $"{fileName}_{DateTime.Now.ToString("yyyyMMddHHmmss")}.png";
+            Texture2D tex = new Texture2D(width, height, TextureFormat.ARGB32, false);
+            RenderTexture.active = tmp;
+            tex.ReadPixels(new Rect(0, 0, width, height), 0, 0);
+            File.WriteAllBytes(filePath, tex.EncodeToPNG());
         }
     }
 }

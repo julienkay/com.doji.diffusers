@@ -7,13 +7,12 @@ namespace Doji.AI.Diffusers.Editor.Tests {
 
     public class UnetTest {
 
-
         /// <summary>
-        /// Loads deterministic random samples with shape (1, 3, 8, 8)
+        /// Loads deterministic random samples with shape (1, 4, 8, 8)
         /// </summary>
         private float[] Samples {
             get {
-                return TestUtils.LoadFromFile("unet_test_256_latents");
+                return TestUtils.LoadFromFile("256_latents");
             }
         }
 
