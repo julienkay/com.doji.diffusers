@@ -38,7 +38,10 @@ namespace Doji.AI.Diffusers {
             Model unet,
             BackendType backend = BackendType.GPUCompute)
         {
-            _vaeDecoder = new VaeDecoder(vaeDecoder, backend);
+            // FIXME: VaeDecoder exceeds the thread group limit with GPU backend,
+            // decoding on CPU is much slower, but curiously the outputs with GPUCompute backend
+            // seem correct even despite errors?
+            _vaeDecoder = new VaeDecoder(vaeDecoder, BackendType.CPU);
             _tokenizer = tokenizer;
             _textEncoder = new TextEncoder(textEncoder, backend);
             _scheduler = scheduler;
