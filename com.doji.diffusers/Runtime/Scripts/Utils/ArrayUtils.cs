@@ -8,8 +8,8 @@ namespace Doji.AI.Diffusers {
         /// Return samples from the “standard normal” distribution.
         /// (Gaussian distribution of mean 0 and variance 1.)
         /// </summary>
-        public static float[] Randn(int size, double mean = 0.0d, double stdDev = 1.0) {
-            Random random = new Random();
+        public static float[] Randn(int size, double mean = 0.0d, double stdDev = 1.0, Random random = null) {
+            random ??= new Random();
             float[] randomArray = new float[size];
 
             for (int i = 0; i < size; i++) {
