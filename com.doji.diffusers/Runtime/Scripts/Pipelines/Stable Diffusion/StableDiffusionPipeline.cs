@@ -24,6 +24,7 @@ namespace Doji.AI.Diffusers {
         private int _width;
         private int _batchSize;
         private int _numImagesPerPrompt;
+        private float _guidanceScale;
 
         private Ops _ops;
 
@@ -111,6 +112,7 @@ namespace Doji.AI.Diffusers {
             _height = height;
             _width = width;
             _numImagesPerPrompt = numImagesPerPrompt;
+            _guidanceScale = guidanceScale;
             CheckInputs();
 
             if (prompt != null && prompt is TextInput) {
@@ -185,6 +187,10 @@ namespace Doji.AI.Diffusers {
             }
             if (_numImagesPerPrompt > 1) {
                 throw new ArgumentException($"More than one image per prompt not supported yet. `numImagesPerPrompt` was {_numImagesPerPrompt}.");
+            }
+            if (_guidanceScale > 1.0f) {
+                throw new ArgumentException($"Classifier-Free Guidance not supported yet. `_guidanceScale` was {_guidanceScale}. " +
+                    $"Please set '_guidanceScale' to '1.0' for now.");
             }
         }
 
