@@ -1,9 +1,7 @@
 using Doji.AI.Transformers;
 using NUnit.Framework;
-using System.IO;
 using System.Linq;
 using Unity.Sentis;
-using UnityEngine;
 
 namespace Doji.AI.Diffusers.Editor.Tests {
 
@@ -24,10 +22,7 @@ namespace Doji.AI.Diffusers.Editor.Tests {
 
         [Test]
         public void TestEncode() {
-            string path = Path.Combine("text_encoder", "model");
-            var modelAsset = Resources.Load<ModelAsset>(path)
-                ?? throw new FileNotFoundException($"The modelAsset file for the text encoder was not found at: '{path}'");
-            var model = ModelLoader.Load(modelAsset);
+            var model = StableDiffusionPipeline.LoadTextEncoder(DiffusionModel.SD_1_5.Name);
 
             ClipTokenizer tokenizer = GetSDCLIPTokenizer();
 
@@ -45,7 +40,6 @@ namespace Doji.AI.Diffusers.Editor.Tests {
             output.MakeReadable();
             float[] promptEmbeds = output.ToReadOnlyArray();
 
-            Debug.Log(string.Join(", ", promptEmbeds));
             Assert.AreEqual(ExpectedEmbedding.Length, promptEmbeds.Length);
 
             //Assert.That(promptEmbeds, Is.EqualTo(expectedEmbedding).Within(0.0001f));

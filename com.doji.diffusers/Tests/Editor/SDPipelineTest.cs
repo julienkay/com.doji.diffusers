@@ -36,9 +36,9 @@ namespace Doji.AI.Diffusers.Editor.Tests {
 
         [Test]
         public void TestSD() {
-            using var sd = StableDiffusionPipeline.FromPretrained();
-            int width = 512;
-            int height = 512;
+            using var sd = StableDiffusionPipeline.FromPretrained(DiffusionModel.SD_1_5);
+            int width = 64;
+            int height = 64;
             string prompt = "a cat";
 
             TensorFloat generated = sd.Generate(prompt, width, height, 10, 1f, 1, Latents, callback: TestpRedictedNoise);
@@ -52,7 +52,7 @@ namespace Doji.AI.Diffusers.Editor.Tests {
 
         [Test]
         public void TestSDLarge() {
-            using var sd = StableDiffusionPipeline.FromPretrained();
+            using var sd = StableDiffusionPipeline.FromPretrained(DiffusionModel.SD_1_5);
             int width = 512;
             int height = 512;
             string prompt = "a cat";

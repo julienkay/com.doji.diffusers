@@ -30,7 +30,7 @@ namespace Doji.AI.Diffusers.Editor.Tests {
         }
 
         private static Unet LoadUnet() {
-            var model = StableDiffusionPipeline.LoadUnet();
+            var model = StableDiffusionPipeline.LoadUnet(DiffusionModel.SD_1_5.Name);
             return new Unet(model);
         }
 

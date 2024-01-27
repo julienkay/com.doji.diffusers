@@ -4,45 +4,53 @@ using System.IO;
 using Unity.Sentis;
 using UnityEngine;
 using System.Collections.Generic;
-using System.Collections;
+using System;
 
 namespace Doji.AI.Diffusers {
 
     public partial class StableDiffusionPipeline {
 
-        internal static Model LoadVaeDecoder() {
-            string path = Path.Combine("vae_decoder", "model");
+        internal static ModelIndex LoadModelIndex(DiffusionModel model) {
+            return LoadJsonFromTextAsset<ModelIndex>(Path.Combine(model.Name, "model_index"));
+        }
+
+        internal static Model LoadVaeDecoder(string subFolder) {
+            string path = Path.Combine(subFolder, "vae_decoder", "model");
             return LoadFromModelAsset(path);
         }
 
-        internal static Model LoadTextEncoder() {
-            string path = Path.Combine("text_encoder", "model");
+        internal static Model LoadTextEncoder(string subFolder) {
+            string path = Path.Combine(subFolder, "text_encoder", "model");
             return LoadFromModelAsset(path);
         }
 
-        internal static Vocab LoadVocab() {
-            string path = Path.Combine("tokenizer", "vocab");
+        internal static Vocab LoadVocab(string subFolder) {
+            string path = Path.Combine(subFolder, "tokenizer", "vocab");
             TextAsset vocabFile = Resources.Load<TextAsset>(path);
             var vocab = Vocab.Deserialize(vocabFile.text);
             Resources.UnloadAsset(vocabFile);
             return vocab;
         }
 
-        internal static string LoadMerges() {
-            string path = Path.Combine("tokenizer", "merges");
+        internal static string LoadMerges(string subFolder) {
+            string path = Path.Combine(subFolder, "tokenizer", "merges");
             return LoadFromTextAsset(path);
         }
 
-        internal static TokenizerConfig LoadTokenizerConfig() {
-            string path = Path.Combine("tokenizer", "tokenizer_config");
+        internal static TokenizerConfig LoadTokenizerConfig(string subFolder) {
+            string path = Path.Combine(subFolder, "tokenizer", "tokenizer_config");
             return LoadJsonFromTextAsset<TokenizerConfig>(path);
         }
 
-        internal static Model LoadUnet() {
-            string path = Path.Combine("unet", "model");
+        internal static Model LoadUnet(string subFolder) {
+            string path = Path.Combine(subFolder, "unet", "model");
             return LoadFromModelAsset(path);
         }
 
+        /// <summary>
+        /// Loads a string from a <see cref="TextAsset"/> in Resources.
+        /// </summary>
+        /// <param name="path">The path to the text file in the Resources folder</param>
         private static string LoadFromTextAsset(string path) {
             TextAsset textAsset = Resources.Load<TextAsset>(path)
                 ?? throw new FileNotFoundException($"The TextAsset file was not found at: '{path}'");
@@ -51,6 +59,11 @@ namespace Doji.AI.Diffusers {
             return text;
         }
 
+        /// <summary>
+        /// Loads an object of type <typeparamref name="T"/> from a text asset in Resources
+        /// by deserializing using <see cref="Newtonsoft.Json.JsonConvert"/>.
+        /// </summary>
+        /// <param name="path">The path to the text file in the Resources folder</param>
         private static T LoadJsonFromTextAsset<T>(string path) {
             TextAsset textAsset = Resources.Load<TextAsset>(path)
                 ?? throw new FileNotFoundException($"The TextAsset file was not found at: '{path}'");
@@ -59,6 +72,10 @@ namespace Doji.AI.Diffusers {
             return deserializedObject;
         }
 
+        /// <summary>
+        /// Loads a Sentis <see cref="Model"/> from a <see cref="ModelAsset"/> in Resources.
+        /// </summary>
+        /// <param name="path">The path to the model file in the Resources folder</param>
         private static Model LoadFromModelAsset(string path) {
             ModelAsset modelAsset = Resources.Load<ModelAsset>(path)
                 ?? throw new FileNotFoundException($"The ModelAsset file was not found at: '{path}'");
@@ -67,10 +84,11 @@ namespace Doji.AI.Diffusers {
             return model;
         }
 
-        public static StableDiffusionPipeline FromPretrained(BackendType backend = BackendType.GPUCompute) {
-            var vocab = LoadVocab();
-            var merges = LoadMerges();
-            var tokenizerConfig = LoadTokenizerConfig();
+        public static StableDiffusionPipeline FromPretrained(DiffusionModel model, BackendType backend = BackendType.GPUCompute) {
+            ModelIndex index = LoadModelIndex(model);
+            var vocab = LoadVocab(model.Name);
+            var merges = LoadMerges(model.Name);
+            var tokenizerConfig = LoadTokenizerConfig(model.Name);
             var clipTokenizer = new ClipTokenizer(
                 vocab,
                 merges,
@@ -87,9 +105,9 @@ namespace Doji.AI.Diffusers {
                 TrainedBetas = null
             };
             var scheduler = new PNDMScheduler(schedulerConfig);
-            var vaeDecoder = LoadVaeDecoder();
-            var textEncoder = LoadTextEncoder();
-            var unet = LoadUnet();
+            var vaeDecoder = LoadVaeDecoder(model.Name);
+            var textEncoder = LoadTextEncoder(model.Name);
+            var unet = LoadUnet(model.Name);
             StableDiffusionPipeline sdPipeline = new StableDiffusionPipeline(
                 vaeDecoder,
                 textEncoder,
@@ -99,71 +117,6 @@ namespace Doji.AI.Diffusers {
                 backend
             );
             return sdPipeline;
-        }
-        
-        public struct DiffusionModel : IEnumerable<(string url, string filePath, bool optional)> {
-
-            private const string HF_URL = "https://huggingface.co";
-
-            public string Name { get; private set; }
-            public string Revision { get; private set; }
-
-            public DiffusionModel(string modelName, string revision = null) {
-                Name = modelName;
-                Revision = revision ?? "main";
-            }
-
-            public override int GetHashCode() {
-                return Name.GetHashCode();
-            }
-
-            public override bool Equals(object obj) {
-                DiffusionModel other = (DiffusionModel)obj;
-                return Name.Equals(other.Name);
-            }
-
-            public static readonly IEnumerable<string> FileNames = new List<string>() {
-                "model_index.json",
-                "scheduler/scheduler_config.json",
-                "text_encoder/model.onnx",
-                "tokenizer/merges.txt",
-                "tokenizer/special_tokens_map.json",
-                "tokenizer/tokenizer_config.json",
-                "tokenizer/vocab.json",
-                "unet/model.onnx",
-                "unet/model.onnx_data",    // optional
-                "unet/weights.pb",         // optional
-                "vae_decoder/model.onnx",
-            };
-
-            public IEnumerator<(string url, string filePath, bool optional)> GetEnumerator() {
-                foreach (string fileName in FileNames) {
-                    bool optional = false;
-                    if (fileName == "unet/model.onnx_data" || fileName == "unet/weights.pb") {
-                        optional = true;  
-                    }
-                    string url = $"{HF_URL}/{Name}/resolve/{Revision}/{fileName}";
-                    string filePath = Path.Combine("Packages", "com.doji.diffusers", "Runtime", "Resources", Name, $"{fileName}");
-                    yield return (url, filePath, optional);
-                }
-            }
-
-            IEnumerator IEnumerable.GetEnumerator() {
-                return GetEnumerator();
-            }
-
-            public static readonly DiffusionModel SD_1_5      = new DiffusionModel("runwayml/stable-diffusion-v1-5", "onnx");
-            public static readonly DiffusionModel SD_XL_TURBO = new DiffusionModel("stabilityai/sdxl-turbo");
-            public static readonly DiffusionModel SD_XL_BASE  = new DiffusionModel("stabilityai/stable-diffusion-xl-base-1.0");
-            public static readonly DiffusionModel SD_2_1      = new DiffusionModel("aislamov/stable-diffusion-2-1-base-onnx");
-
-            /* all the validated models */
-            public static readonly DiffusionModel[] ValidatedModels = new DiffusionModel[] {
-                 SD_1_5,
-                 //SD_XL_TURBO,
-                 //SD_XL_BASE,
-                 //SD_2_1
-            };
         }
 
         public static bool IsModelAvailable(DiffusionModel model) {

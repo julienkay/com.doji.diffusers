@@ -1,7 +1,6 @@
 using Doji.AI.Transformers;
 using NUnit.Framework;
 using System.Collections.Generic;
-using UnityEngine;
 
 namespace Doji.AI.Diffusers.Editor.Tests {
 
