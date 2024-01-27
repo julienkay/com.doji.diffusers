@@ -1,7 +1,5 @@
 using NUnit.Framework;
-using System.IO;
 using Unity.Sentis;
-using UnityEngine;
 
 namespace Doji.AI.Diffusers.Editor.Tests {
 
