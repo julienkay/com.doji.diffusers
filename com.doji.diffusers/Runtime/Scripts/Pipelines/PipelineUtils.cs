@@ -76,17 +76,17 @@ namespace Doji.AI.Diffusers {
                 merges,
                 tokenizerConfig
             );
-            //FIXME: Load from scheduler config
-            var scheduler = new PNDMScheduler(
-                  betaEnd: 0.012f,
-                  betaSchedule: Schedule.ScaledLinear,
-                  betaStart: 0.00085f,
-                  numTrainTimesteps: 1000,
-                  setAlphaToOne: false,
-                  skipPrkSteps: true,
-                  stepsOffset: 1,
-                  trainedBetas: null
-            );
+            var schedulerConfig = new SchedulerConfig() {
+                BetaEnd = 0.012f,
+                BetaSchedule = Schedule.ScaledLinear,
+                BetaStart = 0.00085f,
+                NumTrainTimesteps = 1000,
+                SetAlphaToOne = false,
+                SkipPrkSteps = true,
+                StepsOffset = 1,
+                TrainedBetas = null
+            };
+            var scheduler = new PNDMScheduler(schedulerConfig);
             var vaeDecoder = LoadVaeDecoder();
             var textEncoder = LoadTextEncoder();
             var unet = LoadUnet();

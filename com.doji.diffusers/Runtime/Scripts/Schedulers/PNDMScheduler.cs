@@ -5,8 +5,6 @@ using static Doji.AI.Diffusers.ArrayUtils;
 
 namespace Doji.AI.Diffusers {
 
-    public enum Schedule { Linear, ScaledLinear, SquaredCosCapV2 }
-
     public enum Prediction {
 
         /// <summary>
@@ -32,14 +30,19 @@ namespace Doji.AI.Diffusers {
     public class PNDMScheduler {
 
         public int Order { get { return 1; } }
-        public int NumTrainTimesteps { get; set; }
-        public float BetaStart { get; set; }
-        public float BetaEnd { get; set; }
-        public Schedule BetaSchedule { get; set; }
-        public bool SkipPrkSteps { get; set; }
+
+        public SchedulerConfig Config { get; private set; }
+        public int NumTrainTimesteps { get => Config.NumTrainTimesteps; }
+        public float BetaStart { get => Config.BetaStart; }
+        public float BetaEnd { get => Config.BetaEnd; }
+        public Schedule BetaSchedule { get => Config.BetaSchedule; }
+        public bool SkipPrkSteps { get => Config.SkipPrkSteps; }
+        public bool SetAlphaToOne { get => Config.SetAlphaToOne; }
+        public int StepsOffset { get => Config.StepsOffset; }
+        public float[] TrainedBetas { get => Config.TrainedBetas; }
+
         public Prediction PredictionType { get; set; }
         public Spacing TimestepSpacing { get; set; }
-        public int StepsOffset { get; set; }
         public float[] Betas { get; private set; }
         public float[] Alphas { get; private set; }
         public float[] AlphasCumprod { get; private set; }
@@ -57,51 +60,49 @@ namespace Doji.AI.Diffusers {
         public bool AcceptsEta { get { return false; } }
 
         public PNDMScheduler(
-            int numTrainTimesteps = 1000,
-            float betaStart = 0.0001f,
-            float betaEnd = 0.02f,
-            Schedule betaSchedule = Schedule.Linear,
-            float[] trainedBetas = null,
-            bool skipPrkSteps = false,
-            bool setAlphaToOne = false,
+            SchedulerConfig config,
             Prediction predictionType = Prediction.Epsilon,
-            Spacing timestepSpacing = Spacing.Leading,
-            int stepsOffset = 0)
+            Spacing timestepSpacing = Spacing.Leading)
         {
-            NumTrainTimesteps = numTrainTimesteps;
-            BetaStart = betaStart;
-            BetaEnd = betaEnd;
-            BetaSchedule = betaSchedule;
-            SkipPrkSteps = skipPrkSteps;
+            Config = config ?? new SchedulerConfig() {
+                NumTrainTimesteps = 1000,
+                BetaStart = 0.0001f,
+                BetaEnd = 0.02f,
+                BetaSchedule = Schedule.Linear,
+                TrainedBetas = null,
+                SkipPrkSteps = false,
+                SetAlphaToOne = false,
+                StepsOffset = 0,
+            };
+
             PredictionType = predictionType;
             TimestepSpacing = timestepSpacing;
-            StepsOffset = stepsOffset;
             Ets = new List<float[]>();
 
-            if (trainedBetas != null) {
-                Betas = trainedBetas;
-            } else if (betaSchedule == Schedule.Linear) {
-                Betas = Linspace(betaStart, betaEnd, numTrainTimesteps);
-            } else if (betaSchedule == Schedule.ScaledLinear) {
+            if (TrainedBetas != null) {
+                Betas = TrainedBetas;
+            } else if (BetaSchedule == Schedule.Linear) {
+                Betas = Linspace(BetaStart, BetaEnd, NumTrainTimesteps);
+            } else if (BetaSchedule == Schedule.ScaledLinear) {
                 // this schedule is very specific to the latent diffusion model.
-                Betas = Linspace(MathF.Pow(betaStart, 0.5f), MathF.Pow(betaEnd, 0.5f), numTrainTimesteps)
+                Betas = Linspace(MathF.Pow(BetaStart, 0.5f), MathF.Pow(BetaEnd, 0.5f), NumTrainTimesteps)
                     .Select(x => MathF.Pow(x, 2)).ToArray();
-            } else if (betaSchedule == Schedule.SquaredCosCapV2) {
+            } else if (BetaSchedule == Schedule.SquaredCosCapV2) {
                 // Glide cosine schedule
-                Betas = BetasForAlphaBar(numTrainTimesteps);
+                Betas = BetasForAlphaBar(NumTrainTimesteps);
             } else {
-                throw new NotImplementedException($"{betaSchedule} is not implemented for {GetType().Name}");
+                throw new NotImplementedException($"{BetaSchedule} is not implemented for {GetType().Name}");
             }
 
             Alphas = Betas.Select(beta => 1.0f - beta).ToArray();
             AlphasCumprod = Alphas.CumProd();
-            FinalAlphaCumprod = setAlphaToOne ? 1.0f : AlphasCumprod[0];
+            FinalAlphaCumprod = SetAlphaToOne ? 1.0f : AlphasCumprod[0];
 
             // For now we only support F-PNDM, i.e. the runge-kutta method
             // For more information on the algorithm please take a look at the paper: https://arxiv.org/pdf/2202.09778.pdf
             // mainly at formula (9), (12), (13) and the Algorithm 2.
             PndmOrder = 4;
-            Timesteps = Arange(0, numTrainTimesteps).Reverse();
+            Timesteps = Arange(0, NumTrainTimesteps).Reverse();
         }
 
         /// <summary>

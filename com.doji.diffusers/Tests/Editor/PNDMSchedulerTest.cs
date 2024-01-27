@@ -38,16 +38,17 @@ namespace Doji.AI.Diffusers.Editor.Tests {
 
         [SetUp]
         public void SetUp() {
-            _scheduler = new PNDMScheduler(
-                  betaEnd: 0.012f,
-                  betaSchedule: Schedule.ScaledLinear,
-                  betaStart: 0.00085f,
-                  numTrainTimesteps: 1000,
-                  setAlphaToOne: false,
-                  skipPrkSteps: true,
-                  stepsOffset: 1,
-                  trainedBetas: null
-            );
+            var config = new SchedulerConfig() {
+                BetaEnd = 0.012f,
+                BetaSchedule = Schedule.ScaledLinear,
+                BetaStart = 0.00085f,
+                NumTrainTimesteps = 1000,
+                SetAlphaToOne = false,
+                SkipPrkSteps = true,
+                StepsOffset = 1,
+                TrainedBetas = null
+            };
+            _scheduler = new PNDMScheduler(config);
         }
 
         [Test]
@@ -83,36 +84,36 @@ namespace Doji.AI.Diffusers.Editor.Tests {
         [Test]
         [TestCaseSource(nameof(StepsTestData))]
         public int[] TestStepsOffset(bool skipPrkSteps) {
-            var scheduler = new PNDMScheduler(
-                  betaEnd: 0.02f,
-                  betaSchedule: Schedule.Linear,
-                  betaStart: 0.0001f,
-                  numTrainTimesteps: 1000,
-                  stepsOffset: 1,
-                  skipPrkSteps: skipPrkSteps
-            );
+            var config = new SchedulerConfig() {
+                BetaEnd = 0.02f,
+                BetaSchedule = Schedule.Linear,
+                BetaStart = 0.0001f,
+                NumTrainTimesteps = 1000,
+                StepsOffset = 1,
+                SkipPrkSteps = skipPrkSteps,
+            };
+            var scheduler = new PNDMScheduler(config);
             scheduler.SetTimesteps(10);
             return scheduler.Timesteps;
         }
 
         [Test]
         public void TestFullLoop() {
-            var scheduler = new PNDMScheduler(
-                  betaEnd: 0.02f,
-                  betaSchedule: Schedule.Linear,
-                  betaStart: 0.0001f,
-                  numTrainTimesteps: 1000,
-                  stepsOffset: 1,
-                  skipPrkSteps: true
-            );
+            var config = new SchedulerConfig() {
+                BetaEnd = 0.02f,
+                BetaSchedule = Schedule.Linear,
+                BetaStart = 0.0001f,
+                NumTrainTimesteps = 1000,
+                StepsOffset = 1,
+                SkipPrkSteps = true,
+            };
+            var scheduler = new PNDMScheduler(config);
             scheduler.SetTimesteps(10);
             float[] sample = DummySamples;
            
             foreach(int t in scheduler.Timesteps) {
                 var residual = Model(sample, t);
                 sample = scheduler.Step(residual, t, sample).PrevSample;
-                UnityEngine.Debug.Log(t);
-                UnityEngine.Debug.Log(string.Join(", ", sample));
             }
 
             CollectionAssert.AreEqual(ExpectedOutput, sample, new FloatArrayComparer(0.00001f));
