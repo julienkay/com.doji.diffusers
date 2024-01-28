@@ -3,8 +3,6 @@ using Newtonsoft.Json;
 using System.IO;
 using Unity.Sentis;
 using UnityEngine;
-using System.Collections.Generic;
-using System;
 
 namespace Doji.AI.Diffusers {
 

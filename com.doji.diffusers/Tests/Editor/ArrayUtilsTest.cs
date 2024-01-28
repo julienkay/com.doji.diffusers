@@ -6,10 +6,45 @@ using System.Linq;
 namespace Doji.AI.Diffusers.Editor.Tests {
 
     public class ArrayUtilsTest {
+        private float[] Samples {
+            get {
+                return TestUtils.LoadFromFile("256_latents");
+            }
+        }
+
+        /// Loads deterministic random samples with shape (1, 4, 64, 64)
+        /// </summary>
+        private float[] SamplesLarge {
+            get {
+                return TestUtils.LoadFromFile("16384_latents");
+            }
+        }
 
         [Test]
         public void TestRandomNoise() {
             var array = ArrayUtils.Randn(4096);
+
+            // Mean close to 0
+            Assert.That(Math.Abs(array.Average() - 0), Is.LessThan(0.05));
+
+            // Variance close to 1
+            Assert.That(Math.Abs(array.Variance() - 1), Is.LessThan(0.05));
+        }
+
+        [Test]
+        public void TestPregeneratedNoise() {
+            var array = Samples;
+
+            // Mean close to 0
+            Assert.That(Math.Abs(array.Average() - 0), Is.LessThan(0.05));
+
+            // Variance close to 1
+            Assert.That(Math.Abs(array.Variance() - 1), Is.LessThan(0.05));
+        }
+
+        [Test]
+        public void TestPregeneratedNoiseLarge() {
+            var array = SamplesLarge;
 
             // Mean close to 0
             Assert.That(Math.Abs(array.Average() - 0), Is.LessThan(0.05));
