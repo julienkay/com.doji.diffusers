@@ -1,7 +1,8 @@
 This package contains third-party software components governed by the license(s) indicated below:
 ---------
 
-Component Name: diffusers
+Component Name: huggingface/diffusers
+Source: https://github.com/huggingface/diffusers
 
 License Type: Apache License 2.0
 

@@ -1,31 +1,20 @@
-<br />
-<div align="center">
-  <a href="https://www.doji-tech.com/">
-    <img src="https://www.doji-tech.com/assets/favicon.ico" alt="Logo" width="80" height="80">
-  </a>
+<a href="https://www.doji-tech.com/">
+  <img src="https://www.doji-tech.com/assets/favicon.ico" alt="doji logo" title="Doji" align="right" height="70" />
+</a>
 
-  <h3 align="center">com.doji.diffusers</h3>
+# Diffusers
+A Unity package to run pretrained diffusion models with Unity Sentis
 
-  <p align="center">
-    A C# implementation of diffusers meant to be used with Unity Sentis
-    <br />
-    <a href="https://assetstore.unity.com/packages/slug/268501"><strong>Asset Store</strong></a>
-    <br />
-    <br />
-    <a href="https://docs.doji-tech.com/com.doji.diffusers/">Documentation</a>
-    ·
-    <a href="https://forum.unity.com/">Forum</a>
-    ·
-    <a href="https://openupm.com/packages/com.doji.diffusers/">OpenUPM</a>
-  </p>
-</div>
+[OpenUPM] · [Documentation (coming soon)] · [Feedback/Questions]
 
-This project is dual-licensed. You can either get it here on GitHub under the MIT License, or — if you find it useful and want to support the development — for a small price on the [Unity Asset Store].
+## About
 
-## Usage
+A large part of this project is a port of Hugging Face’s [diffusers] library.
+It is still early, so as of today we only support:
+- a simple StableDifusionPipeline compatible with Stable Diffusion 1.5
+- the default PNDMScheduler
 
-Please refer to the [documentation] for usage guides.
-
-[Unity Asset Store]: https://assetstore.unity.com/publishers/60759
-[documentation]: https://docs.doji-tech.com/com.doji.diffusers/
+[OpenUPM]: https://openupm.com/packages/com.doji.diffusers
+[Documentation (coming soon)]: https://github.com/julienkay/com.doji.diffusers
+[Feedback/Questions]: https://discussions.unity.com/c/ai-beta/sentis/10
 [diffusers]: https://github.com/huggingface/diffusers
