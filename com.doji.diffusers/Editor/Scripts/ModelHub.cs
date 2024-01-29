@@ -8,7 +8,7 @@ namespace Doji.AI.Diffusers.Editor {
     public class ModelHub : SettingsProvider {
 
         internal static class Content {
-            internal static readonly string SettingsRootTitle = "Project/Doji/Diffusers/Model Hub";
+            internal static readonly string SettingsRootTitle = "Project/Diffusers/Model Hub";
             internal static readonly string ModelsLabel = "Models";
         }
 
@@ -44,7 +44,6 @@ namespace Doji.AI.Diffusers.Editor {
             } else {
                 DrawModelInfo(model);
             }
-
         }
 
         private void DrawDownload(DiffusionModel model) {
@@ -67,7 +66,7 @@ namespace Doji.AI.Diffusers.Editor {
         }
 
         private bool IsModelDownloaded(DiffusionModel model) {
-            return StableDiffusionPipeline.IsModelAvailable(model);
+            return IsModelAvailable(model);
         }
 
         private void BeginSubHeading(string content, int spacing = 0) {

@@ -6,7 +6,7 @@ namespace Doji.AI.Diffusers {
 
     /// <summary>
     /// Stores file information for all components of a diffusion model.
-    /// (models, schedulers, and processors)
+    /// (models, schedulers, and processors) and where to download them.
     /// </summary>
     public class DiffusionModel : IEnumerable<(string url, string filePath, bool optional)> {
 
@@ -52,6 +52,8 @@ namespace Doji.AI.Diffusers {
         };
 
         private const string HF_URL = "https://huggingface.co";
+
+        public string BaseUrl { get { return $"{HF_URL}/{Name}"; } }
 
         public IEnumerator<(string url, string filePath, bool optional)> GetEnumerator() {
             foreach (string fileName in Files) {

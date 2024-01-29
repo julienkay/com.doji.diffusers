@@ -1,5 +1,6 @@
 using Doji.AI.Transformers;
 using Newtonsoft.Json;
+using System;
 using System.IO;
 using Unity.Sentis;
 using UnityEngine;
@@ -82,7 +83,15 @@ namespace Doji.AI.Diffusers {
             return model;
         }
 
+#if UNITY_EDITOR
+        public static event Action<DiffusionModel> OnModelRequested = (x) => { };
+#endif
+
         public static StableDiffusionPipeline FromPretrained(DiffusionModel model, BackendType backend = BackendType.GPUCompute) {
+#if UNITY_EDITOR
+            OnModelRequested?.Invoke(model);
+#endif
+
             ModelIndex index = LoadModelIndex(model);
             var vocab = LoadVocab(model.Name);
             var merges = LoadMerges(model.Name);
