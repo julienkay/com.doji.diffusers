@@ -2,7 +2,7 @@
   "name": "com.doji.diffusers",
   "version": "0.0.0",
   "displayName": "Diffusers",
-  "description": "State-of-the-art diffusion models for image and audio generation with Unity Sentis",
+  "description": "Run diffusion models for image generation with Unity Sentis",
   "dependencies": {
     "com.unity.sentis": "1.3.0-pre.3",
     "com.unity.nuget.newtonsoft-json": "3.2.1",
@@ -13,5 +13,11 @@
     "email": "support@doji-tech.com",
     "url": "https://www.doji-tech.com/"
   },
-  "documentationUrl": "https://docs.doji-tech.com/com.doji.diffusers/"
+  "samples": [
+    {
+      "displayName": "Basic Stable Diffusion 1.5 Sample",
+      "description": "Basic example on generating images with a pretrained Stable Diffusion 1.5 model.",
+      "path": "Samples~/01-StableDiffusionPipelineSample"
+    }
+  ]
 }

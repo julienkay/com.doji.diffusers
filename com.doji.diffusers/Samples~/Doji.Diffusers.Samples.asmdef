@@ -1,0 +1,18 @@
+{
+    "name": "Doji.Diffusers.Samples",
+    "rootNamespace": "",
+    "references": [
+        "GUID:b30ff40a7fe06d4478549abccd7ba558",
+        "GUID:c699e6efead55c6409492ab97b7bcb54",
+        "GUID:6055be8ebefd69e48b49212b09b47b2f"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
