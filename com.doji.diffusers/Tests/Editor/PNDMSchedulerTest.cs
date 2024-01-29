@@ -1,5 +1,6 @@
 using NUnit.Framework;
 using System.Collections;
+using Unity.Sentis;
 using UnityEngine.TestTools.Utils;
 
 namespace Doji.AI.Diffusers.Editor.Tests {
@@ -21,9 +22,9 @@ namespace Doji.AI.Diffusers.Editor.Tests {
         /// <summary>
         /// Loads deterministic random samples with shape (4, 3, 8, 8)
         /// </summary>
-        private float[] DummySamples {
+        private TensorFloat DummySamples {
             get {
-                return TestUtils.LoadFromFile("pndm_test_random_samples");
+                return TestUtils.LoadTensorFromFile("pndm_test_random_samples", new TensorShape(4, 3, 8, 8));
             }
         }
 
@@ -51,6 +52,11 @@ namespace Doji.AI.Diffusers.Editor.Tests {
             _scheduler = new PNDMScheduler(config);
         }
 
+        [TearDown]
+        public void TearDown() {
+            _scheduler.Dispose();
+        }
+
         [Test]
         public void TestInit() {
             Assert.That(_scheduler.Timesteps, Is.Not.Null);
@@ -66,7 +72,9 @@ namespace Doji.AI.Diffusers.Editor.Tests {
         /// </summary>
         [Test]
         public void TestBetas() {
-            CollectionAssert.AreEqual(ExpectedBetas, _scheduler.Betas, new FloatArrayComparer(0.00001f));
+            _scheduler.Betas.MakeReadable();
+            var betas = _scheduler.Betas.ToReadOnlyArray();
+            CollectionAssert.AreEqual(ExpectedBetas, betas, new FloatArrayComparer(0.00001f));
         }
 
         [Test]
@@ -92,7 +100,7 @@ namespace Doji.AI.Diffusers.Editor.Tests {
                 StepsOffset = 1,
                 SkipPrkSteps = skipPrkSteps,
             };
-            var scheduler = new PNDMScheduler(config);
+            using var scheduler = new PNDMScheduler(config);
             scheduler.SetTimesteps(10);
             return scheduler.Timesteps;
         }
@@ -107,24 +115,27 @@ namespace Doji.AI.Diffusers.Editor.Tests {
                 StepsOffset = 1,
                 SkipPrkSteps = true,
             };
-            var scheduler = new PNDMScheduler(config);
+            using var scheduler = new PNDMScheduler(config);
             scheduler.SetTimesteps(10);
-            float[] sample = DummySamples;
+            var sample = DummySamples;
            
             foreach(int t in scheduler.Timesteps) {
                 var residual = Model(sample, t);
                 sample = scheduler.Step(residual, t, sample).PrevSample;
             }
 
-            CollectionAssert.AreEqual(ExpectedOutput, sample, new FloatArrayComparer(0.00001f));
+            sample.MakeReadable();
+            CollectionAssert.AreEqual(ExpectedOutput, sample.ToReadOnlyArray(), new FloatArrayComparer(0.00001f));
         }
 
-        private float[] Model(float[] sample, int t) {
+        private TensorFloat Model(TensorFloat sampleTensor, int t) {
+            sampleTensor.MakeReadable();
+            float[] sample = sampleTensor.ToReadOnlyArray();
             float[] result = new float[sample.Length];
-            for (int i = 0; i< sample.Length; i++) {
+            for (int i = 0; i < sample.Length; i++) {
                 result[i] = sample[i] * ((float)t / (t + 1));
             }
-            return result;
+            return new TensorFloat(sampleTensor.shape, result);
         }
     }
 }

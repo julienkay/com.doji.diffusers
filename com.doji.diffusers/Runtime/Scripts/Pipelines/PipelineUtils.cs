@@ -102,7 +102,7 @@ namespace Doji.AI.Diffusers {
                 StepsOffset = 1,
                 TrainedBetas = null
             };
-            var scheduler = new PNDMScheduler(schedulerConfig);
+            var scheduler = new PNDMScheduler(schedulerConfig, backend: backend);
             var vaeDecoder = LoadVaeDecoder(model.Name);
             var textEncoder = LoadTextEncoder(model.Name);
             var unet = LoadUnet(model.Name);

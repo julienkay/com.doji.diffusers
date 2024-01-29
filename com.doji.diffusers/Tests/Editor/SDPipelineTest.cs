@@ -16,14 +16,16 @@ namespace Doji.AI.Diffusers.Editor.Tests {
         /// <summary>
         /// Loads deterministic random samples with shape (1, 4, 8, 8)
         /// </summary>
-        private float[] Latents {
+        private TensorFloat Latents {
             get {
-                return TestUtils.LoadFromFile("256_latents");
+                return TestUtils.LoadTensorFromFile("256_latents", new TensorShape(1, 4, 8, 8));
             }
         }
-        private float[] LatentsLarge {
+
+
+        private TensorFloat LatentsLarge {
             get {
-                return TestUtils.LoadFromFile("16384_latents");
+                return TestUtils.LoadTensorFromFile("16384_latents", new TensorShape(1, 4, 64, 64));
             }
         }
 
@@ -47,8 +49,9 @@ namespace Doji.AI.Diffusers.Editor.Tests {
             //TestUtils.ToFile(prompt, width, height, generated);   
         }
 
-        private void TestPredictedNoise(int i, int t, float[] latents) {
-            CollectionAssert.AreEqual(GetLatents(i), latents, new FloatArrayComparer(0.00001f), $"Latents differ at step {i}");
+        private void TestPredictedNoise(int i, int t, TensorFloat latents) {
+            latents.MakeReadable();
+            CollectionAssert.AreEqual(GetLatents(i), latents.ToReadOnlyArray(), new FloatArrayComparer(0.00001f), $"Latents differ at step {i}");
         }
 
         /// <summary>
@@ -74,8 +77,9 @@ namespace Doji.AI.Diffusers.Editor.Tests {
             //TestUtils.ToFile(prompt, width, height, generated);   
         }
 
-        private void TestPredictedNoiseLarge(int i, int t, float[] latents) {
-            CollectionAssert.AreEqual(GetLatentsLarge(i), latents, new FloatArrayComparer(0.0001f), $"Latents differ at step {i}");
+        private void TestPredictedNoiseLarge(int i, int t, TensorFloat latents) {
+            latents.MakeReadable();
+            CollectionAssert.AreEqual(GetLatentsLarge(i), latents.ToReadOnlyArray(), new FloatArrayComparer(0.0001f), $"Latents differ at step {i}");
         }
     }
 }

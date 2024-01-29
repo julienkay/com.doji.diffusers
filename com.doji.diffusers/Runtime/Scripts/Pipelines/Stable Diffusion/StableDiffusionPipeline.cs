@@ -59,8 +59,8 @@ namespace Doji.AI.Diffusers {
             int numInferenceSteps = 50,
             float guidanceScale = 7.5f,
             int numImagesPerPrompt = 1,
-            float[] latents = null,
-            Action<int, int, float[]> callback = null)
+            TensorFloat latents = null,
+            Action<int, int, TensorFloat> callback = null)
         {
             return Generate((TextInput)prompt, height, width, numInferenceSteps, guidanceScale, numImagesPerPrompt, latents, callback);
         }
@@ -74,8 +74,8 @@ namespace Doji.AI.Diffusers {
             int numInferenceSteps = 50,
             float guidanceScale = 7.5f,
             int numImagesPerPrompt = 1,
-            float[] latents = null,
-            Action<int, int, float[]> callback = null)
+            TensorFloat latents = null,
+            Action<int, int, TensorFloat> callback = null)
         {
             return Generate((BatchInput)prompt, height, width, numInferenceSteps, guidanceScale, numImagesPerPrompt, latents, callback);
         }
@@ -107,9 +107,11 @@ namespace Doji.AI.Diffusers {
             int numInferenceSteps = 50,
             float guidanceScale = 7.5f,
             int numImagesPerPrompt = 1,
-            float[] latents = null,
-            Action<int, int, float[]> callback = null)
+            TensorFloat latents = null,
+            Action<int, int, TensorFloat> callback = null)
         {
+            Profiler.BeginSample($"{GetType().Name}.Generate");
+
             _height = height;
             _width = width;
             _numImagesPerPrompt = numImagesPerPrompt;
@@ -138,10 +140,10 @@ namespace Doji.AI.Diffusers {
                 Profiler.BeginSample("Generate Latents");
                 latents = GenerateLatents(latentsShape);
                 Profiler.EndSample();
+            } else if (latents.shape != latentsShape) {
+                throw new ArgumentException($"Unexpected latents shape, got {latents.shape}, expected {latentsShape}");
             }
-            if (doClassifierFreeGuidance) {
-                latentsShape[0] *= 2;
-            }
+            TensorFloat initialLatents = latents;
 
             Profiler.BeginSample($"{_scheduler.GetType().Name}.SetTimesteps");
             _scheduler.SetTimesteps(numInferenceSteps);
@@ -152,9 +154,8 @@ namespace Doji.AI.Diffusers {
                 int t = _scheduler.Timesteps[i];
 
                 // expand the latents if doing classifier free guidance
-                float[] latentModelInput = doClassifierFreeGuidance ? latents.Tile(2) : latents;
+                TensorFloat latentModelInput = doClassifierFreeGuidance ? _ops.Concat(new Tensor[] { latents, latents }, 0) as TensorFloat : latents;
                 latentModelInput = _scheduler.ScaleModelInput(latentModelInput, t);
-                using TensorFloat latentInputTensor = new TensorFloat(latentsShape, latentModelInput);
 
                 // predict the noise residual
                 Profiler.BeginSample("Prepare Timestep Tensor");
@@ -162,26 +163,26 @@ namespace Doji.AI.Diffusers {
                 Profiler.EndSample();
 
                 Profiler.BeginSample("Execute Unet");
-                TensorFloat noisePred = _unet.ExecuteModel(latentInputTensor, timestep, promptEmbeds);
-                Profiler.EndSample();
-
-                Profiler.BeginSample("Noise Prediction Readback");
-                noisePred.MakeReadable();
-                float[] noise = noisePred.ToReadOnlyArray();
+                TensorFloat noisePred = _unet.ExecuteModel(latentModelInput, timestep, promptEmbeds);
                 Profiler.EndSample();
 
                 // perform guidance
                 if (doClassifierFreeGuidance) {
-                    Profiler.BeginSample("Classifier-free Guidance");
-                    float[] noisePredUncond = noise.Take(noise.Length / 2).ToArray();
-                    float[] noisePredText = noise.Skip(noise.Length / 2).ToArray();
-                    noise = noisePredUncond.Zip(noisePredText, (a, b) => a + guidanceScale * (b - a)).ToArray();
+                    Profiler.BeginSample("Extend Predicted Noise For Classifier-Free Guidance");
+
+                    int halfLength = noisePred.shape.length / 2;
+                    var noisePredUncond = _ops.Split(noisePred, axis: 0, start: 0, end: 1);
+                    var noisePredText = _ops.Split(noisePred, axis: 0, start: 1, end: 2);
+
+                    var tmp = _ops.Sub(noisePredText, noisePredUncond);
+                    var tmp2 = _ops.Mul(guidanceScale, tmp);
+                    noisePred = _ops.Add(noisePredUncond, tmp2);
                     Profiler.EndSample();
                 }
 
                 // compute the previous noisy sample x_t -> x_t-1
                 Profiler.BeginSample($"{_scheduler.GetType().Name}.Step");
-                var schedulerOutput = _scheduler.Step(noise, t, latents);
+                var schedulerOutput = _scheduler.Step(noisePred, t, latents);
                 latents = schedulerOutput.PrevSample;
                 Profiler.EndSample();
 
@@ -190,21 +191,21 @@ namespace Doji.AI.Diffusers {
             Profiler.EndSample();
 
             Profiler.BeginSample($"Scale Latents");
-            for (int l = 0; l < latents.Length; l++) {
-                latents[l] = 1.0f / 0.18215f * latents[l];
-            }
+            TensorFloat result = _ops.Div(latents, 0.18215f);
             Profiler.EndSample();
 
-            // batch
+            // batch decode
             if (_batchSize > 1) {
                 throw new NotImplementedException();
-            } else {
-                Profiler.BeginSample($"VaeDecoder Decode Image");
-                using TensorFloat latentSample = new TensorFloat(GetLatentsShape(), latents);
-                TensorFloat image = _vaeDecoder.ExecuteModel(latentSample);
-                Profiler.EndSample();
-                return image;
             }
+
+            Profiler.BeginSample($"VaeDecoder Decode Image");
+            TensorFloat image = _vaeDecoder.ExecuteModel(result);
+            Profiler.EndSample();
+
+            initialLatents.Dispose();
+            Profiler.EndSample();
+            return image;
         }
 
         private void CheckInputs() {
@@ -281,7 +282,7 @@ namespace Doji.AI.Diffusers {
                 using TensorInt uncondIdTensor = new TensorInt(new TensorShape(_batchSize, uncondInputIds.Length), uncondInputIds);
                 Profiler.EndSample();
 
-                Profiler.BeginSample("Execute TextEncoder for Unconditioned Input");
+                Profiler.BeginSample("Execute TextEncoder For Unconditioned Input");
                 negativePromptEmbeds = _textEncoder.ExecuteModel(uncondIdTensor);
                 Profiler.EndSample();
             }
@@ -290,7 +291,7 @@ namespace Doji.AI.Diffusers {
                 // For classifier free guidance, we need to do two forward passes.
                 // Here we concatenate the unconditional and text embeddings into a single batch
                 // to avoid doing two forward passes
-                Profiler.BeginSample("Concat Inputs for classifier-free guidance");
+                Profiler.BeginSample("Concat Prompt Embeds For Classifier-Fee Guidance");
                 promptEmbeds = _ops.Concat(new Tensor[] { negativePromptEmbeds, promptEmbeds }, 0) as TensorFloat;
                 Profiler.EndSample();
             }
@@ -298,7 +299,7 @@ namespace Doji.AI.Diffusers {
             return promptEmbeds;
         }
 
-        private float[] GenerateLatents(TensorShape shape) {
+        private TensorFloat GenerateLatents(TensorShape shape) {
             int size = shape.length;
             float[] noise =  ArrayUtils.Randn(size);
             float sigma = _scheduler.InitNoiseSigma;
@@ -307,7 +308,7 @@ namespace Doji.AI.Diffusers {
                     noise[i] *= sigma;
                 }
             }
-            return noise;
+            return new TensorFloat(shape, noise);
         }
 
         private TensorShape GetLatentsShape() {
@@ -322,6 +323,7 @@ namespace Doji.AI.Diffusers {
             _textEncoder?.Dispose();
             _vaeDecoder?.Dispose();
             _textEncoder?.Dispose();
+            _scheduler?.Dispose();
             _unet?.Dispose();
             _ops?.Dispose();
         }

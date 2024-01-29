@@ -1,12 +1,13 @@
+using Unity.Sentis;
+
 namespace Doji.AI.Diffusers {
 
-    public class SchedulerOutput {
+    public struct SchedulerOutput {
 
-        public float[] PrevSample { get; internal set; }
+        public TensorFloat PrevSample { get; internal set; }
 
-        public SchedulerOutput(float[] prevSample) {
+        public SchedulerOutput(TensorFloat prevSample) {
             PrevSample = prevSample;
         }
-
     }
 }

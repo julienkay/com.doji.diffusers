@@ -30,6 +30,16 @@ namespace Doji.AI.Diffusers.Editor.Tests {
             return floatValues;
         }
 
+        public static TensorFloat LoadTensorFromFile(string fileName) {
+            float[] data = LoadFromFile(fileName);
+            return new TensorFloat(new TensorShape(data.Length), data);
+        }
+
+        public static TensorFloat LoadTensorFromFile(string fileName, TensorShape shape) {
+            float[] data = LoadFromFile(fileName);
+            return new TensorFloat(shape, data);
+        }
+
         /// <summary>
         /// Dumps a tensor to a png file.
         /// </summary>

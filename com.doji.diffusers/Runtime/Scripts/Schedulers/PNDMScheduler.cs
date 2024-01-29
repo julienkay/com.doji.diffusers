@@ -2,6 +2,7 @@
 using System.Linq;
 using System;
 using static Doji.AI.Diffusers.ArrayUtils;
+using Unity.Sentis;
 
 namespace Doji.AI.Diffusers {
 
@@ -27,11 +28,14 @@ namespace Doji.AI.Diffusers {
 
     public enum AlphaTransform { Cosine, Exp }
 
-    public class PNDMScheduler {
+    public class PNDMScheduler : IDisposable {
 
         public int Order { get { return 1; } }
 
         public SchedulerConfig Config { get; private set; }
+
+        private Ops _ops;
+
         public int NumTrainTimesteps { get => Config.NumTrainTimesteps; }
         public float BetaStart { get => Config.BetaStart; }
         public float BetaEnd { get => Config.BetaEnd; }
@@ -43,16 +47,16 @@ namespace Doji.AI.Diffusers {
 
         public Prediction PredictionType { get; set; }
         public Spacing TimestepSpacing { get; set; }
-        public float[] Betas { get; private set; }
-        public float[] Alphas { get; private set; }
-        public float[] AlphasCumprod { get; private set; }
+        public TensorFloat Betas { get; private set; }
+        public TensorFloat Alphas { get; private set; }
+        public TensorFloat AlphasCumprod { get; private set; }
         public float FinalAlphaCumprod { get; private set; }
         public float InitNoiseSigma { get { return 1.0f; } }
         public int PndmOrder { get; private set; }
-        public float[] CurModelOutput { get; set; }
+        public TensorFloat CurModelOutput { get; set; }
         public int Counter { get; set; }
-        public float[] CurSample { get; set; }
-        public List<float[]> Ets { get; private set; }
+        public TensorFloat CurSample { get; set; }
+        public List<TensorFloat> Ets { get; private set; }
         public int NumInferenceSteps { get; set; }
         public int[] Timesteps { get; private set; }
         public int[] PrkTimesteps { get; set; }
@@ -62,7 +66,8 @@ namespace Doji.AI.Diffusers {
         public PNDMScheduler(
             SchedulerConfig config,
             Prediction predictionType = Prediction.Epsilon,
-            Spacing timestepSpacing = Spacing.Leading)
+            Spacing timestepSpacing = Spacing.Leading,
+            BackendType backend = BackendType.GPUCompute)
         {
             Config = config ?? new SchedulerConfig() {
                 NumTrainTimesteps = 1000,
@@ -75,18 +80,21 @@ namespace Doji.AI.Diffusers {
                 StepsOffset = 0,
             };
 
+            _ops = WorkerFactory.CreateOps(backend, null);
+
             PredictionType = predictionType;
             TimestepSpacing = timestepSpacing;
-            Ets = new List<float[]>();
+            Ets = new List<TensorFloat>();
 
             if (TrainedBetas != null) {
-                Betas = TrainedBetas;
+                Betas = new TensorFloat(new TensorShape(TrainedBetas.Length), TrainedBetas);
             } else if (BetaSchedule == Schedule.Linear) {
-                Betas = Linspace(BetaStart, BetaEnd, NumTrainTimesteps);
+                Betas = new TensorFloat(new TensorShape(NumTrainTimesteps), Linspace(BetaStart, BetaEnd, NumTrainTimesteps));
             } else if (BetaSchedule == Schedule.ScaledLinear) {
                 // this schedule is very specific to the latent diffusion model.
-                Betas = Linspace(MathF.Pow(BetaStart, 0.5f), MathF.Pow(BetaEnd, 0.5f), NumTrainTimesteps)
-                    .Select(x => MathF.Pow(x, 2)).ToArray();
+                Betas = new TensorFloat(new TensorShape(NumTrainTimesteps),
+                    Linspace(MathF.Pow(BetaStart, 0.5f), MathF.Pow(BetaEnd, 0.5f), NumTrainTimesteps)
+                    .Select(x => MathF.Pow(x, 2)).ToArray());
             } else if (BetaSchedule == Schedule.SquaredCosCapV2) {
                 // Glide cosine schedule
                 Betas = BetasForAlphaBar(NumTrainTimesteps);
@@ -94,9 +102,11 @@ namespace Doji.AI.Diffusers {
                 throw new NotImplementedException($"{BetaSchedule} is not implemented for {GetType().Name}");
             }
 
-            Alphas = Betas.Select(beta => 1.0f - beta).ToArray();
-            AlphasCumprod = Alphas.CumProd();
-            FinalAlphaCumprod = SetAlphaToOne ? 1.0f : AlphasCumprod[0];
+            Alphas = _ops.Sub(1.0f, Betas);
+            Alphas.MakeReadable();
+            float[] alphas = Alphas.ToReadOnlyArray();
+            AlphasCumprod = new TensorFloat(new TensorShape(Alphas.shape.length), alphas.CumProd());
+            FinalAlphaCumprod = SetAlphaToOne ? 1.0f : alphas[0];
 
             // For now we only support F-PNDM, i.e. the runge-kutta method
             // For more information on the algorithm please take a look at the paper: https://arxiv.org/pdf/2202.09778.pdf
@@ -142,7 +152,7 @@ namespace Doji.AI.Diffusers {
                 Timesteps = PrkTimesteps.Concatenate(PlmsTimesteps);
             }
 
-            Ets.Clear();
+            ClearEts();
             Counter = 0;
             CurModelOutput = null;
         }
@@ -156,7 +166,7 @@ namespace Doji.AI.Diffusers {
         /// <remarks>
         /// TODO: needs tests
         /// </remarks>
-        private static float[] BetasForAlphaBar(
+        private static TensorFloat BetasForAlphaBar(
             int numDiffusionTimesteps,
             float maxBeta = 0.999f,
             AlphaTransform alphaTransformType = AlphaTransform.Cosine)
@@ -178,7 +188,7 @@ namespace Doji.AI.Diffusers {
                 betas[i] = Math.Min(1 - alphaBarFn(t2) / alphaBarFn(t1), maxBeta);
             }
 
-            return betas;
+            return new TensorFloat(new TensorShape(numDiffusionTimesteps), betas);
         }
 
         /// <summary>
@@ -187,7 +197,7 @@ namespace Doji.AI.Diffusers {
         /// outputs (most often the predicted noise), and calls step_prk or
         /// step_plms depending on the internal variable <see cref="Counter"/>.
         /// </summary>
-        public SchedulerOutput Step(float[] modelOutput, int timestep, float[] sample) {
+        public SchedulerOutput Step(TensorFloat modelOutput, int timestep, TensorFloat sample) {
             if (Counter < PrkTimesteps.Length && !SkipPrkSteps) {
                 return StepPrk(modelOutput: modelOutput, timestep: timestep, sample: sample);
             } else {
@@ -201,7 +211,7 @@ namespace Doji.AI.Diffusers {
         /// It performs four forward passes to approximate the solution to the
         /// differential equation.
         /// </summary>
-        private SchedulerOutput StepPrk(float[] modelOutput, int timestep, float[] sample) {
+        private SchedulerOutput StepPrk(TensorFloat modelOutput, int timestep, TensorFloat sample) {
             if (NumInferenceSteps == 0) {
                 throw new ArgumentException("Number of inference steps is '0', you need to run 'SetTimesteps' after creating the scheduler");
             }
@@ -210,36 +220,33 @@ namespace Doji.AI.Diffusers {
             int prevTimestep = timestep - diffToPrev;
             timestep = PrkTimesteps[Counter / 4 * 4];
 
-            if (CurModelOutput == null || CurModelOutput.Length != modelOutput.Length) {
-                CurModelOutput = new float[CurModelOutput.Length];
+            if (CurModelOutput == null) {
+                using var init = new TensorFloat(modelOutput.shape, new float[modelOutput.shape.length]);
+                CurModelOutput = init;
             }
 
             if (Counter % 4 == 0) {
-                for (int i = 0; i < CurModelOutput.Length; i++) {
-                    CurModelOutput[i] += 1 / 6f * modelOutput[i];
-                }
-
+                var tmp = _ops.Div(modelOutput, 6f);
+                CurModelOutput = _ops.Add(CurModelOutput, tmp);
+                modelOutput.TakeOwnership();
                 Ets.Add(modelOutput);
                 CurSample = sample;
             } else if ((Counter - 1) % 4 == 0) {
-                for (int i = 0; i < CurModelOutput.Length; i++) {
-                    CurModelOutput[i] += 1 / 3f * modelOutput[i];
-                }
+                var tmp = _ops.Div(modelOutput, 3f);
+                CurModelOutput = _ops.Add(CurModelOutput, tmp);
             } else if ((Counter - 2) % 4 == 0) {
-                for (int i = 0; i < CurModelOutput.Length; i++) {
-                    CurModelOutput[i] += 1 / 3f * modelOutput[i];
-                }
+                var tmp = _ops.Div(modelOutput, 3f);
+                CurModelOutput = _ops.Add(CurModelOutput, tmp);
             } else if ((Counter - 3) % 4 == 0) {
-                for (int i = 0; i < modelOutput.Length; i++) {
-                    modelOutput[i] = CurModelOutput[i] + 1 / 6f * modelOutput[i];
-                    CurModelOutput[i] = 0;
-                }
+                var tmp = _ops.Div(modelOutput, 6f);
+                modelOutput = _ops.Add(CurModelOutput, tmp);
+                CurModelOutput = null;
             }
 
             // CurSample should not be `null`
-            float[] curSample = (CurSample != null) ? CurSample : sample;
+            TensorFloat curSample = (CurSample != null) ? CurSample : sample;
 
-            float[] prevSample = GetPrevSample(curSample, timestep, prevTimestep, modelOutput);
+            TensorFloat prevSample = GetPrevSample(curSample, timestep, prevTimestep, modelOutput);
             Counter++;
 
             return new SchedulerOutput(prevSample);
@@ -250,7 +257,7 @@ namespace Doji.AI.Diffusers {
         /// This function propagates the sample with the linear multistep method.
         /// It performs one forward pass multiple times to approximate the solution.
         /// </summary>
-        private SchedulerOutput StepPlms(float[] modelOutput, int timestep, float[] sample) {
+        private SchedulerOutput StepPlms(TensorFloat modelOutput, int timestep, TensorFloat sample) {
             if (NumInferenceSteps == 0) {
                 throw new ArgumentException("Number of inference steps is 0. " +
                     "Make sure to run SetTimesteps() after creating the scheduler");
@@ -264,7 +271,12 @@ namespace Doji.AI.Diffusers {
             int prevTimestep = timestep - NumTrainTimesteps / NumInferenceSteps;
 
             if (Counter != 1) {
-                Ets = Ets.GetRange(Math.Max(0, Ets.Count - 3), Math.Min(Ets.Count, 3));
+                // only keep last 3
+                for (int i = (Ets.Count - 3) - 1; i >= 0; i--) {
+                    Ets[i].Dispose();
+                    Ets.RemoveAt(i);
+                }
+                modelOutput.TakeOwnership();
                 Ets.Add(modelOutput);
             } else {
                 prevTimestep = timestep;
@@ -274,18 +286,33 @@ namespace Doji.AI.Diffusers {
             if (Ets.Count == 1 && Counter == 0) {
                 CurSample = sample;
             } else if (Ets.Count == 1 && Counter == 1) {
-                modelOutput = modelOutput.Add(Ets[^1]).Div(2f);
+                var tmp = _ops.Add(modelOutput, Ets[^1]);
+                modelOutput = _ops.Div(tmp, 2f);
                 sample = CurSample;
                 CurSample = null;
             } else if (Ets.Count == 2) {
-                modelOutput = Ets.Last().Mul(3f).Sub(Ets[^2]).Div(2f);
+                var tmp = _ops.Mul(3f, Ets[^1]);
+                var tmp2 = _ops.Sub(tmp, Ets[^2]);
+                modelOutput = _ops.Div(tmp2, 2f);
             } else if (Ets.Count == 3) {
-                modelOutput = Ets[^1].Mul(23f).Sub(Ets[^2].Mul(16f)).Add(Ets[^3].Mul(5f)).Div(12f);
+                var tmp = _ops.Mul(23f, Ets[^1]);
+                var tmp2 = _ops.Mul(16f, Ets[^2]);
+                var tmp3 = _ops.Sub(tmp, tmp2);
+                var tmp4 = _ops.Mul(5f, Ets[^3]);
+                var tmp5 = _ops.Add(tmp3, tmp4);
+                modelOutput = _ops.Div(tmp5, 12f);
             } else {
-                modelOutput = Ets[^1].Mul(55f).Sub(Ets[^2].Mul(59f)).Add(Ets[^3].Mul(37f)).Sub(Ets[^4].Mul(9f)).Mul(1.0f / 24);
+                var tmp = _ops.Mul(55f, Ets[^1]);
+                var tmp2 = _ops.Mul(59f, Ets[^2]);
+                var tmp3 = _ops.Sub(tmp, tmp2);
+                var tmp4 = _ops.Mul(37f, Ets[^3]);
+                var tmp5 = _ops.Add(tmp3, tmp4);
+                var tmp6 = _ops.Mul(9f, Ets[^4]);
+                var tmp7 = _ops.Sub(tmp5, tmp6);
+                modelOutput = _ops.Div(tmp7, 24f);
             }
 
-            float[] prevSample = GetPrevSample(sample, timestep, prevTimestep, modelOutput);
+            TensorFloat prevSample = GetPrevSample(sample, timestep, prevTimestep, modelOutput);
             Counter++;
 
             return new SchedulerOutput(prevSample);
@@ -295,7 +322,7 @@ namespace Doji.AI.Diffusers {
         /// Ensures interchangeability with schedulers that need to scale
         /// the denoising model input depending on the current timestep.
         /// </summary>
-        public float[] ScaleModelInput(float[] latentModelInput, int t) {
+        public TensorFloat ScaleModelInput(TensorFloat latentModelInput, int t) {
             return latentModelInput;
         }
 
@@ -304,7 +331,7 @@ namespace Doji.AI.Diffusers {
         /// this function computes x_(t−δ) using the formula of (9)
         /// Note that x_t needs to be added to both sides of the equation
         /// </summary>
-        private float[] GetPrevSample(float[] sample, int timestep, int prevTimestep, float[] modelOutput) {
+        private TensorFloat GetPrevSample(TensorFloat sample, int timestep, int prevTimestep, TensorFloat modelOutput) {
             // Notation (<variable name> -> <name in paper>
             // alphaProdT -> α_t
             // alphaProdTPrev -> α_(t−δ)
@@ -316,13 +343,13 @@ namespace Doji.AI.Diffusers {
 
             double alphaProdT = AlphasCumprod[timestep];
             double alphaProdTPrev = (prevTimestep >= 0) ? AlphasCumprod[prevTimestep] : FinalAlphaCumprod;
-            double betaProdT = 1 - alphaProdT;
-            double betaProdTPrev = 1 - alphaProdTPrev;
+            double betaProdT = 1.0 - alphaProdT;
+            double betaProdTPrev = 1.0 - alphaProdTPrev;
 
             if (PredictionType == Prediction.V_Prediction) {
-                for (int i = 0; i < modelOutput.Length; i++) {
-                    modelOutput[i] = (float)(Math.Sqrt(alphaProdT) * modelOutput[i] + Math.Sqrt(betaProdT) * sample[i]);
-                }
+                var a = _ops.Mul((float)Math.Sqrt(alphaProdT), modelOutput);
+                var b = _ops.Mul((float)Math.Sqrt(betaProdT), sample);
+                modelOutput = _ops.Add(a, b);
             } else if (PredictionType != Prediction.Epsilon) {
                 throw new ArgumentException($"prediction_type given as {PredictionType} must be one of `epsilon` or `v_prediction`");
             }
@@ -338,10 +365,10 @@ namespace Doji.AI.Diffusers {
                 Math.Pow(alphaProdT * betaProdT * alphaProdTPrev, 0.5);
 
             // full formula (9)
-            float[] prevSample = new float[sample.Length];
-            for (int i = 0; i < sample.Length; i++) {
-                prevSample[i] = (float)(sampleCoeff * sample[i] - (alphaProdTPrev - alphaProdT) * modelOutput[i] / modelOutputDenomCoeff);
-            }
+            var tmp = _ops.Mul((float)sampleCoeff, sample);
+            var tmp2 = _ops.Mul((float)(alphaProdTPrev - alphaProdT), modelOutput);
+            var tmp3 = _ops.Div(tmp2, (float)modelOutputDenomCoeff);
+            var prevSample = _ops.Sub(tmp, tmp3);
 
             return prevSample;
         }
@@ -403,6 +430,20 @@ namespace Doji.AI.Diffusers {
             }
 
             return result;
+        }
+
+        private void ClearEts() {
+            foreach(Tensor t in Ets) {
+                t.Dispose();
+            }
+            Ets?.Clear();
+        }
+
+        public void Dispose() {
+            ClearEts();
+            Betas?.Dispose();
+            AlphasCumprod?.Dispose();
+            _ops.Dispose();
         }
     }
 }
