@@ -27,5 +27,5 @@ Some things that might be worked on next are:
 
 [OpenUPM]: https://openupm.com/packages/com.doji.diffusers
 [Documentation (coming soon)]: https://github.com/julienkay/com.doji.diffusers
-[Feedback/Questions]: https://discussions.unity.com/c/ai-beta/sentis/10
+[Feedback/Questions]: https://discussions.unity.com/t/stable-diffusion-diffusers-transformers-package/332701
 [diffusers]: https://github.com/huggingface/diffusers
