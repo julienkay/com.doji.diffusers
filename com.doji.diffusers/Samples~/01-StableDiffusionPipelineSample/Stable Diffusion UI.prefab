@@ -197,7 +197,7 @@ MonoBehaviour:
   PromptField: {fileID: 4001988286001638152}
   GenerateButton: {fileID: 5103292409896876314}
   Result: {fileID: 0}
-  Prompt: a cat with a hat
+  Prompt: a cat
   Resolution: 512
   Steps: 20
   GuidanceScale: 1

@@ -6,7 +6,6 @@ namespace Doji.AI.Diffusers {
 
     /// <summary>
     /// This class provides access to <see cref="StableDiffusionPipeline"/> objects.
-    /// TODO: For easy access, use StableDiffusion.FromPretrained(...)
     /// </summary>
     public class StableDiffusion : IDisposable {
 
