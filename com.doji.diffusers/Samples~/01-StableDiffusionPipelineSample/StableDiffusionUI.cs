@@ -17,7 +17,7 @@ namespace Doji.AI.Diffusers.Samples {
         public string Prompt = "a cat";
         public int Resolution = 512;
         public int Steps = 20;
-        public float GuidanceScale = 1.0f;
+        public float GuidanceScale = 7.5f;
 
         private void Start() {
             sd = new StableDiffusion();

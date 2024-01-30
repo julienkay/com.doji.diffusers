@@ -215,10 +215,6 @@ namespace Doji.AI.Diffusers {
             if (_numImagesPerPrompt > 1) {
                 throw new ArgumentException($"More than one image per prompt not supported yet. `numImagesPerPrompt` was {_numImagesPerPrompt}.");
             }
-            if (_guidanceScale > 1.0f) {
-                throw new ArgumentException($"Classifier-Free Guidance not supported yet. `_guidanceScale` was {_guidanceScale}. " +
-                    $"Please set '_guidanceScale' to '1.0' for now.");
-            }
         }
 
         private TensorFloat EncodePrompt(
@@ -249,9 +245,13 @@ namespace Doji.AI.Diffusers {
                 promptEmbeds = _textEncoder.ExecuteModel(textIdTensor);
                 Profiler.EndSample();
             }
-
+            bool ownsPromptEmbeds = false;
+               
             // get unconditional embeddings for classifier free guidance
             if (doClassifierFreeGuidance && negativePromptEmbeds == null) {
+                ownsPromptEmbeds = true;
+                promptEmbeds.TakeOwnership();
+
                 List<string> uncondTokens;
                 if (negativePrompt == null) {
                     uncondTokens = Enumerable.Repeat("", _batchSize).ToList();
@@ -292,8 +292,14 @@ namespace Doji.AI.Diffusers {
                 // Here we concatenate the unconditional and text embeddings into a single batch
                 // to avoid doing two forward passes
                 Profiler.BeginSample("Concat Prompt Embeds For Classifier-Fee Guidance");
-                promptEmbeds = _ops.Concat(new Tensor[] { negativePromptEmbeds, promptEmbeds }, 0) as TensorFloat;
+                TensorFloat combinedEmbeddings = _ops.Concat(new Tensor[] { negativePromptEmbeds, promptEmbeds }, 0) as TensorFloat;
                 Profiler.EndSample();
+
+                if (ownsPromptEmbeds) {
+                    promptEmbeds.Dispose();
+                }
+
+                return combinedEmbeddings;
             }
 
             return promptEmbeds;

@@ -7,6 +7,10 @@ namespace Doji.AI.Diffusers.Editor.Tests {
 
     public static class TestUtils {
 
+        /// <summary>
+        /// Loads the given file into a float array.
+        /// Expects comma-separated values in a text file in Resources.
+        /// </summary>
         public static float[] LoadFromFile(string fileName) {
             TextAsset file = Resources.Load<TextAsset>(fileName);
             if (file == null) {

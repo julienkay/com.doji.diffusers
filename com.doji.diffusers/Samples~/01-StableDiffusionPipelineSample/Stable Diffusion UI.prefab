@@ -200,7 +200,7 @@ MonoBehaviour:
   Prompt: a cat
   Resolution: 512
   Steps: 20
-  GuidanceScale: 1
+  GuidanceScale: 7.5
 --- !u!1 &3250055239215426112
 GameObject:
   m_ObjectHideFlags: 0
