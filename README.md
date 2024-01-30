@@ -17,7 +17,7 @@ It is still ***very*** early though, so as of today we only support:
 
 ### Roadmap
 Some things that might be worked on next are:
-- add/fix classifier-free guidance
+- ~~add/fix classifier-free guidance~~
 - async pipeline methods
 - pipelines for img2img, inpaint, upscale, depth2img
 - support for other models (2.1, SDXL, sdxl-turbo, LoRA models)
