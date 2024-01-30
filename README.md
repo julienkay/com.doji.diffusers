@@ -25,7 +25,11 @@ Some things that might be worked on next are:
 - support multiple images per prompt
 - write some documentation
 
+### Dependencies
+Depends on [com.doji.transformers]
+
 [OpenUPM]: https://openupm.com/packages/com.doji.diffusers
 [Documentation (coming soon)]: https://github.com/julienkay/com.doji.diffusers
 [Feedback/Questions]: https://discussions.unity.com/t/stable-diffusion-diffusers-transformers-package/332701
 [diffusers]: https://github.com/huggingface/diffusers
+[com.doji.transformers]: https://github.com/julienkay/com.doji.transformers
