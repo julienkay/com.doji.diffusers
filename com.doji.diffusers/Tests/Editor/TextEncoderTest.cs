@@ -1,5 +1,6 @@
 using Doji.AI.Transformers;
 using NUnit.Framework;
+using System.Collections.Generic;
 using System.Linq;
 using Unity.Sentis;
 
@@ -12,11 +13,20 @@ namespace Doji.AI.Diffusers.Editor.Tests {
     public class TextEncoderTest : TestBase {
 
         /// <summary>
-        /// Loads the expected (flattened) embedding for the prompt "a cat" with SD 1.5 defaults from a text file
+        /// The expected (flattened) embedding for the prompt "a cat" with SD 1.5 defaults
         /// </summary>
-        private float[] ExpectedEmbedding {
+        private float[] ExpectedEmbeddings {
             get {
-                return TestUtils.LoadFromFile("encoder_test_last_hidden_state");
+                return TestUtils.LoadFromFile("encoder_test_cat_embeddings");
+            }
+        }
+
+        /// <summary>
+        /// The expected (flattened) embedding for an empty prompt with SD 1.5
+        /// </summary>
+        private float[] UnconditionalEmbeddings {
+            get {
+                return TestUtils.LoadFromFile("encoder_test_uncond_embeddings");
             }
         }
 
@@ -40,10 +50,33 @@ namespace Doji.AI.Diffusers.Editor.Tests {
             output.MakeReadable();
             float[] promptEmbeds = output.ToReadOnlyArray();
 
-            Assert.AreEqual(ExpectedEmbedding.Length, promptEmbeds.Length);
+            Assert.AreEqual(ExpectedEmbeddings.Length, promptEmbeds.Length);
 
             //Assert.That(promptEmbeds, Is.EqualTo(expectedEmbedding).Within(0.0001f));
-            CollectionAssert.AreEqual(ExpectedEmbedding, promptEmbeds, new FloatArrayComparer(0.0001f));
+            CollectionAssert.AreEqual(ExpectedEmbeddings, promptEmbeds, new FloatArrayComparer(0.0001f));
+        }
+
+        [Test]
+        public void TestEncodeUnconditional() {
+            var model = StableDiffusionPipeline.LoadTextEncoder(DiffusionModel.SD_1_5.Name);
+
+            ClipTokenizer tokenizer = GetSDCLIPTokenizer();
+
+            var prompt = new List<string>() { "" };
+            var inputIds = tokenizer.Encode<BatchInput>(
+                prompt,
+                padding: Padding.MaxLength,
+                maxLength: tokenizer.ModelMaxLength,
+                truncation: Truncation.LongestFirst
+            ).InputIds;
+
+            using TensorInt tokens = new TensorInt(new TensorShape(1, inputIds.Count()), inputIds.ToArray());
+            using TextEncoder textEncoder = new TextEncoder(model);
+            TensorFloat output = textEncoder.ExecuteModel(tokens);
+            output.MakeReadable();
+            float[] promptEmbeds = output.ToReadOnlyArray();
+
+            CollectionAssert.AreEqual(UnconditionalEmbeddings, promptEmbeds, new FloatArrayComparer(0.0001f));
         }
     }
 }

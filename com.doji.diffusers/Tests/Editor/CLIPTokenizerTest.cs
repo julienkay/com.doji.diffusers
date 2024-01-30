@@ -59,5 +59,34 @@ namespace Doji.AI.Diffusers.Editor.Tests {
             List<string> expected = new List<string>() { "a</w>", "cat</w>" };
             CollectionAssert.AreEqual(expected, tokens);
         }
+
+        /// <summary>
+        /// Tests clip encoding with an empty input.
+        /// </summary>
+        [Test]
+        public void TestCLIPEncodeEmpty() {
+            ClipTokenizer tokenizer = GetSDCLIPTokenizer();
+
+            string prompt = "";
+            var inputIds = tokenizer.Encode(
+                prompt,
+                padding: Padding.MaxLength,
+                maxLength: tokenizer.ModelMaxLength,
+                truncation: Truncation.LongestFirst
+            ).InputIds;
+
+            List<int> expected = new List<int>() {
+                49406, 49407, 49407, 49407, 49407, 49407, 49407, 49407, 49407,
+                49407, 49407, 49407, 49407, 49407, 49407, 49407, 49407, 49407,
+                49407, 49407, 49407, 49407, 49407, 49407, 49407, 49407, 49407,
+                49407, 49407, 49407, 49407, 49407, 49407, 49407, 49407, 49407,
+                49407, 49407, 49407, 49407, 49407, 49407, 49407, 49407, 49407,
+                49407, 49407, 49407, 49407, 49407, 49407, 49407, 49407, 49407,
+                49407, 49407, 49407, 49407, 49407, 49407, 49407, 49407, 49407,
+                49407, 49407, 49407, 49407, 49407, 49407, 49407, 49407, 49407,
+                49407, 49407, 49407, 49407, 49407
+            };
+            CollectionAssert.AreEqual(expected, inputIds);
+        }
     }
 }
