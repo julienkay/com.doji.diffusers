@@ -2,10 +2,11 @@ using NUnit.Framework;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Unity.Sentis;
 
 namespace Doji.AI.Diffusers.Editor.Tests {
 
-    public class ArrayUtilsTest {
+    public class NoiseTest {
         private float[] Samples {
             get {
                 return TestUtils.LoadFromFile("256_latents");
@@ -18,6 +19,20 @@ namespace Doji.AI.Diffusers.Editor.Tests {
             get {
                 return TestUtils.LoadFromFile("16384_latents");
             }
+        }
+
+        [Test]
+        public void TestSentisRandomNoise() {
+            Ops ops = WorkerFactory.CreateOps(BackendType.GPUCompute, null);
+            var latents = ops.RandomNormal(new TensorShape(1, 4, 64, 64), 0, 1, new System.Random().Next());
+            latents.MakeReadable();
+            float[] array = latents.ToReadOnlyArray();
+
+            Assert.That(Math.Abs(array.Average() - 0), Is.LessThan(0.05));
+            Assert.That(Math.Abs(array.Variance() - 1), Is.LessThan(0.05));
+
+            latents.Dispose();
+            ops.Dispose();
         }
 
         [Test]

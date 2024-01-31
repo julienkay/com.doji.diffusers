@@ -138,7 +138,7 @@ namespace Doji.AI.Diffusers {
             TensorShape latentsShape = GetLatentsShape();
             if (latents == null) {
                 Profiler.BeginSample("Generate Latents");
-                latents = GenerateLatents(latentsShape);
+                latents = _ops.RandomNormal(latentsShape, 0, 1, new System.Random().Next());
                 Profiler.EndSample();
             } else if (latents.shape != latentsShape) {
                 throw new ArgumentException($"Unexpected latents shape, got {latents.shape}, expected {latentsShape}");
@@ -148,6 +148,12 @@ namespace Doji.AI.Diffusers {
             Profiler.BeginSample($"{_scheduler.GetType().Name}.SetTimesteps");
             _scheduler.SetTimesteps(numInferenceSteps);
             Profiler.EndSample();
+
+            if (_scheduler.InitNoiseSigma > 1.0f) {
+                Profiler.BeginSample("Multiply latents with scheduler sigma");
+                latents = _ops.Mul(_scheduler.InitNoiseSigma, latents);
+                Profiler.EndSample();
+            }
 
             Profiler.BeginSample($"Denoising Loop");
             for (int i = 0; i < _scheduler.Timesteps.Length; i++) {
@@ -303,18 +309,6 @@ namespace Doji.AI.Diffusers {
             }
 
             return promptEmbeds;
-        }
-
-        private TensorFloat GenerateLatents(TensorShape shape) {
-            int size = shape.length;
-            float[] noise =  ArrayUtils.Randn(size);
-            float sigma = _scheduler.InitNoiseSigma;
-            if (sigma != 1.0f) {
-                for(int i = 0; i < size; i++) {
-                    noise[i] *= sigma;
-                }
-            }
-            return new TensorFloat(shape, noise);
         }
 
         private TensorShape GetLatentsShape() {
