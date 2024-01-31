@@ -86,26 +86,26 @@ namespace Doji.AI.Diffusers {
             TimestepSpacing = timestepSpacing;
             Ets = new List<TensorFloat>();
 
+            float[] betas = null;
             if (TrainedBetas != null) {
-                Betas = new TensorFloat(new TensorShape(TrainedBetas.Length), TrainedBetas);
+                betas = TrainedBetas;
             } else if (BetaSchedule == Schedule.Linear) {
-                Betas = new TensorFloat(new TensorShape(NumTrainTimesteps), Linspace(BetaStart, BetaEnd, NumTrainTimesteps));
+                betas = Linspace(BetaStart, BetaEnd, NumTrainTimesteps);
             } else if (BetaSchedule == Schedule.ScaledLinear) {
                 // this schedule is very specific to the latent diffusion model.
-                Betas = new TensorFloat(new TensorShape(NumTrainTimesteps),
-                    Linspace(MathF.Pow(BetaStart, 0.5f), MathF.Pow(BetaEnd, 0.5f), NumTrainTimesteps)
-                    .Select(x => MathF.Pow(x, 2)).ToArray());
+                betas = Linspace(MathF.Pow(BetaStart, 0.5f), MathF.Pow(BetaEnd, 0.5f), NumTrainTimesteps)
+                    .Select(x => MathF.Pow(x, 2)).ToArray();
             } else if (BetaSchedule == Schedule.SquaredCosCapV2) {
                 // Glide cosine schedule
-                Betas = BetasForAlphaBar(NumTrainTimesteps);
+                betas = BetasForAlphaBar(NumTrainTimesteps);
             } else {
                 throw new NotImplementedException($"{BetaSchedule} is not implemented for {GetType().Name}");
             }
 
+            Betas = new TensorFloat(new TensorShape(betas.Length), betas);
             Alphas = _ops.Sub(1.0f, Betas);
-            Alphas.MakeReadable();
-            float[] alphas = Alphas.ToReadOnlyArray();
-            AlphasCumprod = new TensorFloat(new TensorShape(Alphas.shape.length), alphas.CumProd());
+            float[] alphas = betas.Select(beta => 1.0f - beta).ToArray();
+            AlphasCumprod = new TensorFloat(new TensorShape(alphas.Length), alphas.CumProd());
             FinalAlphaCumprod = SetAlphaToOne ? 1.0f : alphas[0];
 
             // For now we only support F-PNDM, i.e. the runge-kutta method
@@ -166,7 +166,7 @@ namespace Doji.AI.Diffusers {
         /// <remarks>
         /// TODO: needs tests
         /// </remarks>
-        private static TensorFloat BetasForAlphaBar(
+        private static float[] BetasForAlphaBar(
             int numDiffusionTimesteps,
             float maxBeta = 0.999f,
             AlphaTransform alphaTransformType = AlphaTransform.Cosine)
@@ -188,7 +188,7 @@ namespace Doji.AI.Diffusers {
                 betas[i] = Math.Min(1 - alphaBarFn(t2) / alphaBarFn(t1), maxBeta);
             }
 
-            return new TensorFloat(new TensorShape(numDiffusionTimesteps), betas);
+            return betas;
         }
 
         /// <summary>
