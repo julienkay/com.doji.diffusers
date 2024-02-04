@@ -1,6 +1,8 @@
 using System;
+using System.Threading.Tasks;
 using Unity.Sentis;
 using UnityEngine;
+using UnityEngine.Profiling;
 
 namespace Doji.AI.Diffusers {
 
@@ -44,12 +46,30 @@ namespace Doji.AI.Diffusers {
                 numInferenceSteps: numInferenceSteps,
                 guidanceScale: guidanceScale
             );
+            Profiler.BeginSample("Convert to RenderTexture");
             TextureConverter.RenderToTexture(image, RenderTexture);
+            Profiler.EndSample();
+        }
+
+        public async Task ImagineAsync(string prompt, int width, int height, int numInferenceSteps = 50, float guidanceScale = 7.5f, string negativePrompt = null) {
+            RenderTexture.name = prompt;
+            var image = _sdPipeline.Generate(
+                prompt,
+                width: width,
+                height: height,
+                numInferenceSteps: numInferenceSteps,
+                guidanceScale: guidanceScale,
+                negativePrompt: negativePrompt
+            );
+            await image.ReadbackRequestAsync();
+            Profiler.BeginSample("Convert to rendertexture");
+            TextureConverter.RenderToTexture(image, RenderTexture);
+            Profiler.EndSample();
         }
 
         public void Dispose() {
             _sdPipeline?.Dispose();
-            if (RenderTexture != null ) {
+            if (RenderTexture != null) {
                 RenderTexture.Release();
             }
         }
