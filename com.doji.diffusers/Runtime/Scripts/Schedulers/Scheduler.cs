@@ -7,6 +7,17 @@ namespace Doji.AI.Diffusers {
 
         public SchedulerConfig Config { get; protected set; }
 
+        public int NumTrainTimesteps { get => Config.NumTrainTimesteps; }
+        public float BetaStart { get => Config.BetaStart; }
+        public float BetaEnd { get => Config.BetaEnd; }
+        public Schedule BetaSchedule { get => Config.BetaSchedule; }
+        public bool SkipPrkSteps { get => Config.SkipPrkSteps; }
+        public bool SetAlphaToOne { get => Config.SetAlphaToOne; }
+        public int StepsOffset { get => Config.StepsOffset; }
+        public float[] TrainedBetas { get => Config.TrainedBetas; }
+        public Prediction PredictionType { get => Config.PredictionType; }
+        public Spacing TimestepSpacing { get => Config.TimestepSpacing; }
+
         protected Ops _ops;
 
         public Scheduler(BackendType backend) {

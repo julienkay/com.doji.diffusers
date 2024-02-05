@@ -5,8 +5,6 @@ namespace Doji.AI.Diffusers {
 
         public DDIMScheduler(
             SchedulerConfig config,
-            Prediction predictionType = Prediction.Epsilon,
-            Spacing timestepSpacing = Spacing.Leading,
             BackendType backend = BackendType.GPUCompute) : base(backend)
         {
             Config = config ?? new SchedulerConfig() {
@@ -15,9 +13,16 @@ namespace Doji.AI.Diffusers {
                 BetaEnd = 0.02f,
                 BetaSchedule = Schedule.Linear,
                 TrainedBetas = null,
-                SkipPrkSteps = false,
-                SetAlphaToOne = false,
+                ClipSample = true,
+                SetAlphaToOne = true,
                 StepsOffset = 0,
+                PredictionType = Prediction.Epsilon,
+                Thresholding = false,
+                DynamicThresholdingRatio = 0.995f,
+                ClipSampleRange = 1.0f,
+                SampleMaxValue = 1.0f,
+                TimestepSpacing = Spacing.Leading,
+                RescaleBetasZeroSnr = false
             };
 
         }

@@ -6,43 +6,12 @@ using Unity.Sentis;
 
 namespace Doji.AI.Diffusers {
 
-    public enum Prediction {
-
-        /// <summary>
-        /// predicts the noise of the diffusion process
-        /// </summary>
-        Epsilon,
-
-        /// <summary>
-        /// directly predicts the noisy sample
-        /// </summary>
-        Sample,
-
-        /// <summary>
-        /// see section 2.4 of Imagen Video paper
-        /// </summary>
-        V_Prediction
-    }
-
-    public enum Spacing { Leading, Trailing, Linspace }
-
     public enum AlphaTransform { Cosine, Exp }
 
     public class PNDMScheduler : Scheduler {
 
         public int Order { get { return 1; } }
 
-        public int NumTrainTimesteps { get => Config.NumTrainTimesteps; }
-        public float BetaStart { get => Config.BetaStart; }
-        public float BetaEnd { get => Config.BetaEnd; }
-        public Schedule BetaSchedule { get => Config.BetaSchedule; }
-        public bool SkipPrkSteps { get => Config.SkipPrkSteps; }
-        public bool SetAlphaToOne { get => Config.SetAlphaToOne; }
-        public int StepsOffset { get => Config.StepsOffset; }
-        public float[] TrainedBetas { get => Config.TrainedBetas; }
-
-        public Prediction PredictionType { get; set; }
-        public Spacing TimestepSpacing { get; set; }
         public TensorFloat Betas { get; private set; }
         public TensorFloat Alphas { get; private set; }
         public TensorFloat AlphasCumprod { get; private set; }
@@ -61,8 +30,6 @@ namespace Doji.AI.Diffusers {
 
         public PNDMScheduler(
             SchedulerConfig config,
-            Prediction predictionType = Prediction.Epsilon,
-            Spacing timestepSpacing = Spacing.Leading,
             BackendType backend = BackendType.GPUCompute) : base(backend)
         {
             Config = config ?? new SchedulerConfig() {
@@ -73,11 +40,11 @@ namespace Doji.AI.Diffusers {
                 TrainedBetas = null,
                 SkipPrkSteps = false,
                 SetAlphaToOne = false,
+                PredictionType = Prediction.Epsilon,
+                TimestepSpacing = Spacing.Leading,
                 StepsOffset = 0,
             };
 
-            PredictionType = predictionType;
-            TimestepSpacing = timestepSpacing;
             Ets = new List<TensorFloat>();
 
             float[] betas = null;
