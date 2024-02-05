@@ -47,8 +47,7 @@ namespace Doji.AI.Diffusers {
 
             _worker.Execute(latentSample);
             TensorFloat sample = _worker.PeekOutput("sample") as TensorFloat;
-            TensorFloat image_div_2 = _ops.Div(sample, 2);
-            TensorFloat normalized = _ops.Add(image_div_2, 0.5f);
+            TensorFloat normalized = _ops.Mad(sample, 0.5f, 0.5f);
             TensorFloat image = _ops.Clip(normalized, 0.0f, 1.0f);
             return image;
         }
