@@ -47,22 +47,7 @@ namespace Doji.AI.Diffusers {
 
             Ets = new List<TensorFloat>();
 
-            float[] betas = null;
-            if (TrainedBetas != null) {
-                betas = TrainedBetas;
-            } else if (BetaSchedule == Schedule.Linear) {
-                betas = Linspace(BetaStart, BetaEnd, NumTrainTimesteps);
-            } else if (BetaSchedule == Schedule.ScaledLinear) {
-                // this schedule is very specific to the latent diffusion model.
-                betas = Linspace(MathF.Pow(BetaStart, 0.5f), MathF.Pow(BetaEnd, 0.5f), NumTrainTimesteps)
-                    .Select(x => MathF.Pow(x, 2)).ToArray();
-            } else if (BetaSchedule == Schedule.SquaredCosCapV2) {
-                // Glide cosine schedule
-                betas = BetasForAlphaBar(NumTrainTimesteps);
-            } else {
-                throw new NotImplementedException($"{BetaSchedule} is not implemented for {GetType().Name}");
-            }
-
+            float[] betas = GetBetas();
             Betas = new TensorFloat(new TensorShape(betas.Length), betas);
             Alphas = _ops.Sub(1.0f, Betas);
             float[] alphas = betas.Select(beta => 1.0f - beta).ToArray();
@@ -116,40 +101,6 @@ namespace Doji.AI.Diffusers {
             ClearEts();
             Counter = 0;
             CurModelOutput = null;
-        }
-
-        /// <summary>
-        /// Create a beta schedule that discretizes the given alpha_t_bar function,
-        /// which defines the cumulative product of (1-beta) over time from t = [0, 1].
-        /// Contains a function alpha_bar that takes an argument t and transforms it to
-        /// the cumulative product of(1-beta) up to that part of the diffusion process.
-        /// </summary>
-        /// <remarks>
-        /// TODO: needs tests
-        /// </remarks>
-        private static float[] BetasForAlphaBar(
-            int numDiffusionTimesteps,
-            float maxBeta = 0.999f,
-            AlphaTransform alphaTransformType = AlphaTransform.Cosine)
-        {
-            float[] betas = new float[numDiffusionTimesteps];
-
-            Func<float, float> alphaBarFn;
-            if (alphaTransformType == AlphaTransform.Cosine) {
-                alphaBarFn = t => (float)Math.Pow(Math.Cos((t + 0.008) / 1.008 * Math.PI / 2), 2);
-            } else if (alphaTransformType == AlphaTransform.Exp) {
-                alphaBarFn = t => (float)Math.Exp(t * -12.0);
-            } else {
-                throw new ArgumentException($"Unsupported alpha_transform_type: {alphaTransformType}");
-            }
-
-            for (int i = 0; i < numDiffusionTimesteps; i++) {
-                float t1 = i / (float)numDiffusionTimesteps;
-                float t2 = (i + 1) / (float)numDiffusionTimesteps;
-                betas[i] = Math.Min(1 - alphaBarFn(t2) / alphaBarFn(t1), maxBeta);
-            }
-
-            return betas;
         }
 
         /// <summary>

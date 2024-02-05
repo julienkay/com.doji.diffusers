@@ -124,7 +124,7 @@ namespace Doji.AI.Diffusers {
         }
 
         /// <summary>
-        /// Performs element-wise addition on two integer arrays, producing a new array with the result.
+        /// Performs element-wise addition on two arrays, producing a new array with the result.
         /// </summary>
         public static int[] Add(this int[] a, int[] b) {
             if (a.Length != b.Length) {
@@ -156,9 +156,29 @@ namespace Doji.AI.Diffusers {
         }
 
         public static float[] Sub(this float[] a, float[] b) {
+            if (a.Length != b.Length) {
+                throw new ArgumentException("Arrays must have the same length");
+            }
+
             float[] result = new float[a.Length];
             for (int i = 0; i < a.Length; i++) {
                 result[i] = a[i] - b[i];
+            }
+            return result;
+        }
+
+        public static float[] Sub(this float[] a, float b) {
+            float[] result = new float[a.Length];
+            for (int i = 0; i < a.Length; i++) {
+                result[i] = a[i] - b;
+            }
+            return result;
+        }
+
+        public static float[] Sub(float a, float[] b) {
+            float[] result = new float[b.Length];
+            for (int i = 0; i < b.Length; i++) {
+                result[i] = a - b[i];
             }
             return result;
         }
@@ -171,10 +191,30 @@ namespace Doji.AI.Diffusers {
             return result;
         }
 
+        public static float[] Div(this float[] a, float[] b) {
+            if (a.Length != b.Length) {
+                throw new ArgumentException("Arrays must have the same length");
+            }
+
+            float[] result = new float[a.Length];
+            for (int i = 0; i < a.Length; i++) {
+                result[i] = a[i] / b[i];
+            }
+            return result;
+        }
+
         public static float[] Mul(this float[] a, float b) {
             float[] result = new float[a.Length];
             for (int i = 0; i < a.Length; i++) {
                 result[i] = a[i] * b;
+            }
+            return result;
+        }
+
+        public static float[] Pow(this float[] a, float b) {
+            float[] result = new float[a.Length];
+            for (int i = 0; i < a.Length; i++) {
+                result[i] = MathF.Pow(a[i], b);
             }
             return result;
         }
@@ -207,6 +247,17 @@ namespace Doji.AI.Diffusers {
             for (int i = 0; i < length; i++) {
                 product *= array[i];
                 result[i] = product;
+            }
+
+            return result;
+        }
+
+        public static float[] Sqrt(this float[] array) {
+            int length = array.Length;
+            float[] result = new float[length];
+
+            for (int i = 0; i < length; i++) {
+                result[i] = MathF.Sqrt(result[i]);
             }
 
             return result;
