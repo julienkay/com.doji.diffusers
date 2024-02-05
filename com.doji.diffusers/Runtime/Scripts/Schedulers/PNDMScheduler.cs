@@ -10,13 +10,11 @@ namespace Doji.AI.Diffusers {
 
     public class PNDMScheduler : Scheduler {
 
-        public int Order { get { return 1; } }
-
         public TensorFloat Betas { get; private set; }
         public TensorFloat Alphas { get; private set; }
         public TensorFloat AlphasCumprod { get; private set; }
         public float FinalAlphaCumprod { get; private set; }
-        public float InitNoiseSigma { get { return 1.0f; } }
+
         public int PndmOrder { get; private set; }
         public TensorFloat CurModelOutput { get; set; }
         public int Counter { get; set; }
@@ -51,13 +49,15 @@ namespace Doji.AI.Diffusers {
             Betas = new TensorFloat(new TensorShape(betas.Length), betas);
             Alphas = _ops.Sub(1.0f, Betas);
             float[] alphas = betas.Select(beta => 1.0f - beta).ToArray();
-            AlphasCumprod = new TensorFloat(new TensorShape(alphas.Length), alphas.CumProd());
-            FinalAlphaCumprod = SetAlphaToOne ? 1.0f : alphas[0];
+            float[] alphasCumprod = alphas.CumProd();
+            AlphasCumprod = new TensorFloat(new TensorShape(alphas.Length), alphasCumprod);
+            FinalAlphaCumprod = SetAlphaToOne ? 1.0f : alphasCumprod[0];
 
             // For now we only support F-PNDM, i.e. the runge-kutta method
             // For more information on the algorithm please take a look at the paper: https://arxiv.org/pdf/2202.09778.pdf
             // mainly at formula (9), (12), (13) and the Algorithm 2.
             PndmOrder = 4;
+            NumInferenceSteps = 0;
             Timesteps = Arange(0, NumTrainTimesteps).Reverse();
         }
 

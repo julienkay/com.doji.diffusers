@@ -9,17 +9,24 @@ namespace Doji.AI.Diffusers {
 
         public SchedulerConfig Config { get; protected set; }
 
-        public int NumTrainTimesteps { get => Config.NumTrainTimesteps; }
-        public float BetaStart { get => Config.BetaStart; }
-        public float BetaEnd { get => Config.BetaEnd; }
-        public Schedule BetaSchedule { get => Config.BetaSchedule; }
-        public bool SkipPrkSteps { get => Config.SkipPrkSteps; }
-        public bool SetAlphaToOne { get => Config.SetAlphaToOne; }
-        public int StepsOffset { get => Config.StepsOffset; }
-        public float[] TrainedBetas { get => Config.TrainedBetas; }
-        public Prediction PredictionType { get => Config.PredictionType; }
-        public Spacing TimestepSpacing { get => Config.TimestepSpacing; }
+        /// <summary>
+        /// standard deviation of the initial noise distribution
+        /// </summary>
+        public virtual float InitNoiseSigma { get { return 1; } }
+        public virtual int Order { get { return 1; } }
 
+        protected int NumTrainTimesteps { get => Config.NumTrainTimesteps; }
+        protected float BetaStart { get => Config.BetaStart; }
+        protected float BetaEnd { get => Config.BetaEnd; }
+        protected Schedule BetaSchedule { get => Config.BetaSchedule; }
+        protected bool SkipPrkSteps { get => Config.SkipPrkSteps; }
+        protected bool SetAlphaToOne { get => Config.SetAlphaToOne; }
+        protected int StepsOffset { get => Config.StepsOffset; }
+        protected float[] TrainedBetas { get => Config.TrainedBetas; }
+        protected Prediction PredictionType { get => Config.PredictionType; }
+        protected Spacing TimestepSpacing { get => Config.TimestepSpacing; }
+        protected bool RescaleBetasZeroSnr { get => Config.RescaleBetasZeroSnr; }
+        
         protected Ops _ops;
 
         public Scheduler(BackendType backend) {

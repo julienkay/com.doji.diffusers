@@ -2,7 +2,15 @@ using static Doji.AI.Diffusers.ArrayUtils;
 using Unity.Sentis;
 
 namespace Doji.AI.Diffusers {
+
     public class DDIMScheduler : Scheduler {
+
+        public TensorFloat AlphasCumprod { get; private set; }
+        public float FinalAlphaCumprod { get; private set; }
+        public int NumInferenceSteps { get; set; }
+        public int[] Timesteps { get; private set; }
+        public int[] PrkTimesteps { get; set; }
+        public int[] PlmsTimesteps { get; set; }
 
         public DDIMScheduler(
             SchedulerConfig config,
@@ -27,6 +35,24 @@ namespace Doji.AI.Diffusers {
             };
 
             float[] betas = GetBetas();
+
+            // Rescale for zero SNR
+            if (RescaleBetasZeroSnr) {
+                betas = RescaleZeroTerminalSnr(betas);
+            }
+
+            float[] alphas = Sub(1f, betas);
+            float[] alphasCumprod = alphas.CumProd();
+            AlphasCumprod = new TensorFloat(new TensorShape(alphas.Length), alphasCumprod);
+
+            // At every step in ddim, we are looking into the previous alphas_cumprod
+            // For the final step, there is no previous alphas_cumprod because we are already at 0
+            // `set_alpha_to_one` decides whether we set this parameter simply to one or
+            // whether we use the final alpha of the "non-previous" one.
+            FinalAlphaCumprod = SetAlphaToOne ? 1.0f : alphasCumprod[0];
+
+            NumInferenceSteps = 0;
+            Timesteps = Arange(0, NumTrainTimesteps).Reverse();
         }
 
         /// <summary>
