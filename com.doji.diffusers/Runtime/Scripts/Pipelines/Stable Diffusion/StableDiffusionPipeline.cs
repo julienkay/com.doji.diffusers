@@ -58,11 +58,12 @@ namespace Doji.AI.Diffusers {
             int width = 512,
             int numInferenceSteps = 50,
             float guidanceScale = 7.5f,
+            string negativePrompt = null,
             int numImagesPerPrompt = 1,
             TensorFloat latents = null,
             Action<int, int, TensorFloat> callback = null)
         {
-            return Generate((TextInput)prompt, height, width, numInferenceSteps, guidanceScale, numImagesPerPrompt, latents, callback);
+            return Generate((TextInput)prompt, height, width, numInferenceSteps, guidanceScale, (TextInput)negativePrompt, numImagesPerPrompt, latents, callback);
         }
 
         /// <param name="prompt">The prompts used to generate the batch of images for.</param>
@@ -73,11 +74,12 @@ namespace Doji.AI.Diffusers {
             int width = 512,
             int numInferenceSteps = 50,
             float guidanceScale = 7.5f,
+            List<string> negativePrompt = null,
             int numImagesPerPrompt = 1,
             TensorFloat latents = null,
             Action<int, int, TensorFloat> callback = null)
         {
-            return Generate((BatchInput)prompt, height, width, numInferenceSteps, guidanceScale, numImagesPerPrompt, latents, callback);
+            return Generate((BatchInput)prompt, height, width, numInferenceSteps, guidanceScale, (BatchInput)negativePrompt, numImagesPerPrompt, latents, callback);
         }
 
         /// <summary>
@@ -106,6 +108,7 @@ namespace Doji.AI.Diffusers {
             int width = 512,
             int numInferenceSteps = 50,
             float guidanceScale = 7.5f,
+            Input negativePrompt = null,
             int numImagesPerPrompt = 1,
             TensorFloat latents = null,
             Action<int, int, TensorFloat> callback = null)
@@ -131,7 +134,7 @@ namespace Doji.AI.Diffusers {
             bool doClassifierFreeGuidance = guidanceScale > 1.0f;
 
             Profiler.BeginSample("Encode Prompt(s)");
-            TensorFloat promptEmbeds = EncodePrompt(prompt, numImagesPerPrompt, doClassifierFreeGuidance);
+            TensorFloat promptEmbeds = EncodePrompt(prompt, numImagesPerPrompt, doClassifierFreeGuidance, negativePrompt);
             Profiler.EndSample();
 
             // get the initial random noise

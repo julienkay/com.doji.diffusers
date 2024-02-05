@@ -37,14 +37,15 @@ namespace Doji.AI.Diffusers {
             RenderTexture = new RenderTexture(512, 512, 0, RenderTextureFormat.ARGB32);
         }
 
-        public void Imagine(string prompt, int width, int height, int numInferenceSteps = 50, float guidanceScale = 7.5f) {
+        public void Imagine(string prompt, int width, int height, int numInferenceSteps = 50, float guidanceScale = 7.5f, string negativePrompt = null) {
             RenderTexture.name = prompt;
             var image = _sdPipeline.Generate(
                 prompt,
                 width: width,
                 height: height,
                 numInferenceSteps: numInferenceSteps,
-                guidanceScale: guidanceScale
+                guidanceScale: guidanceScale,
+                negativePrompt: negativePrompt
             );
             Profiler.BeginSample("Convert to RenderTexture");
             TextureConverter.RenderToTexture(image, RenderTexture);

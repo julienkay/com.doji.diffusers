@@ -19,6 +19,8 @@ namespace Doji.AI.Diffusers.Samples {
         public int Steps = 20;
         public float GuidanceScale = 7.5f;
 
+        private const string _negativePrompts = "worst quality, normal quality, low quality, low res, blurry, text, watermark, logo, banner, extra digits, cropped, jpeg artifacts, signature, username, error, sketch ,duplicate, ugly, monochrome, horror, geometry, mutation, disgusting";
+
         private void Start() {
             sd = new StableDiffusion();
             PromptField.onValueChanged.AddListener(OnPromptChanged);
@@ -36,7 +38,7 @@ namespace Doji.AI.Diffusers.Samples {
         private void ExecuteSD() {
             Prompt = PromptField.text;
             Result = sd.RenderTexture;
-            sd.Imagine(Prompt, Resolution, Resolution, Steps, GuidanceScale);
+            sd.Imagine(Prompt, Resolution, Resolution, Steps, GuidanceScale, _negativePrompts);
             Image.texture = Result;
             //SaveAs(Result, Prompt);
         }
