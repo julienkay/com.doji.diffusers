@@ -168,7 +168,7 @@ namespace Doji.AI.Diffusers {
 
                 // predict the noise residual
                 Profiler.BeginSample("Prepare Timestep Tensor");
-                using TensorInt timestep = new TensorInt(new TensorShape(_batchSize), ArrayUtils.Full(_batchSize, t));
+                using Tensor timestep = new TensorInt(new TensorShape(_batchSize), ArrayUtils.Full(_batchSize, (int)t));
                 Profiler.EndSample();
 
                 Profiler.BeginSample("Execute Unet");

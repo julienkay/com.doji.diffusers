@@ -34,7 +34,7 @@ namespace Doji.AI.Diffusers {
             _worker = WorkerFactory.CreateWorker(Backend, _model);
         }
 
-        public TensorFloat ExecuteModel(TensorFloat sample, TensorInt timestep, TensorFloat encoderHiddenStates) {
+        public TensorFloat ExecuteModel(TensorFloat sample, Tensor timestep, TensorFloat encoderHiddenStates) {
             if (sample is null) {
                 throw new ArgumentNullException(nameof(sample));
             }
@@ -49,6 +49,11 @@ namespace Doji.AI.Diffusers {
             }
             if (_worker == null) {
                 throw new NullReferenceException($"{nameof(_worker)} was null");
+            }
+            if (timestep.dataType != _model.inputs[1].dataType) {
+                throw new ArgumentException($"This unet models expects timesteps with data type '{_model.inputs[1].dataType}'. " +
+                    $"The timesteps your scheduler provided were of type '{timestep.dataType}'. " +
+                    $"Make sure to use a scheduler that is supported for this model.");
             }
 
             _inputs["sample"] = sample;

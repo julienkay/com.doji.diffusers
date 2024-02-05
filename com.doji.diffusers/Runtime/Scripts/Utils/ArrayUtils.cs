@@ -182,12 +182,12 @@ namespace Doji.AI.Diffusers {
         /// <summary>
         /// numpy.full
         /// </summary>
-        public static int[] Full(int n, int x) {
+        public static T[] Full<T>(int n, T x) {
             if (n < 0) {
                 throw new ArgumentException("Value of n must be non-negative.");
             }
 
-            int[] array = new int[n];
+            T[] array = new T[n];
 
             for (int i = 0; i < n; i++) {
                 array[i] = x;
