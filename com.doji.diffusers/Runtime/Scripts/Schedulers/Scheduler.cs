@@ -14,6 +14,7 @@ namespace Doji.AI.Diffusers {
         /// </summary>
         public virtual float InitNoiseSigma { get { return 1; } }
         public virtual int Order { get { return 1; } }
+        public int NumInferenceSteps { get; set; }
 
         protected int NumTrainTimesteps { get => Config.NumTrainTimesteps; }
         protected float BetaStart { get => Config.BetaStart; }
@@ -32,6 +33,11 @@ namespace Doji.AI.Diffusers {
         public Scheduler(BackendType backend) {
             _ops = WorkerFactory.CreateOps(backend, null);
         }
+
+        /// <summary>
+        /// Sets the discrete timesteps used for the diffusion chain (to be run before inference).
+        /// </summary>
+        public abstract void SetTimesteps(int numInferenceSteps);
 
         protected float[] GetBetas() {
             if (TrainedBetas != null) {
@@ -81,6 +87,65 @@ namespace Doji.AI.Diffusers {
             }
 
             return betas;
+        }
+
+        /// <summary>
+        /// timesteps = np.linspace(0, num_train_timesteps - 1, num_inference_steps).round()
+        /// </summary>
+        protected int[] GetTimeStepsLinspace() {
+            int start = 0;
+            int stop = NumTrainTimesteps - 1;
+            int num = NumInferenceSteps;
+
+            int[] result = new int[num];
+            float step = (stop - start) / (float)(num - 1);
+
+            for (int i = 0; i < num; i++) {
+                result[i] = (int)Math.Round(start + i * step);
+            }
+
+            return result;
+        }
+
+        /// <summary>
+        /// timesteps = np.arange(0, num_inference_steps) * step_ratio).round()
+        /// timesteps += steps_offset
+        /// </summary>
+        protected int[] GetTimeStepsLeading() {
+            int stepRatio = NumTrainTimesteps / NumInferenceSteps;
+            int start = 0;
+            int stop = NumInferenceSteps;
+            int step = 1;
+
+            int length = ((stop - start - 1) / step) + 1;
+            int[] result = new int[length];
+
+            for (int i = 0, value = start; i < length; i++, value += step) {
+                result[i] = (value * stepRatio) + StepsOffset;
+            }
+
+            return result;
+        }
+
+        /// <summary>
+        /// timesteps = np.round(np.arange(num_train_timesteps, 0, -step_ratio))[::-1]
+        /// timesteps -= 1
+        /// </summary>
+        protected int[] GetTimeStepsTrailing() {
+            int start = NumTrainTimesteps;
+            int stop = 0;
+            float step = -NumTrainTimesteps / (float)NumInferenceSteps;
+
+            int length = ((int)((stop - start - 1) / step)) + 1;
+            int[] result = new int[length];
+
+            float value = start;
+            for (int i = 0; i < length; i++) {
+                result[length - i - 1] = (int)Math.Round(value) - 1;
+                value += step;
+            }
+
+            return result;
         }
 
         public virtual void Dispose() {

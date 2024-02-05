@@ -1,5 +1,6 @@
 using static Doji.AI.Diffusers.ArrayUtils;
 using Unity.Sentis;
+using System;
 
 namespace Doji.AI.Diffusers {
 
@@ -7,10 +8,7 @@ namespace Doji.AI.Diffusers {
 
         public TensorFloat AlphasCumprod { get; private set; }
         public float FinalAlphaCumprod { get; private set; }
-        public int NumInferenceSteps { get; set; }
         public int[] Timesteps { get; private set; }
-        public int[] PrkTimesteps { get; set; }
-        public int[] PlmsTimesteps { get; set; }
 
         public DDIMScheduler(
             SchedulerConfig config,
@@ -89,6 +87,26 @@ namespace Doji.AI.Diffusers {
             betas = Sub(1f, alphas);
 
             return betas;
+        }
+
+        public override void SetTimesteps(int numInferenceSteps) {
+            if (numInferenceSteps > NumTrainTimesteps) {
+                throw new ArgumentException($"`num_inference_steps`: {numInferenceSteps} cannot be larger than " +
+                    $"`self.config.train_timesteps`: {NumTrainTimesteps} as the unet model trained with this " +
+                    $"scheduler can only handle maximal {NumTrainTimesteps} timesteps.");
+            }
+            NumInferenceSteps = numInferenceSteps;
+
+            // "linspace", "leading", "trailing" corresponds to annotation of Table 2. of https://arxiv.org/abs/2305.08891
+            if (TimestepSpacing == Spacing.Linspace) {
+                Timesteps = GetTimeStepsLinspace().Reverse();
+            } else if (TimestepSpacing == Spacing.Leading) {
+                Timesteps = GetTimeStepsLeading().Reverse();
+            } else if (TimestepSpacing == Spacing.Trailing) {
+                Timesteps = GetTimeStepsTrailing().Reverse();
+            } else {
+                throw new ArgumentException($"{TimestepSpacing} is not supported. Please choose one of {string.Join(", ", Enum.GetNames(typeof(Spacing)))}.");
+            }
         }
 
         public override void Dispose() {
