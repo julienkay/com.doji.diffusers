@@ -28,13 +28,9 @@ namespace Doji.AI.Diffusers {
 
     public enum AlphaTransform { Cosine, Exp }
 
-    public class PNDMScheduler : IDisposable {
+    public class PNDMScheduler : Scheduler {
 
         public int Order { get { return 1; } }
-
-        public SchedulerConfig Config { get; private set; }
-
-        private Ops _ops;
 
         public int NumTrainTimesteps { get => Config.NumTrainTimesteps; }
         public float BetaStart { get => Config.BetaStart; }
@@ -67,7 +63,7 @@ namespace Doji.AI.Diffusers {
             SchedulerConfig config,
             Prediction predictionType = Prediction.Epsilon,
             Spacing timestepSpacing = Spacing.Leading,
-            BackendType backend = BackendType.GPUCompute)
+            BackendType backend = BackendType.GPUCompute) : base(backend)
         {
             Config = config ?? new SchedulerConfig() {
                 NumTrainTimesteps = 1000,
@@ -79,8 +75,6 @@ namespace Doji.AI.Diffusers {
                 SetAlphaToOne = false,
                 StepsOffset = 0,
             };
-
-            _ops = WorkerFactory.CreateOps(backend, null);
 
             PredictionType = predictionType;
             TimestepSpacing = timestepSpacing;
@@ -439,11 +433,11 @@ namespace Doji.AI.Diffusers {
             Ets?.Clear();
         }
 
-        public void Dispose() {
+        public override void Dispose() {
             ClearEts();
             Betas?.Dispose();
             AlphasCumprod?.Dispose();
-            _ops.Dispose();
+            base.Dispose();
         }
     }
 }
