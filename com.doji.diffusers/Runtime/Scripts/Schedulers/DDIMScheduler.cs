@@ -1,4 +1,4 @@
-using static Doji.AI.Diffusers.ArrayUtils;
+﻿using static Doji.AI.Diffusers.ArrayUtils;
 using Unity.Sentis;
 using System;
 
@@ -8,7 +8,6 @@ namespace Doji.AI.Diffusers {
 
         public TensorFloat AlphasCumprod { get; private set; }
         public float FinalAlphaCumprod { get; private set; }
-        public int[] Timesteps { get; private set; }
 
         public DDIMScheduler(
             SchedulerConfig config,
@@ -107,6 +106,136 @@ namespace Doji.AI.Diffusers {
             } else {
                 throw new ArgumentException($"{TimestepSpacing} is not supported. Please choose one of {string.Join(", ", Enum.GetNames(typeof(Spacing)))}.");
             }
+        }
+
+        public override SchedulerOutput Step(TensorFloat modelOutput, int timestep, TensorFloat sample) {
+            throw new InvalidOperationException();
+        }
+
+        /// <inheritdoc/>
+        public override SchedulerOutput Step(
+            TensorFloat modelOutput,
+            int timestep,
+            TensorFloat sample,
+            float eta = 0.0f,
+            bool useClippedModelOutput = false,
+            System.Random generator = null,
+            TensorFloat varianceNoise = null)
+        {
+            if (NumInferenceSteps == 0) {
+                throw new ArgumentException("Number of inference steps is '0', you need to run 'SetTimesteps' after creating the scheduler");
+            }
+
+            // See formulas (12) and (16) of DDIM paper https://arxiv.org/pdf/2010.02502.pdf
+            // Ideally, read DDIM paper in-detail understanding
+
+            // Notation (<variable name> -> <name in paper>
+            // - pred_noise_t -> e_theta(x_t, t)
+            // - pred_original_sample -> f_theta(x_t, t) or x_0
+            // - std_dev_t -> sigma_t
+            // - eta -> η
+            // - pred_sample_direction -> "direction pointing to x_t"
+            // - pred_prev_sample -> "x_t-1"
+
+            // 1. get previous step value (=t-1)
+            int prevTimestep = timestep - NumTrainTimesteps / NumInferenceSteps;
+
+            // 2. compute alphas, betas
+            float alphaProdT = AlphasCumprod[timestep];
+            float alphaProdTPrev = prevTimestep >= 0 ? AlphasCumprod[prevTimestep] : FinalAlphaCumprod;
+
+            float betaProdT = 1.0f - alphaProdT;
+
+            // 3. compute predicted original sample from predicted noise also called
+            // "predicted x_0" of formula (12) from https://arxiv.org/pdf/2010.02502.pdf
+            TensorFloat predOriginalSample, predEpsilon;
+
+            if (PredictionType == Prediction.Epsilon) {
+                //predOriginalSample = (sample - _ops.Pow(betaProdT, 0.5f) * modelOutput) / (float)Math.Pow(alphaProdT, 0.5f);
+                //predEpsilon = modelOutput;
+                throw new NotImplementedException();
+            } else if (PredictionType == Prediction.Sample) {
+                //predOriginalSample = modelOutput;
+                //predEpsilon = (sample - (float)MathF.Pow(alphaProdT, 0.5f) * predOriginalSample) / (float)Math.Pow(betaProdT, 0.5f);
+                throw new NotImplementedException();
+            } else if (PredictionType == Prediction.V_Prediction) {
+                var tmp = _ops.Mul(sample, MathF.Pow(alphaProdT, 0.5f));
+                var tmp2 = _ops.Mul(modelOutput, MathF.Pow(betaProdT, 0.5f));
+                predOriginalSample = _ops.Sub(tmp, tmp2);
+                var tmp3 = _ops.Mul(modelOutput, MathF.Pow(alphaProdT, 0.5f));
+                var tmp4 = _ops.Mul(sample, MathF.Pow(betaProdT, 0.5f));
+                predEpsilon = _ops.Sub(tmp3, tmp4);
+            } else {
+                throw new ArgumentException(
+                    $"prediction_type given as {PredictionType} must be one of {string.Join(", ", Enum.GetNames(typeof(Prediction)))}."
+                );
+            }
+
+            // 4. Clip or threshold "predicted x_0"
+            if (Thresholding) {
+                predOriginalSample = ThresholdSample(predOriginalSample);
+            } else if (ClipSample) {
+                predOriginalSample = _ops.Clip(predOriginalSample, -ClipSampleRange, ClipSampleRange);
+            }
+
+            // 5. compute variance: "sigma_t(η)" -> see formula (16)
+            // σ_t = sqrt((1 − α_t−1)/(1 − α_t)) * sqrt(1 − α_t/α_t−1)
+            float variance = GetVariance(timestep, prevTimestep);
+            float stdDevT = eta * (float)Math.Pow(variance, 0.5);
+
+            if (useClippedModelOutput) {
+                // the predEpsilon is always re-derived from the clipped x_0 in Glide
+                var tmp = _ops.Mul(predOriginalSample, MathF.Pow(alphaProdT, 0.5f));
+                var tmp2 = _ops.Sub(sample, tmp);
+                predEpsilon = _ops.Div(tmp2, MathF.Pow(betaProdT, 0.5f));;
+            }
+
+            // 6. compute "direction pointing to x_t" of formula (12) from https://arxiv.org/pdf/2010.02502.pdf
+            var predSampleDirection = _ops.Mul(predEpsilon, MathF.Pow(1.0f - alphaProdTPrev - MathF.Pow(stdDevT, 2f), 0.5f));
+
+            // 7. compute x_t without "random noise" of formula (12) from https://arxiv.org/pdf/2010.02502.pdf
+            var x_t = _ops.Mul(predOriginalSample, MathF.Pow(alphaProdTPrev, 0.5f));
+            var prevSample = _ops.Add(x_t, predSampleDirection);
+
+            if (eta > 0) {
+                if (varianceNoise != null && generator != null) {
+                    throw new ArgumentException(
+                        "Cannot pass both generator and variance_noise. Please make sure that either `generator` or" +
+                        " `variance_noise` stays `None`."
+                    );
+                }
+
+                if (varianceNoise == null) {
+                    int seed = generator.Next();
+                    varianceNoise = _ops.RandomNormal(modelOutput.shape, 0, 1, seed);
+                }
+                var tmpVariance = _ops.Mul(varianceNoise, stdDevT);
+
+                prevSample = _ops.Add(prevSample, variance);
+            }
+
+            return new SchedulerOutput(prevSample: prevSample, predOriginalSample: predOriginalSample);
+        }
+
+        /// <summary>
+        /// "Dynamic thresholding: At each sampling step we set s to a certain percentile absolute pixel value in xt0
+        /// (the prediction of x_0 at timestep t), and if s > 1, then we threshold xt0 to the range[-s, s] and then
+        /// divide by s. Dynamic thresholding pushes saturated pixels (those near -1 and 1) inwards, thereby actively
+        /// preventing pixels from saturation at each step.We find that dynamic thresholding results in significantly
+        /// better photorealism as well as better image-text alignment, especially when using very large guidance weights."
+        /// https://arxiv.org/abs/2205.11487
+        /// </summary>
+        private TensorFloat ThresholdSample(TensorFloat sample) {
+            // Flatten sample for doing quantile calculation along each image
+            sample = _ops.Reshape(sample, sample.shape.Flatten());
+
+            var absSample = _ops.Abs(sample);  // "a certain percentile absolute pixel value"
+
+            throw new NotImplementedException();
+        }
+
+        private float GetVariance(int timestep, int prevTimestep) {
+            throw new NotImplementedException();
         }
 
         public override void Dispose() {

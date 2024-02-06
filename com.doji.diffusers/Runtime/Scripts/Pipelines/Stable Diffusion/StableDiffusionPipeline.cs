@@ -18,7 +18,7 @@ namespace Doji.AI.Diffusers {
         private VaeDecoder _vaeDecoder;
         private ClipTokenizer _tokenizer;
         private TextEncoder _textEncoder;
-        private PNDMScheduler _scheduler;
+        private Scheduler _scheduler;
         private Unet _unet;
 
         private int _height;
@@ -36,7 +36,7 @@ namespace Doji.AI.Diffusers {
             Model vaeDecoder,
             Model textEncoder,
             ClipTokenizer tokenizer,
-            PNDMScheduler scheduler,
+            Scheduler scheduler,
             Model unet,
             BackendType backend = BackendType.GPUCompute)
         {

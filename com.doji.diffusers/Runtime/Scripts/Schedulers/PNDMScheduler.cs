@@ -20,7 +20,6 @@ namespace Doji.AI.Diffusers {
         public int Counter { get; set; }
         public TensorFloat CurSample { get; set; }
         public List<TensorFloat> Ets { get; private set; }
-        public int[] Timesteps { get; private set; }
         public int[] PrkTimesteps { get; set; }
         public int[] PlmsTimesteps { get; set; }
         public bool AcceptsEta { get { return false; } }
@@ -60,7 +59,7 @@ namespace Doji.AI.Diffusers {
             Timesteps = Arange(0, NumTrainTimesteps).Reverse();
         }
 
-        ///<inheritdoc/>
+        /// <inheritdoc/>
         public override void SetTimesteps(int numInferenceSteps) {
             NumInferenceSteps = numInferenceSteps;
 
@@ -100,13 +99,8 @@ namespace Doji.AI.Diffusers {
             CurModelOutput = null;
         }
 
-        /// <summary>
-        /// Predict the sample from the previous timestep by reversing the SDE.
-        /// This function propagates the diffusion process from the learned model
-        /// outputs (most often the predicted noise), and calls step_prk or
-        /// step_plms depending on the internal variable <see cref="Counter"/>.
-        /// </summary>
-        public SchedulerOutput Step(TensorFloat modelOutput, int timestep, TensorFloat sample) {
+        /// <inheritdoc/>
+        public override SchedulerOutput Step(TensorFloat modelOutput, int timestep, TensorFloat sample) {
             if (Counter < PrkTimesteps.Length && !SkipPrkSteps) {
                 return StepPrk(modelOutput: modelOutput, timestep: timestep, sample: sample);
             } else {
@@ -225,14 +219,6 @@ namespace Doji.AI.Diffusers {
             Counter++;
 
             return new SchedulerOutput(prevSample);
-        }
-
-        /// <summary>
-        /// Ensures interchangeability with schedulers that need to scale
-        /// the denoising model input depending on the current timestep.
-        /// </summary>
-        public TensorFloat ScaleModelInput(TensorFloat latentModelInput, int t) {
-            return latentModelInput;
         }
 
         /// <summary>

@@ -14,17 +14,24 @@ namespace Doji.AI.Diffusers {
         /// </summary>
         public virtual float InitNoiseSigma { get { return 1; } }
         public virtual int Order { get { return 1; } }
-        public int NumInferenceSteps { get; set; }
+        public int NumInferenceSteps { get; protected set; }
+        public int[] Timesteps { get; protected set; }
 
-        protected int NumTrainTimesteps { get => Config.NumTrainTimesteps; }
+
         protected float BetaStart { get => Config.BetaStart; }
         protected float BetaEnd { get => Config.BetaEnd; }
         protected Schedule BetaSchedule { get => Config.BetaSchedule; }
+        protected bool ClipSample { get => Config.ClipSample; }
+        protected float ClipSampleRange { get => Config.ClipSampleRange; }
+        protected float DynamicThresholdingRatio { get => Config.DynamicThresholdingRatio; }
+        protected int NumTrainTimesteps { get => Config.NumTrainTimesteps; }
+        protected Prediction PredictionType { get => Config.PredictionType; }
+        protected float SampleMaxValue { get => Config.SampleMaxValue; }
         protected bool SkipPrkSteps { get => Config.SkipPrkSteps; }
         protected bool SetAlphaToOne { get => Config.SetAlphaToOne; }
         protected int StepsOffset { get => Config.StepsOffset; }
         protected float[] TrainedBetas { get => Config.TrainedBetas; }
-        protected Prediction PredictionType { get => Config.PredictionType; }
+        protected bool Thresholding { get => Config.Thresholding; }
         protected Spacing TimestepSpacing { get => Config.TimestepSpacing; }
         protected bool RescaleBetasZeroSnr { get => Config.RescaleBetasZeroSnr; }
         
@@ -38,6 +45,30 @@ namespace Doji.AI.Diffusers {
         /// Sets the discrete timesteps used for the diffusion chain (to be run before inference).
         /// </summary>
         public abstract void SetTimesteps(int numInferenceSteps);
+
+        /// <summary>
+        /// Predict the sample from the previous timestep by reversing the SDE.
+        /// This function propagates the diffusion process from the learned model
+        /// outputs (most often the predicted noise), and calls step_prk or
+        /// step_plms depending on the internal variable <see cref="Counter"/>.
+        /// </summary>
+        public abstract SchedulerOutput Step(TensorFloat modelOutput, int timestep, TensorFloat sample);
+
+        /// <inheritdoc cref="Step"/>
+        /// <remarks>
+        /// Override this method only in DDIMSCheduler which takes an additional eta parameter.s
+        /// </remarks>
+        public virtual SchedulerOutput Step(
+            TensorFloat modelOutput,
+            int timestep,
+            TensorFloat sample,
+            float eta = 0.0f,
+            bool useClippedModelOutput = false,
+            System.Random generator = null,
+            TensorFloat varianceNoise = null)
+        {
+            return Step(modelOutput, timestep, sample);
+        }
 
         protected float[] GetBetas() {
             if (TrainedBetas != null) {
@@ -146,6 +177,14 @@ namespace Doji.AI.Diffusers {
             }
 
             return result;
+        }
+
+        /// <summary>
+        /// Ensures interchangeability with schedulers that need to scale
+        /// the denoising model input depending on the current timestep.
+        /// </summary>
+        public TensorFloat ScaleModelInput(TensorFloat latentModelInput, int t) {
+            return latentModelInput;
         }
 
         public virtual void Dispose() {
