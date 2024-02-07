@@ -1,6 +1,7 @@
 using Doji.AI.Transformers;
 using Newtonsoft.Json;
 using System;
+using System.Collections.Generic;
 using System.IO;
 using Unity.Sentis;
 using UnityEngine;
@@ -107,7 +108,7 @@ namespace Doji.AI.Diffusers {
                 tokenizerConfig
             );
             var schedulerConfig = LoadSchedulerConfig(model.Name);
-            var scheduler = new PNDMScheduler(schedulerConfig, backend: backend);
+            var scheduler = CreateScheduler(schedulerConfig, backend: backend);
             var vaeDecoder = LoadVaeDecoder(model.Name);
             var textEncoder = LoadTextEncoder(model.Name);
             var unet = LoadUnet(model.Name);
@@ -120,6 +121,29 @@ namespace Doji.AI.Diffusers {
                 backend
             );
             return sdPipeline;
+        }
+
+        private static readonly Dictionary<string, Type> _schedulerTypes = new Dictionary<string, Type>() {
+            { "DDIMScheduler", typeof(DDIMScheduler) },
+            { "PNDMScheduler", typeof(PNDMScheduler) },
+        };
+
+        /// <summary>
+        /// Creates a Scheduler of the correct subclass based on the given <paramref name="config"/>.
+        /// TODO: Might need to tag scheduler classes or constructors with [UnityEngine.Scripting.Preserve]
+        /// attribute for IL2CPP code stripping.
+        /// </summary>
+        private static Scheduler CreateScheduler(SchedulerConfig config, BackendType backend) {
+            if (!_schedulerTypes.TryGetValue(config.ClassName, out Type type)) {
+                throw new InvalidDataException($"Invalid/Unsupported scheduler type in config: {config.ClassName}");
+            } else {
+                try {
+                    return (Scheduler)Activator.CreateInstance(type, config, backend);
+                } catch (Exception e) {
+                    Debug.LogError($"{e.GetType().Name} when trying to create scheduler of type '{config.ClassName}'");
+                    throw e;
+                }
+            }
         }
 
         public static bool IsModelAvailable(DiffusionModel model) {
