@@ -164,7 +164,7 @@ namespace Doji.AI.Diffusers {
                 predOriginalSample = _ops.Sub(tmp, tmp2);
                 var tmp3 = _ops.Mul(modelOutput, MathF.Pow(alphaProdT, 0.5f));
                 var tmp4 = _ops.Mul(sample, MathF.Pow(betaProdT, 0.5f));
-                predEpsilon = _ops.Sub(tmp3, tmp4);
+                predEpsilon = _ops.Add(tmp3, tmp4);
             } else {
                 throw new ArgumentException(
                     $"prediction_type given as {PredictionType} must be one of {string.Join(", ", Enum.GetNames(typeof(Prediction)))}."
