@@ -41,6 +41,11 @@ namespace Doji.AI.Diffusers {
             return LoadJsonFromTextAsset<TokenizerConfig>(path);
         }
 
+        internal static SchedulerConfig LoadSchedulerConfig(string subFolder) {
+            string path = Path.Combine(subFolder, "scheduler", "scheduler_config");
+            return LoadJsonFromTextAsset<SchedulerConfig>(path);
+        }
+
         internal static Model LoadUnet(string subFolder) {
             string path = Path.Combine(subFolder, "unet", "model");
             return LoadFromModelAsset(path);
@@ -101,16 +106,7 @@ namespace Doji.AI.Diffusers {
                 merges,
                 tokenizerConfig
             );
-            var schedulerConfig = new SchedulerConfig() {
-                BetaEnd = 0.012f,
-                BetaSchedule = Schedule.ScaledLinear,
-                BetaStart = 0.00085f,
-                NumTrainTimesteps = 1000,
-                SetAlphaToOne = false,
-                SkipPrkSteps = true,
-                StepsOffset = 1,
-                TrainedBetas = null
-            };
+            var schedulerConfig = LoadSchedulerConfig(model.Name);
             var scheduler = new PNDMScheduler(schedulerConfig, backend: backend);
             var vaeDecoder = LoadVaeDecoder(model.Name);
             var textEncoder = LoadTextEncoder(model.Name);
