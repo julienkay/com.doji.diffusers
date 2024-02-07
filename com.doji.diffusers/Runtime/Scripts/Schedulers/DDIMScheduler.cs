@@ -209,9 +209,9 @@ namespace Doji.AI.Diffusers {
                     int seed = generator.Next();
                     varianceNoise = _ops.RandomNormal(modelOutput.shape, 0, 1, seed);
                 }
-                var tmpVariance = _ops.Mul(varianceNoise, stdDevT);
+                var varianceTensor = _ops.Mul(varianceNoise, stdDevT);
 
-                prevSample = _ops.Add(prevSample, variance);
+                prevSample = _ops.Add(prevSample, varianceTensor);
             }
 
             return new SchedulerOutput(prevSample: prevSample, predOriginalSample: predOriginalSample);
