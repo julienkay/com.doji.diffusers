@@ -245,7 +245,14 @@ namespace Doji.AI.Diffusers {
         }
 
         private float GetVariance(int timestep, int prevTimestep) {
-            throw new NotImplementedException();
+            float alphaProdT = AlphasCumprod[timestep];
+            float alphaProdTPrev = prevTimestep >= 0 ? AlphasCumprod[prevTimestep] : FinalAlphaCumprod;
+            float betaProdT = 1.0f - alphaProdT;
+            float betaProdTPrev = 1.0f - alphaProdTPrev;
+
+            float variance = (betaProdTPrev / betaProdT) * (1.0f - alphaProdT / alphaProdTPrev);
+
+            return variance;
         }
 
         public override void Dispose() {
