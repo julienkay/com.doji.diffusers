@@ -19,7 +19,7 @@ namespace Doji.AI.Diffusers.Editor.Tests {
         /// </summary>
         private float[] PromptEmbeds {
             get {
-                return TestUtils.LoadFromFile("encoder_test_last_hidden_state");
+                return TestUtils.LoadFromFile("test_cat_embeddings");
             }
         }
 

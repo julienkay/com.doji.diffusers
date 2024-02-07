@@ -17,7 +17,7 @@ namespace Doji.AI.Diffusers.Editor.Tests {
         /// </summary>
         private float[] ExpectedEmbeddings {
             get {
-                return TestUtils.LoadFromFile("encoder_test_cat_embeddings");
+                return TestUtils.LoadFromFile("test_cat_embeddings");
             }
         }
 
