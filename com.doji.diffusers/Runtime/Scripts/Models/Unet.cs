@@ -64,6 +64,22 @@ namespace Doji.AI.Diffusers {
             return _worker.PeekOutput("out_sample") as TensorFloat;
         }
 
+        public Tensor CreateTimestep(TensorShape shape, int t) {
+            if (_model == null) {
+                throw new NullReferenceException($"{nameof(_model)} was null");
+            }
+            DataType dType = _model.inputs[1].dataType;
+            switch (dType) {
+                case DataType.Float:
+                    return new TensorFloat(shape, ArrayUtils.Full(shape.length, (float)t));
+                case DataType.Int:
+                    return new TensorInt(shape, ArrayUtils.Full(shape.length, (int)t));
+                default:
+                    throw new ArgumentException($"This unet models expects timesteps with data type '{_model.inputs[1].dataType}', " +
+                        $"which is not supported yet.");
+            }
+        }
+
         public void Dispose() {
             _worker?.Dispose();
         }

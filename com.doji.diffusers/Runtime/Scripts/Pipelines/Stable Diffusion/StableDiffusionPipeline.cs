@@ -43,7 +43,7 @@ namespace Doji.AI.Diffusers {
             // FIXME: VaeDecoder exceeds the thread group limit with GPU backend,
             // decoding on CPU is much slower, but curiously the outputs with GPUCompute backend
             // seem correct even despite errors?
-            _vaeDecoder = new VaeDecoder(vaeDecoder, BackendType.CPU);
+            _vaeDecoder = new VaeDecoder(vaeDecoder, BackendType.GPUCompute);
             _tokenizer = tokenizer;
             _textEncoder = new TextEncoder(textEncoder, backend);
             _scheduler = scheduler;
@@ -168,7 +168,7 @@ namespace Doji.AI.Diffusers {
 
                 // predict the noise residual
                 Profiler.BeginSample("Prepare Timestep Tensor");
-                using Tensor timestep = new TensorInt(new TensorShape(_batchSize), ArrayUtils.Full(_batchSize, (int)t));
+                using Tensor timestep = _unet.CreateTimestep(new TensorShape(_batchSize), t);
                 Profiler.EndSample();
 
                 Profiler.BeginSample("Execute Unet");
