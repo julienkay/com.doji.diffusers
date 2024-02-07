@@ -22,7 +22,6 @@ namespace Doji.AI.Diffusers.Editor.Tests {
             }
         }
 
-
         private TensorFloat LatentsLarge {
             get {
                 return TestUtils.LoadTensorFromFile("16384_latents", new TensorShape(1, 4, 64, 64));

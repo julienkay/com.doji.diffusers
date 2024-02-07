@@ -11,7 +11,7 @@ namespace Doji.AI.Diffusers.Editor.Tests {
         /// </summary>
         [Test]
         public void TestCLIPEncodeSimple() {
-            ClipTokenizer tokenizer = GetSDCLIPTokenizer();
+            ClipTokenizer tokenizer = GetSDCLIPTokenizer_1_5();
 
             string prompt = "a cat";
             var inputIds = tokenizer.Encode(prompt).InputIds;
@@ -26,7 +26,7 @@ namespace Doji.AI.Diffusers.Editor.Tests {
         /// </summary>
         [Test]
         public void TestCLIPEncode() {
-            ClipTokenizer tokenizer = GetSDCLIPTokenizer();
+            ClipTokenizer tokenizer = GetSDCLIPTokenizer_1_5();
 
             string prompt = "a cat";
             var inputIds = tokenizer.Encode(
@@ -51,7 +51,7 @@ namespace Doji.AI.Diffusers.Editor.Tests {
 
         [Test]
         public void TestCLIPTokenize() {
-            ClipTokenizer tokenizer = GetSDCLIPTokenizer();
+            ClipTokenizer tokenizer = GetSDCLIPTokenizer_1_5();
 
             string prompt = "a cat";
             List<string> tokens = tokenizer.Tokenize(prompt);
@@ -65,7 +65,7 @@ namespace Doji.AI.Diffusers.Editor.Tests {
         /// </summary>
         [Test]
         public void TestCLIPEncodeEmpty() {
-            ClipTokenizer tokenizer = GetSDCLIPTokenizer();
+            ClipTokenizer tokenizer = GetSDCLIPTokenizer_1_5();
 
             string prompt = "";
             var inputIds = tokenizer.Encode(

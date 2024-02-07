@@ -15,9 +15,18 @@ namespace Doji.AI.Diffusers.Editor.Tests {
         /// <summary>
         /// The expected (flattened) embedding for the prompt "a cat" with SD 1.5 defaults
         /// </summary>
-        private float[] ExpectedEmbeddings {
+        private float[] ExpectedEmbeddings_1_5 {
             get {
-                return TestUtils.LoadFromFile("test_cat_embeddings");
+                return TestUtils.LoadFromFile("test_cat_embeddings_1_5");
+            }
+        }
+
+        /// <summary>
+        /// The expected (flattened) embedding for the prompt "a cat" with SD 2.1 defaults
+        /// </summary>
+        private float[] ExpectedEmbeddings_2_1 {
+            get {
+                return TestUtils.LoadFromFile("test_cat_embeddings_2_1");
             }
         }
 
@@ -31,10 +40,10 @@ namespace Doji.AI.Diffusers.Editor.Tests {
         }
 
         [Test]
-        public void TestEncode() {
+        public void TestEncode_1_5() {
             var model = StableDiffusionPipeline.LoadTextEncoder(DiffusionModel.SD_1_5.Name);
 
-            ClipTokenizer tokenizer = GetSDCLIPTokenizer();
+            ClipTokenizer tokenizer = GetSDCLIPTokenizer_1_5();
 
             string prompt = "a cat";
             var inputIds = tokenizer.Encode(
@@ -50,17 +59,37 @@ namespace Doji.AI.Diffusers.Editor.Tests {
             output.MakeReadable();
             float[] promptEmbeds = output.ToReadOnlyArray();
 
-            Assert.AreEqual(ExpectedEmbeddings.Length, promptEmbeds.Length);
+            CollectionAssert.AreEqual(ExpectedEmbeddings_1_5, promptEmbeds, new FloatArrayComparer(0.0001f));
+        }
 
-            //Assert.That(promptEmbeds, Is.EqualTo(expectedEmbedding).Within(0.0001f));
-            CollectionAssert.AreEqual(ExpectedEmbeddings, promptEmbeds, new FloatArrayComparer(0.0001f));
+        [Test]
+        public void TestEncode_2_1() {
+            var model = StableDiffusionPipeline.LoadTextEncoder(DiffusionModel.SD_2_1.Name);
+
+            ClipTokenizer tokenizer = GetSDCLIPTokenizer_2_1();
+
+            string prompt = "a cat";
+            var inputIds = tokenizer.Encode(
+                prompt,
+                padding: Padding.MaxLength,
+                maxLength: tokenizer.ModelMaxLength,
+                truncation: Truncation.LongestFirst
+            ).InputIds;
+
+            using TensorInt tokens = new TensorInt(new TensorShape(1, inputIds.Count()), inputIds.ToArray());
+            using TextEncoder textEncoder = new TextEncoder(model);
+            TensorFloat output = textEncoder.ExecuteModel(tokens);
+            output.MakeReadable();
+            float[] promptEmbeds = output.ToReadOnlyArray();
+
+            CollectionAssert.AreEqual(ExpectedEmbeddings_2_1, promptEmbeds, new FloatArrayComparer(0.0001f));
         }
 
         [Test]
         public void TestEncodeUnconditional() {
             var model = StableDiffusionPipeline.LoadTextEncoder(DiffusionModel.SD_1_5.Name);
 
-            ClipTokenizer tokenizer = GetSDCLIPTokenizer();
+            ClipTokenizer tokenizer = GetSDCLIPTokenizer_1_5();
 
             var prompt = new List<string>() { "" };
             var inputIds = tokenizer.Encode<BatchInput>(
