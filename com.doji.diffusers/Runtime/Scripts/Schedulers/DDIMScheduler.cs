@@ -181,13 +181,13 @@ namespace Doji.AI.Diffusers {
             // 5. compute variance: "sigma_t(η)" -> see formula (16)
             // σ_t = sqrt((1 − α_t−1)/(1 − α_t)) * sqrt(1 − α_t/α_t−1)
             float variance = GetVariance(timestep, prevTimestep);
-            float stdDevT = eta * (float)Math.Pow(variance, 0.5);
+            float stdDevT = eta * MathF.Pow(variance, 0.5f);
 
             if (useClippedModelOutput) {
                 // the predEpsilon is always re-derived from the clipped x_0 in Glide
                 var tmp = _ops.Mul(predOriginalSample, MathF.Pow(alphaProdT, 0.5f));
                 var tmp2 = _ops.Sub(sample, tmp);
-                predEpsilon = _ops.Div(tmp2, MathF.Pow(betaProdT, 0.5f));;
+                predEpsilon = _ops.Div(tmp2, MathF.Pow(betaProdT, 0.5f));
             }
 
             // 6. compute "direction pointing to x_t" of formula (12) from https://arxiv.org/pdf/2010.02502.pdf
@@ -256,6 +256,7 @@ namespace Doji.AI.Diffusers {
         }
 
         public override void Dispose() {
+            AlphasCumprod?.Dispose();
             base.Dispose();
         }
     }
