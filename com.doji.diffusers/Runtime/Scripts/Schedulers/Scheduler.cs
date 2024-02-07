@@ -52,11 +52,11 @@ namespace Doji.AI.Diffusers {
         /// outputs (most often the predicted noise), and calls step_prk or
         /// step_plms depending on the internal variable <see cref="Counter"/>.
         /// </summary>
-        public abstract SchedulerOutput Step(TensorFloat modelOutput, int timestep, TensorFloat sample);
+        protected abstract SchedulerOutput Step(TensorFloat modelOutput, int timestep, TensorFloat sample);
 
         /// <inheritdoc cref="Step"/>
         /// <remarks>
-        /// Override this method only in DDIMSCheduler which takes an additional eta parameter.s
+        /// Override this method only in DDIMSCheduler which takes an additional eta parameter.
         /// </remarks>
         public virtual SchedulerOutput Step(
             TensorFloat modelOutput,

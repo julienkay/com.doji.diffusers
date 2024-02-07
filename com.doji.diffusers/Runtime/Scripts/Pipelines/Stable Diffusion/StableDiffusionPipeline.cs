@@ -60,10 +60,12 @@ namespace Doji.AI.Diffusers {
             float guidanceScale = 7.5f,
             string negativePrompt = null,
             int numImagesPerPrompt = 1,
+            float eta = 0.0f,
             TensorFloat latents = null,
             Action<int, int, TensorFloat> callback = null)
         {
-            return Generate((TextInput)prompt, height, width, numInferenceSteps, guidanceScale, (TextInput)negativePrompt, numImagesPerPrompt, latents, callback);
+            return Generate((TextInput)prompt, height, width, numInferenceSteps, guidanceScale, 
+               (TextInput)negativePrompt, numImagesPerPrompt, eta, latents, callback);
         }
 
         /// <param name="prompt">The prompts used to generate the batch of images for.</param>
@@ -76,10 +78,12 @@ namespace Doji.AI.Diffusers {
             float guidanceScale = 7.5f,
             List<string> negativePrompt = null,
             int numImagesPerPrompt = 1,
+            float eta = 0.0f,
             TensorFloat latents = null,
             Action<int, int, TensorFloat> callback = null)
         {
-            return Generate((BatchInput)prompt, height, width, numInferenceSteps, guidanceScale, (BatchInput)negativePrompt, numImagesPerPrompt, latents, callback);
+            return Generate((BatchInput)prompt, height, width, numInferenceSteps, guidanceScale,
+                (BatchInput)negativePrompt, numImagesPerPrompt, eta, latents, callback);
         }
 
         /// <summary>
@@ -97,6 +101,8 @@ namespace Doji.AI.Diffusers {
         /// Guidance scale is enabled by setting `guidance_scale > 1`. Higher guidance scale encourages to generate images
         /// that are closely linked to the text `prompt`, usually at the expense of lower image quality.</param>
         /// <param name="numImagesPerPrompt">The number of images to generate per prompt.</param>
+        /// <param name="eta">Corresponds to parameter eta in the DDIM paper: https://arxiv.org/abs/2010.02502. Only applies to
+        /// <see cref="DDIMScheduler"/>, will be ignored for others.</param>
         /// <param name="latents">Pre-generated noise, sampled from a Gaussian distribution, to be used as inputs for image
         /// generation. If not provided, a latents tensor will be generated for you.</param>
         /// <param name="callback">A function that will be called at every step during inference.
@@ -110,6 +116,7 @@ namespace Doji.AI.Diffusers {
             float guidanceScale = 7.5f,
             Input negativePrompt = null,
             int numImagesPerPrompt = 1,
+            float eta = 0.0f,
             TensorFloat latents = null,
             Action<int, int, TensorFloat> callback = null)
         {
@@ -191,7 +198,7 @@ namespace Doji.AI.Diffusers {
 
                 // compute the previous noisy sample x_t -> x_t-1
                 Profiler.BeginSample($"{_scheduler.GetType().Name}.Step");
-                var schedulerOutput = _scheduler.Step(noisePred, t, latents);
+                var schedulerOutput = _scheduler.Step(noisePred, t, latents, eta);
                 latents = schedulerOutput.PrevSample;
                 Profiler.EndSample();
 

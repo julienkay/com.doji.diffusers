@@ -44,7 +44,8 @@ namespace Doji.AI.Diffusers.Editor.Tests {
             int height = 64;
             string prompt = "a cat";
 
-            TensorFloat generated = sd.Generate(prompt, width, height, 10, 1f, null, 1, Latents, callback: TestPredictedNoise);
+            TensorFloat generated = sd.Generate(prompt, width, height, numInferenceSteps: 10,
+                guidanceScale: 1f, latents: Latents, callback: TestPredictedNoise);
 
             //TestUtils.ToFile(prompt, width, height, generated);   
         }
@@ -71,7 +72,7 @@ namespace Doji.AI.Diffusers.Editor.Tests {
             int height = 512;
             string prompt = "a cat";
 
-            var generated = sd.Generate(prompt, width, height, 10, 7.5f, null, 1, LatentsLarge);
+            var generated = sd.Generate(prompt, width, height, numInferenceSteps: 10, guidanceScale: 7.5f, latents: LatentsLarge);
             var tmp = RenderTexture.GetTemporary(width, height);
 
             //TestUtils.ToFile(prompt, width, height, generated);   

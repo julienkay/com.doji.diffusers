@@ -100,7 +100,7 @@ namespace Doji.AI.Diffusers {
         }
 
         /// <inheritdoc/>
-        public override SchedulerOutput Step(TensorFloat modelOutput, int timestep, TensorFloat sample) {
+        protected override SchedulerOutput Step(TensorFloat modelOutput, int timestep, TensorFloat sample) {
             if (Counter < PrkTimesteps.Length && !SkipPrkSteps) {
                 return StepPrk(modelOutput: modelOutput, timestep: timestep, sample: sample);
             } else {

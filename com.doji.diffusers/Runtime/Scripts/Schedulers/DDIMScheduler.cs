@@ -108,7 +108,7 @@ namespace Doji.AI.Diffusers {
             }
         }
 
-        public override SchedulerOutput Step(TensorFloat modelOutput, int timestep, TensorFloat sample) {
+        protected override SchedulerOutput Step(TensorFloat modelOutput, int timestep, TensorFloat sample) {
             throw new InvalidOperationException();
         }
 
