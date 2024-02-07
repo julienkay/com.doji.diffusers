@@ -33,5 +33,9 @@ namespace Doji.AI.Diffusers {
             int num = tensor.shape[dim];
             return ops.TopK(tensor, num, dim, false, true)[0] as TensorFloat;
         }
+
+        public static TensorFloat Clamp(this Ops ops, TensorFloat tensor, TensorFloat min, TensorFloat max) {
+            return ops.Min(ops.Max(tensor, min), max);
+        }
     }
 }
