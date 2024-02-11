@@ -32,7 +32,7 @@ namespace Doji.AI.Diffusers {
         protected int StepsOffset { get => Config.StepsOffset; }
         protected float[] TrainedBetas { get => Config.TrainedBetas; }
         protected bool Thresholding { get => Config.Thresholding; }
-        protected Spacing TimestepSpacing { get => Config.TimestepSpacing; }
+        protected internal Spacing TimestepSpacing { get => Config.TimestepSpacing; }
         protected bool RescaleBetasZeroSnr { get => Config.RescaleBetasZeroSnr; }
         
         protected Ops _ops;
