@@ -3,6 +3,12 @@
   "version": "0.0.0",
   "displayName": "Diffusers",
   "description": "Run diffusion models for image generation with Unity Sentis",
+  "keywords": [
+    "ai",
+    "stable diffusion",
+    "sentis",
+    "diffusers"
+  ],
   "dependencies": {
     "com.unity.sentis": "1.3.0-pre.3",
     "com.unity.nuget.newtonsoft-json": "3.2.1",
