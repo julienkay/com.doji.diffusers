@@ -6,8 +6,7 @@ using UnityEngine.TestTools.Utils;
 namespace Doji.AI.Diffusers.Editor.Tests {
 
     /// <summary>
-    /// Test the <see cref="TextEncoder"/> of a <see cref="StableDiffusionPipeline"/>.
-    /// Requires the models for runwayml/stable-diffusion-v1-5 to be downloaded.
+    /// Tests for <see cref="PNDMScheduler"/>.
     /// </summary>
     public class PNDMSchedulerTest {
 
@@ -24,7 +23,7 @@ namespace Doji.AI.Diffusers.Editor.Tests {
         /// </summary>
         private TensorFloat DummySamples {
             get {
-                return TestUtils.LoadTensorFromFile("pndm_test_random_samples", new TensorShape(4, 3, 8, 8));
+                return TestUtils.LoadTensorFromFile("scheduler_test_random_samples", new TensorShape(4, 3, 8, 8));
             }
         }
 

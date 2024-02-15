@@ -6,6 +6,7 @@ namespace Doji.AI.Diffusers {
 
     public class DDIMScheduler : Scheduler {
 
+        public float[] Betas { get; private set; }
         public TensorFloat AlphasCumprod { get; private set; }
         public float FinalAlphaCumprod { get; private set; }
 
@@ -31,14 +32,14 @@ namespace Doji.AI.Diffusers {
                 RescaleBetasZeroSnr = false
             };
 
-            float[] betas = GetBetas();
+            Betas = GetBetas();
 
             // Rescale for zero SNR
             if (RescaleBetasZeroSnr) {
-                betas = RescaleZeroTerminalSnr(betas);
+                Betas = RescaleZeroTerminalSnr(Betas);
             }
 
-            float[] alphas = Sub(1f, betas);
+            float[] alphas = Sub(1f, Betas);
             float[] alphasCumprod = alphas.CumProd();
             AlphasCumprod = new TensorFloat(new TensorShape(alphas.Length), alphasCumprod);
 
