@@ -1,7 +1,6 @@
 using System.Collections.Generic;
 using System.IO;
 using UnityEditor;
-using static Doji.AI.Diffusers.StableDiffusionPipeline;
 using UnityEngine.Networking;
 using System.Threading.Tasks;
 
@@ -18,20 +17,25 @@ namespace Doji.AI.Diffusers.Editor {
 
             _downloads.Add(model);
             List<Task> tasks = new List<Task>();
+            AssetDatabase.StartAssetEditing();
 
-            foreach ((string url, string filePath, bool optional) in model) {
-                if (!File.Exists(filePath)) {
-                    Task t = DownloadModelAsync(model, url, filePath, optional);
+            try {
+                foreach ((string url, string filePath, bool optional) in model) {
+                    if (File.Exists(filePath)) {
+                        continue;
+                    }
+                    Task t = DownloadModelAsync(url, model.Name, filePath, optional);
                     tasks.Add(t);
                 }
+                await Task.WhenAll(tasks);
+            } finally {
+                _downloads.Remove(model);
+                AssetDatabase.StopAssetEditing();
             }
-            await Task.WhenAll(tasks);
-
-            _downloads.Remove(model);
         }
 
         /// <summary>
-        /// Is download for this name in progress?
+        /// Is download for this model in progress?
         /// </summary>
         private static bool InProgress(DiffusionModel model) {
             if (_downloads == null) {
@@ -40,11 +44,22 @@ namespace Doji.AI.Diffusers.Editor {
             return _downloads.Contains(model);
         }
 
-        private async static Task DownloadModelAsync(DiffusionModel model, string url, string filePath, bool optional) {
-            string name = model.Name;
+        /// <summary>
+        /// Downloads the file from the given url.
+        /// </summary>
+        /// <param name="url">the source url</param>
+        /// <param name="name">the name of the model this file belongs to</param>
+        /// <param name="filePath">the path to save the downloaded file to</param>
+        /// <param name="optional">if this is set to true, no error will be logged in case the file can not be found</param>
+        /// <returns></returns>
+        private async static Task DownloadModelAsync(string url, string name, string filePath, bool optional) {
             string fileName = Path.GetFileName(filePath);
+            Directory.CreateDirectory(Path.GetDirectoryName(filePath));
 
             UnityWebRequest wr = UnityWebRequest.Get(url);
+            DownloadHandlerFile downloadHandler = new DownloadHandlerFile(filePath);
+            wr.downloadHandler = downloadHandler;
+
             var asyncOp = wr.SendWebRequest();
 
             int dlID = Progress.Start($"Downloading {name} - {fileName}");
@@ -66,23 +81,15 @@ namespace Doji.AI.Diffusers.Editor {
                 return;
             }
 
-            byte[] data = asyncOp.webRequest.downloadHandler.data;
-
             if (wr.responseCode == 404 && optional) {
+                File.Delete(filePath);
                 return;
-            } else if (wr.error != null || data == null || data.Length == 0) {
+            } else if (wr.error != null || wr.result != UnityWebRequest.Result.Success) {
                 EditorUtility.DisplayDialog(
                     "com.doji.diffusers | Download Error",
                     $"Downloading {url} failed.\n{wr.error}",
                     "OK"
                 );
-            } else {
-                Directory.CreateDirectory(Path.GetDirectoryName(filePath));
-                File.WriteAllBytes(
-                    filePath,
-                    data
-                );
-                AssetDatabase.Refresh();
             }
         }
 
