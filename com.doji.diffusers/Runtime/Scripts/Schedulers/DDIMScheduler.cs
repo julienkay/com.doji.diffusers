@@ -10,27 +10,29 @@ namespace Doji.AI.Diffusers {
         public TensorFloat AlphasCumprod { get; private set; }
         public float FinalAlphaCumprod { get; private set; }
 
-        public DDIMScheduler(
-            SchedulerConfig config,
-            BackendType backend = BackendType.GPUCompute) : base(backend)
-        {
-            Config = config ?? new SchedulerConfig() {
-                NumTrainTimesteps = 1000,
-                BetaStart = 0.0001f,
-                BetaEnd = 0.02f,
-                BetaSchedule = Schedule.Linear,
-                TrainedBetas = null,
-                ClipSample = true,
-                SetAlphaToOne = true,
-                StepsOffset = 0,
-                PredictionType = Prediction.Epsilon,
-                Thresholding = false,
-                DynamicThresholdingRatio = 0.995f,
-                ClipSampleRange = 1.0f,
-                SampleMaxValue = 1.0f,
-                TimestepSpacing = Spacing.Leading,
-                RescaleBetasZeroSnr = false
-            };
+        protected bool ClipSample { get => Config.ClipSample.Value; set => Config.ClipSample = value; }
+        protected float ClipSampleRange { get => Config.ClipSampleRange.Value; set => Config.ClipSampleRange = value; }
+        protected bool Thresholding { get => Config.Thresholding.Value; set => Config.Thresholding = value; }
+        protected float DynamicThresholdingRatio { get => Config.DynamicThresholdingRatio.Value; set => Config.DynamicThresholdingRatio = value; }
+        protected float SampleMaxValue { get => Config.SampleMaxValue.Value; set => Config.SampleMaxValue = value; }
+        protected bool RescaleBetasZeroSnr { get => Config.RescaleBetasZeroSnr.Value; set => Config.RescaleBetasZeroSnr = value; }
+
+        public DDIMScheduler(SchedulerConfig config = null, BackendType backend = BackendType.GPUCompute) : base(config, backend) {
+            Config.NumTrainTimesteps        ??= 1000;
+            Config.BetaStart                ??= 0.0001f;
+            Config.BetaEnd                  ??= 0.02f;
+            Config.BetaSchedule             ??= Schedule.Linear;
+            Config.TrainedBetas             ??= null;
+            Config.ClipSample               ??= true;
+            Config.ClipSampleRange          ??= 1.0f;
+            Config.SetAlphaToOne            ??= true;
+            Config.StepsOffset              ??= 0;
+            Config.PredictionType           ??= Prediction.Epsilon;
+            Config.Thresholding             ??= false;
+            Config.DynamicThresholdingRatio ??= 0.995f;
+            Config.SampleMaxValue           ??= 1.0f;
+            Config.TimestepSpacing          ??= Spacing.Leading;
+            Config.RescaleBetasZeroSnr      ??= false;
 
             Betas = GetBetas();
 

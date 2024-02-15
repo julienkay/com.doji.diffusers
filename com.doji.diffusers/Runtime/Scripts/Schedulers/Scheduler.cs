@@ -17,27 +17,21 @@ namespace Doji.AI.Diffusers {
         public int NumInferenceSteps { get; protected set; }
         public int[] Timesteps { get; protected set; }
 
+        protected float BetaStart { get => Config.BetaStart.Value; set => Config.BetaStart = value; }
+        protected float BetaEnd { get => Config.BetaEnd.Value; set => Config.BetaEnd = value; }
+        protected Schedule BetaSchedule { get => Config.BetaSchedule.Value; set => Config.BetaSchedule = value; }
+        protected int NumTrainTimesteps { get => Config.NumTrainTimesteps.Value; set => Config.NumTrainTimesteps = value; }
+        protected Prediction PredictionType { get => Config.PredictionType.Value; set => Config.PredictionType = value; }
+        protected bool SkipPrkSteps { get => Config.SkipPrkSteps.Value; set => Config.SkipPrkSteps = value; }
+        protected bool SetAlphaToOne { get => Config.SetAlphaToOne.Value; set => Config.SetAlphaToOne = value; }
+        protected int StepsOffset { get => Config.StepsOffset.Value; set => Config.StepsOffset = value; }
+        protected float[] TrainedBetas { get => Config.TrainedBetas; set => Config.TrainedBetas = value; }
+        protected internal Spacing TimestepSpacing { get => Config.TimestepSpacing.Value; set => Config.TimestepSpacing = value; }
 
-        protected float BetaStart { get => Config.BetaStart; }
-        protected float BetaEnd { get => Config.BetaEnd; }
-        protected Schedule BetaSchedule { get => Config.BetaSchedule; }
-        protected bool ClipSample { get => Config.ClipSample; }
-        protected float ClipSampleRange { get => Config.ClipSampleRange; }
-        protected float DynamicThresholdingRatio { get => Config.DynamicThresholdingRatio; }
-        protected int NumTrainTimesteps { get => Config.NumTrainTimesteps; }
-        protected Prediction PredictionType { get => Config.PredictionType; }
-        protected float SampleMaxValue { get => Config.SampleMaxValue; }
-        protected bool SkipPrkSteps { get => Config.SkipPrkSteps; }
-        protected bool SetAlphaToOne { get => Config.SetAlphaToOne; }
-        protected int StepsOffset { get => Config.StepsOffset; }
-        protected float[] TrainedBetas { get => Config.TrainedBetas; }
-        protected bool Thresholding { get => Config.Thresholding; }
-        protected internal Spacing TimestepSpacing { get => Config.TimestepSpacing; }
-        protected bool RescaleBetasZeroSnr { get => Config.RescaleBetasZeroSnr; }
-        
         protected Ops _ops;
 
-        public Scheduler(BackendType backend) {
+        public Scheduler(SchedulerConfig config, BackendType backend) {
+            Config = config ?? new SchedulerConfig();
             _ops = WorkerFactory.CreateOps(backend, null);
         }
 

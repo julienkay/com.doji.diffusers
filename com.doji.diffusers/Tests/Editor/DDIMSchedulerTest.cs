@@ -45,6 +45,7 @@ namespace Doji.AI.Diffusers.Editor.Tests {
                 ClipSample = true,
                 SetAlphaToOne = false,
                 StepsOffset = 1,
+                PredictionType = Prediction.V_Prediction,
             };
             _scheduler = new DDIMScheduler(config);
         }

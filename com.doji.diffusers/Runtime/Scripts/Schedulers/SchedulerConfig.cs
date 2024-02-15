@@ -46,55 +46,55 @@ namespace Doji.AI.Diffusers {
 
     public partial class SchedulerConfig {
         [JsonProperty("_class_name")]
-        public string ClassName { get; set; }
+        public string? ClassName { get; set; }
 
         [JsonProperty("_diffusers_version")]
-        public string DiffusersVersion { get; set; }
+        public string? DiffusersVersion { get; set; }
 
         [JsonProperty("beta_end")]
-        public float BetaEnd { get; set; }
+        public float? BetaEnd { get; set; }
 
         [JsonProperty("beta_schedule")]
-        public Schedule BetaSchedule { get; set; }
+        public Schedule? BetaSchedule { get; set; }
 
         [JsonProperty("beta_start")]
-        public float BetaStart { get; set; }
+        public float? BetaStart { get; set; }
 
         [JsonProperty("clip_sample")]
-        public bool ClipSample { get; set; }
+        public bool? ClipSample { get; set; }
 
         [JsonProperty("clip_sample_range")]
-        public float ClipSampleRange { get; set; }
+        public float? ClipSampleRange { get; set; }
 
         [JsonProperty("dynamic_thresholding_ratio")]
-        public float DynamicThresholdingRatio { get; set; }
+        public float? DynamicThresholdingRatio { get; set; }
 
         [JsonProperty("num_train_timesteps")]
-        public int NumTrainTimesteps { get; set; }
+        public int? NumTrainTimesteps { get; set; }
 
         [JsonProperty("prediction_type")]
-        public Prediction PredictionType { get; set; }
+        public Prediction? PredictionType { get; set; }
         
         [JsonProperty("rescale_betas_zero_snr")]
-        public bool RescaleBetasZeroSnr { get; set; }
+        public bool? RescaleBetasZeroSnr { get; set; }
 
         [JsonProperty("sample_max_value")]
-        public float SampleMaxValue { get; set; }
+        public float? SampleMaxValue { get; set; }
 
         [JsonProperty("set_alpha_to_one")]
-        public bool SetAlphaToOne { get; set; }
+        public bool? SetAlphaToOne { get; set; }
 
         [JsonProperty("skip_prk_steps")]
-        public bool SkipPrkSteps { get; set; }
+        public bool? SkipPrkSteps { get; set; }
 
         [JsonProperty("steps_offset")]
-        public int StepsOffset { get; set; }
+        public int? StepsOffset { get; set; }
 
         [JsonProperty("thresholding")]
-        public bool Thresholding { get; set; }
+        public bool? Thresholding { get; set; }
 
         [JsonProperty("timestep_spacing")]
-        public Spacing TimestepSpacing { get; set; }
+        public Spacing? TimestepSpacing { get; set; }
 
         [JsonProperty("trained_betas")]
         public float[] TrainedBetas { get; set; }

@@ -24,22 +24,17 @@ namespace Doji.AI.Diffusers {
         public int[] PlmsTimesteps { get; set; }
         public bool AcceptsEta { get { return false; } }
 
-        public PNDMScheduler(
-            SchedulerConfig config,
-            BackendType backend = BackendType.GPUCompute) : base(backend)
-        {
-            Config = config ?? new SchedulerConfig() {
-                NumTrainTimesteps = 1000,
-                BetaStart = 0.0001f,
-                BetaEnd = 0.02f,
-                BetaSchedule = Schedule.Linear,
-                TrainedBetas = null,
-                SkipPrkSteps = false,
-                SetAlphaToOne = false,
-                PredictionType = Prediction.Epsilon,
-                TimestepSpacing = Spacing.Leading,
-                StepsOffset = 0,
-            };
+        public PNDMScheduler(SchedulerConfig config = null, BackendType backend = BackendType.GPUCompute) : base(config, backend) {
+            Config.NumTrainTimesteps ??= 1000;
+            Config.BetaStart         ??= 0.0001f;
+            Config.BetaEnd           ??= 0.02f;
+            Config.BetaSchedule      ??= Schedule.Linear;
+            Config.TrainedBetas      ??= null;
+            Config.SkipPrkSteps      ??= false;
+            Config.SetAlphaToOne     ??= false;
+            Config.PredictionType    ??= Prediction.Epsilon;
+            Config.TimestepSpacing   ??= Spacing.Leading;
+            Config.StepsOffset       ??= 0;
 
             Ets = new List<TensorFloat>();
 
