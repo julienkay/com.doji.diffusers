@@ -46,10 +46,10 @@ namespace Doji.AI.Diffusers {
 
     public partial class SchedulerConfig {
         [JsonProperty("_class_name")]
-        public string? ClassName { get; set; }
+        public string ClassName { get; set; }
 
         [JsonProperty("_diffusers_version")]
-        public string? DiffusersVersion { get; set; }
+        public string DiffusersVersion { get; set; }
 
         [JsonProperty("beta_end")]
         public float? BetaEnd { get; set; }
