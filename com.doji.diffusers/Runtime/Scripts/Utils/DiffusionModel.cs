@@ -28,14 +28,6 @@ namespace Doji.AI.Diffusers {
         }
 
         private const string ModelIndex = "model_index.json";
-        /*private const string SchedulerConfig = "scheduler_config.json";
-        private const string Merges          = "model_index.json";
-        private const string SpeciaTokensMap = "model_index.json";
-        private const string TokenizerConfig = "model_index.json";
-        private const string Vocab           = "model_index.json";
-        private const string Unet            = "model_index.json";
-        private const string UnetData        = "model_index.json";
-        private const string VaeDecoder      = "model.onnx";*/
 
         public static readonly IEnumerable<string> Files = new List<string>() {
             ModelIndex,
@@ -72,16 +64,16 @@ namespace Doji.AI.Diffusers {
         }
 
         public static readonly DiffusionModel SD_1_5 = new DiffusionModel("runwayml/stable-diffusion-v1-5", "onnx");
+        public static readonly DiffusionModel SD_2_1 = new DiffusionModel("julienkay/stable-diffusion-2-1");
         //public static readonly DiffusionModel SD_XL_TURBO = new DiffusionModel("stabilityai/sdxl-turbo");
         //public static readonly DiffusionModel SD_XL_BASE  = new DiffusionModel("stabilityai/stable-diffusion-xl-base-1.0");
-        //public static readonly DiffusionModel SD_2_1      = new DiffusionModel("aislamov/stable-diffusion-2-1-base-onnx");
 
         /* all the validated models */
         public static readonly DiffusionModel[] ValidatedModels = new DiffusionModel[] {
                  SD_1_5,
+                 SD_2_1
                  //SD_XL_TURBO,
                  //SD_XL_BASE,
-                 //SD_2_1
         };
     }
 }

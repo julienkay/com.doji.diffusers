@@ -28,13 +28,13 @@ namespace Doji.AI.Diffusers {
 
         public RenderTexture RenderTexture;
 
-        public StableDiffusion() {
-            Initialize();
+        public StableDiffusion(DiffusionModel model) {
+            _sdPipeline = StableDiffusionPipeline.FromPretrained(model, Backend);
+            RenderTexture = new RenderTexture(512, 512, 0, RenderTextureFormat.ARGB32);
         }
 
         private void Initialize() {
-            _sdPipeline = StableDiffusionPipeline.FromPretrained(DiffusionModel.SD_1_5, Backend);
-            RenderTexture = new RenderTexture(512, 512, 0, RenderTextureFormat.ARGB32);
+           
         }
 
         public void Imagine(string prompt, int width, int height, int numInferenceSteps = 50, float guidanceScale = 7.5f, string negativePrompt = null) {
