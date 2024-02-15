@@ -11,11 +11,23 @@ namespace Doji.AI.Diffusers {
     /// </summary>
     public class StableDiffusion : IDisposable {
 
+        public DiffusionModel Model {
+            get => _model;
+            set {
+                if (_model != value) {
+                    _sdPipeline.Dispose();
+                    _model = value;
+                    Initialize();
+                }
+            }
+        }
+        private DiffusionModel _model;
+
         public BackendType Backend {
             get => _backend;
             set {
                 if (_backend != value) {
-                    Dispose();
+                    _sdPipeline.Dispose();
                     _backend = value;
                     Initialize();
                 }
@@ -23,18 +35,19 @@ namespace Doji.AI.Diffusers {
         }
         private BackendType _backend = BackendType.GPUCompute;
 
-
         private StableDiffusionPipeline _sdPipeline;
-
         public RenderTexture RenderTexture;
 
         public StableDiffusion(DiffusionModel model) {
-            _sdPipeline = StableDiffusionPipeline.FromPretrained(model, Backend);
-            RenderTexture = new RenderTexture(512, 512, 0, RenderTextureFormat.ARGB32);
+            _model = model;
+            Initialize();
         }
 
         private void Initialize() {
-           
+            _sdPipeline = StableDiffusionPipeline.FromPretrained(Model, Backend);
+            if (RenderTexture == null) {
+                RenderTexture = new RenderTexture(512, 512, 0, RenderTextureFormat.ARGB32);
+            }
         }
 
         public void Imagine(string prompt, int width, int height, int numInferenceSteps = 50, float guidanceScale = 7.5f, string negativePrompt = null) {
