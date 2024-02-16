@@ -13,7 +13,7 @@ This is essentially a port of Hugging Face’s [diffusers] library.
 
 It is still ***very*** early though, so as of today we only support:
 - a simple Stable Diffusion pipeline compatible with Stable Diffusion 1.5 & 2.1
-- implementations for PNDMScheduler % DDIMScheduler
+- implementations for PNDMScheduler & DDIMScheduler
 
 ### Roadmap
 Some things that might be worked on next are:
