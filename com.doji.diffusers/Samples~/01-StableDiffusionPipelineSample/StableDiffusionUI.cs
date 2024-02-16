@@ -24,7 +24,7 @@ namespace Doji.AI.Diffusers.Samples {
         private const string _negativePrompts = "worst quality, normal quality, low quality, low res, blurry, text, watermark, logo, banner, extra digits, cropped, jpeg artifacts, signature, username, error, sketch ,duplicate, ugly, monochrome, horror, geometry, mutation, disgusting";
 
         private void Start() {
-            _stableDiffusion = new StableDiffusion(DiffusionModel.SD_1_5);
+            _stableDiffusion = new StableDiffusion(Model.GetModelInfo());
             PromptField.onValueChanged.AddListener(OnPromptChanged);
             GenerateButton.onClick.AddListener(OnGenerateClicked);
         }
@@ -48,6 +48,7 @@ namespace Doji.AI.Diffusers.Samples {
         private void SaveAs(RenderTexture texture, string prompt) {
             var invalids = Path.GetInvalidFileNameChars();
             var fileName = string.Join("_", prompt.Split(invalids, StringSplitOptions.RemoveEmptyEntries)).TrimEnd('.');
+            fileName = fileName[..Math.Min(fileName.Length, 30)];
             string filePath = $"{fileName}_{DateTime.Now:yyyyMMddHHmmss}.png";
 
             int width = texture.width;
