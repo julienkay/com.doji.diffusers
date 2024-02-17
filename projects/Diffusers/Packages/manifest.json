@@ -2,6 +2,7 @@
   "dependencies": {
     "com.doji.diffusers": "file:../../../com.doji.diffusers",
     "com.doji.transformers": "file:../../../../com.doji.transformers/com.doji.transformers",
+    "com.doji.pngcs": "file:../../../../com.doji.pngcs/com.doji.pngcs",
     "com.unity.ide.visualstudio": "2.0.22",
     "com.unity.textmeshpro": "3.0.6",
     "com.unity.ugui": "1.0.0",
