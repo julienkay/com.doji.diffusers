@@ -120,6 +120,7 @@ namespace Doji.AI.Diffusers {
                 unet,
                 backend
             );
+            sdPipeline.NameOrPath = model.Name;
             return sdPipeline;
         }
 

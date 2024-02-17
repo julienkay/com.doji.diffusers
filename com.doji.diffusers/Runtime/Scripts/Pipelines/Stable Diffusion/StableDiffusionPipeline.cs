@@ -13,19 +13,23 @@ namespace Doji.AI.Diffusers {
     /// <remarks>
     /// stable_diffusion/pipeline_onnx_stable_diffusion.py from huggingface/diffusers
     /// </remarks>
-    public partial class StableDiffusionPipeline : IDisposable {
+    public partial class StableDiffusionPipeline : DiffusionPipeline, IDisposable {
 
-        private VaeDecoder _vaeDecoder;
-        private ClipTokenizer _tokenizer;
-        private TextEncoder _textEncoder;
-        private Scheduler _scheduler;
-        private Unet _unet;
+        public VaeDecoder VaeDecoder { get; private set; }
+        public ClipTokenizer Tokenizer { get; private set; }
+        public TextEncoder TextEncoder { get; private set; }
+        public Scheduler Scheduler { get; private set; }
+        public Unet Unet { get; private set; }
 
+        private Input _prompt;
+        private Input _negativePrompt;
+        private int _steps;
         private int _height;
         private int _width;
         private int _batchSize;
         private int _numImagesPerPrompt;
         private float _guidanceScale;
+        private float? _eta;
 
         private Ops _ops;
 
@@ -43,11 +47,11 @@ namespace Doji.AI.Diffusers {
             // FIXME: VaeDecoder exceeds the thread group limit with GPU backend,
             // decoding on CPU is much slower, but curiously the outputs with GPUCompute backend
             // seem correct even despite errors?
-            _vaeDecoder = new VaeDecoder(vaeDecoder, BackendType.GPUCompute);
-            _tokenizer = tokenizer;
-            _textEncoder = new TextEncoder(textEncoder, backend);
-            _scheduler = scheduler;
-            _unet = new Unet(unet, backend);
+            VaeDecoder = new VaeDecoder(vaeDecoder, BackendType.GPUCompute);
+            Tokenizer = tokenizer;
+            TextEncoder = new TextEncoder(textEncoder, backend);
+            Scheduler = scheduler;
+            Unet = new Unet(unet, backend);
             _ops = WorkerFactory.CreateOps(backend, null);
         }
 
@@ -122,10 +126,13 @@ namespace Doji.AI.Diffusers {
         {
             Profiler.BeginSample($"{GetType().Name}.Generate");
 
+            _prompt = prompt;
+            _negativePrompt = negativePrompt;
             _height = height;
             _width = width;
             _numImagesPerPrompt = numImagesPerPrompt;
             _guidanceScale = guidanceScale;
+            _eta = eta;
             CheckInputs();
 
             if (prompt != null && prompt is TextInput) {
@@ -155,31 +162,31 @@ namespace Doji.AI.Diffusers {
             }
             TensorFloat initialLatents = latents;
 
-            Profiler.BeginSample($"{_scheduler.GetType().Name}.SetTimesteps");
-            _scheduler.SetTimesteps(numInferenceSteps);
+            Profiler.BeginSample($"{Scheduler.GetType().Name}.SetTimesteps");
+            Scheduler.SetTimesteps(numInferenceSteps);
             Profiler.EndSample();
 
-            if (_scheduler.InitNoiseSigma > 1.0f) {
+            if (Scheduler.InitNoiseSigma > 1.0f) {
                 Profiler.BeginSample("Multiply latents with scheduler sigma");
-                latents = _ops.Mul(_scheduler.InitNoiseSigma, latents);
+                latents = _ops.Mul(Scheduler.InitNoiseSigma, latents);
                 Profiler.EndSample();
             }
 
             Profiler.BeginSample($"Denoising Loop");
-            for (int i = 0; i < _scheduler.Timesteps.Length; i++) {
-                int t = _scheduler.Timesteps[i];
+            for (int i = 0; i < Scheduler.Timesteps.Length; i++) {
+                int t = Scheduler.Timesteps[i];
 
                 // expand the latents if doing classifier free guidance
                 TensorFloat latentModelInput = doClassifierFreeGuidance ? _ops.Concat(new Tensor[] { latents, latents }, 0) as TensorFloat : latents;
-                latentModelInput = _scheduler.ScaleModelInput(latentModelInput, t);
+                latentModelInput = Scheduler.ScaleModelInput(latentModelInput, t);
 
                 // predict the noise residual
                 Profiler.BeginSample("Prepare Timestep Tensor");
-                using Tensor timestep = _unet.CreateTimestep(new TensorShape(_batchSize), t);
+                using Tensor timestep = Unet.CreateTimestep(new TensorShape(_batchSize), t);
                 Profiler.EndSample();
 
                 Profiler.BeginSample("Execute Unet");
-                TensorFloat noisePred = _unet.ExecuteModel(latentModelInput, timestep, promptEmbeds);
+                TensorFloat noisePred = Unet.ExecuteModel(latentModelInput, timestep, promptEmbeds);
                 Profiler.EndSample();
 
                 // perform guidance
@@ -197,12 +204,12 @@ namespace Doji.AI.Diffusers {
                 }
 
                 // compute the previous noisy sample x_t -> x_t-1
-                Profiler.BeginSample($"{_scheduler.GetType().Name}.Step");
-                var schedulerOutput = _scheduler.Step(noisePred, t, latents, eta);
+                Profiler.BeginSample($"{Scheduler.GetType().Name}.Step");
+                var schedulerOutput = Scheduler.Step(noisePred, t, latents, eta);
                 latents = schedulerOutput.PrevSample;
                 Profiler.EndSample();
 
-                callback?.Invoke(i / _scheduler.Order, t, latents);
+                callback?.Invoke(i / Scheduler.Order, t, latents);
             }
             Profiler.EndSample();
 
@@ -216,7 +223,7 @@ namespace Doji.AI.Diffusers {
             }
 
             Profiler.BeginSample($"VaeDecoder Decode Image");
-            TensorFloat image = _vaeDecoder.ExecuteModel(result);
+            TensorFloat image = VaeDecoder.ExecuteModel(result);
             Profiler.EndSample();
 
             initialLatents.Dispose();
@@ -244,10 +251,10 @@ namespace Doji.AI.Diffusers {
 
             if (promptEmbeds == null) {
                 Profiler.BeginSample("CLIPTokenizer Encode Input");
-                var textInputs = _tokenizer.Encode(
+                var textInputs = Tokenizer.Encode(
                     text: prompt,
                     padding: Padding.MaxLength,
-                    maxLength: _tokenizer.ModelMaxLength,
+                    maxLength: Tokenizer.ModelMaxLength,
                     truncation: Truncation.LongestFirst
                 ) as InputEncoding;
                 int[] textInputIds = textInputs.InputIds.ToArray() ?? throw new Exception("Failed to get input ids from tokenizer.");
@@ -258,7 +265,7 @@ namespace Doji.AI.Diffusers {
                 Profiler.EndSample();
 
                 Profiler.BeginSample("Execute TextEncoder");
-                promptEmbeds = _textEncoder.ExecuteModel(textIdTensor);
+                promptEmbeds = TextEncoder.ExecuteModel(textIdTensor);
                 Profiler.EndSample();
             }
             bool ownsPromptEmbeds = false;
@@ -285,7 +292,7 @@ namespace Doji.AI.Diffusers {
 
                 Profiler.BeginSample("CLIPTokenizer Encode Unconditioned Input");
                 int maxLength = promptEmbeds.shape[1];
-                var uncondInput = _tokenizer.Encode<BatchInput>(
+                var uncondInput = Tokenizer.Encode<BatchInput>(
                     text: uncondTokens,
                     padding: Padding.MaxLength,
                     maxLength: maxLength,
@@ -299,7 +306,7 @@ namespace Doji.AI.Diffusers {
                 Profiler.EndSample();
 
                 Profiler.BeginSample("Execute TextEncoder For Unconditioned Input");
-                negativePromptEmbeds = _textEncoder.ExecuteModel(uncondIdTensor);
+                negativePromptEmbeds = TextEncoder.ExecuteModel(uncondIdTensor);
                 Profiler.EndSample();
             }
 
@@ -329,12 +336,31 @@ namespace Doji.AI.Diffusers {
                 _width / 8);
         }
 
+        public Parameters GetParameters() {
+            if (_prompt is not SingleInput || _negativePrompt is not SingleInput) {
+                throw new NotImplementedException("GetParameters not yet implemented for batch inputs.");
+            }
+
+            return new Parameters() {
+                PackageVersion = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version,
+                Prompt = (_prompt as SingleInput).Text,
+                NegativePrompt = _negativePrompt != null ? (_negativePrompt as SingleInput).Text : null,
+                Steps = _steps,
+                Sampler = Scheduler.GetType().Name,
+                CfgScale = _guidanceScale,
+                Width = _width,
+                Height = _height,
+                Model = NameOrPath,
+                Eta = _eta
+            };
+        }
+
         public void Dispose() {
-            _textEncoder?.Dispose();
-            _vaeDecoder?.Dispose();
-            _textEncoder?.Dispose();
-            _scheduler?.Dispose();
-            _unet?.Dispose();
+            TextEncoder?.Dispose();
+            VaeDecoder?.Dispose();
+            TextEncoder?.Dispose();
+            Scheduler?.Dispose();
+            Unet?.Dispose();
             _ops?.Dispose();
         }
     }

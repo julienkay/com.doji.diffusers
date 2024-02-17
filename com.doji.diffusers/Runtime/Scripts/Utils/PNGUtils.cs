@@ -1,32 +1,30 @@
+using System;
 using System.IO;
+using UnityEngine;
 
 namespace Doji.AI.Diffusers {
 
     public static class PNGUtils {
 
-        public static Parameters GetParameters(
-            StableDiffusionPipeline pipeline,
-            string modelName,
-            string prompt,
-            int height = 512,
-            int width = 512,
-            int numInferenceSteps = 50,
-            float guidanceScale = 7.5f,
-            string negativePrompt = null,
-            float eta = 0.0f)
-        {
-            return new Parameters() {
-                PackageVersion = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version,
-                Prompt = prompt,
-                NegativePrompt = negativePrompt,
-                Steps = numInferenceSteps,
-                Sampler = pipeline.Scheduler.GetType().Name,
-                CfgScale = guidanceScale,
-                Width = width,
-                Height = height,
-                Model = modelName,
-                Eta = eta
-            };
+        public static void SaveToDisk(this RenderTexture texture, string directory, Parameters parameters) {
+            if (!Directory.Exists(directory)) {
+                throw new ArgumentException($"The directory '{directory} does not exist");
+            }
+
+            string prompt = parameters.Prompt;
+            var invalids = Path.GetInvalidFileNameChars();
+            var fileName = string.Join("_", prompt.Split(invalids, StringSplitOptions.RemoveEmptyEntries)).TrimEnd('.');
+            fileName = fileName[..Math.Min(fileName.Length, 60)];
+            string filePath = Path.Combine(directory, $"{fileName}_{DateTime.Now:yyyyMMddHHmmss}.png");
+
+            int width = texture.width;
+            int height = texture.height;
+            Texture2D tex = new Texture2D(width, height, TextureFormat.ARGB32, false);
+            RenderTexture.active = texture;
+            tex.ReadPixels(new Rect(0, 0, width, height), 0, 0);
+            File.WriteAllBytes(filePath, tex.EncodeToPNG());
+
+            PNGUtils.AddMetadata(filePath, parameters);
         }
 
         /// <summary>

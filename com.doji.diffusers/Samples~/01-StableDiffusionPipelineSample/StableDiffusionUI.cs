@@ -1,5 +1,3 @@
-using System.IO;
-using System;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -40,23 +38,9 @@ namespace Doji.AI.Diffusers.Samples {
         private void ExecuteSD() {
             Prompt = PromptField.text;
             Result = _stableDiffusion.RenderTexture;
-            _stableDiffusion.Imagine(Prompt, Resolution, Resolution, Steps, GuidanceScale, _negativePrompts);
+            Parameters p = _stableDiffusion.Imagine(Prompt, Resolution, Resolution, Steps, GuidanceScale, _negativePrompts);
             Image.texture = Result;
-            SaveAs(Result, Prompt);
-        }
-
-        private void SaveAs(RenderTexture texture, string prompt) {
-            var invalids = Path.GetInvalidFileNameChars();
-            var fileName = string.Join("_", prompt.Split(invalids, StringSplitOptions.RemoveEmptyEntries)).TrimEnd('.');
-            fileName = fileName[..Math.Min(fileName.Length, 30)];
-            string filePath = $"{fileName}_{DateTime.Now:yyyyMMddHHmmss}.png";
-
-            int width = texture.width;
-            int height = texture.height;
-            Texture2D tex = new Texture2D(width, height, TextureFormat.ARGB32, false);
-            RenderTexture.active = texture;
-            tex.ReadPixels(new Rect(0, 0, width, height), 0, 0);
-            File.WriteAllBytes(filePath, tex.EncodeToPNG());
+            PNGUtils.SaveToDisk(Result, ".", p);
         }
 
         private void OnDestroy() {
