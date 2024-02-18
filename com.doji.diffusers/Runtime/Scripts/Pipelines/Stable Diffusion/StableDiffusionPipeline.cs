@@ -342,7 +342,7 @@ namespace Doji.AI.Diffusers {
             }
 
             return new Parameters() {
-                PackageVersion = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version,
+                PackageVersion = System.Diagnostics.FileVersionInfo.GetVersionInfo(System.Reflection.Assembly.GetExecutingAssembly().Location).ProductVersion,
                 Prompt = (_prompt as SingleInput).Text,
                 NegativePrompt = _negativePrompt != null ? (_negativePrompt as SingleInput).Text : null,
                 Steps = _steps,

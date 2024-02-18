@@ -1,5 +1,4 @@
 using Newtonsoft.Json;
-using System;
 
 namespace Doji.AI.Diffusers {
 
@@ -11,7 +10,7 @@ namespace Doji.AI.Diffusers {
         private const string COMMENT = "This image was generated using https://github.com/julienkay/com.doji.diffusers";
 
         [JsonProperty("package_version")]
-        public Version PackageVersion { get; set; }
+        public string PackageVersion { get; set; }
 
         [JsonProperty("prompt")]
         public string Prompt { get; set; }
