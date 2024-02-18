@@ -30,6 +30,8 @@ namespace Doji.AI.Diffusers {
         private int _numImagesPerPrompt;
         private float _guidanceScale;
         private float? _eta;
+        private uint? _seed;
+        private Tensor _latents;
 
         private Ops _ops;
 
@@ -55,7 +57,7 @@ namespace Doji.AI.Diffusers {
             _ops = WorkerFactory.CreateOps(backend, null);
         }
 
-        /// <inheritdoc cref="Generate(object, int, int, int, float, int, Action{int, int, float[]})"/>
+        /// <inheritdoc cref="Generate(Input, int, int, int, float, Input, int, float, uint?, TensorFloat, Action{int, int, TensorFloat})"/>
         public TensorFloat Generate(
             string prompt,
             int height = 512,
@@ -65,15 +67,16 @@ namespace Doji.AI.Diffusers {
             string negativePrompt = null,
             int numImagesPerPrompt = 1,
             float eta = 0.0f,
+            uint? seed = null,
             TensorFloat latents = null,
             Action<int, int, TensorFloat> callback = null)
         {
             return Generate((TextInput)prompt, height, width, numInferenceSteps, guidanceScale, 
-               (TextInput)negativePrompt, numImagesPerPrompt, eta, latents, callback);
+               (TextInput)negativePrompt, numImagesPerPrompt, eta, seed, latents, callback);
         }
 
         /// <param name="prompt">The prompts used to generate the batch of images for.</param>
-        /// <inheritdoc cref="Generate(object, int, int, int, float, int, Action{int, int, float[]})"/>
+        /// <inheritdoc cref="Generate(Input, int, int, int, float, Input, int, float, uint?, TensorFloat, Action{int, int, TensorFloat})"/>
         public TensorFloat Generate(
             List<string> prompt,
             int height = 512,
@@ -83,11 +86,12 @@ namespace Doji.AI.Diffusers {
             List<string> negativePrompt = null,
             int numImagesPerPrompt = 1,
             float eta = 0.0f,
+            uint? seed = null,
             TensorFloat latents = null,
             Action<int, int, TensorFloat> callback = null)
         {
             return Generate((BatchInput)prompt, height, width, numInferenceSteps, guidanceScale,
-                (BatchInput)negativePrompt, numImagesPerPrompt, eta, latents, callback);
+                (BatchInput)negativePrompt, numImagesPerPrompt, eta, seed, latents, callback);
         }
 
         /// <summary>
@@ -107,8 +111,9 @@ namespace Doji.AI.Diffusers {
         /// <param name="numImagesPerPrompt">The number of images to generate per prompt.</param>
         /// <param name="eta">Corresponds to parameter eta in the DDIM paper: https://arxiv.org/abs/2010.02502. Only applies to
         /// <see cref="DDIMScheduler"/>, will be ignored for others.</param>
+        /// <param name="seed">A seed to use to generate initial noise. Set this to make generation deterministic.</param>
         /// <param name="latents">Pre-generated noise, sampled from a Gaussian distribution, to be used as inputs for image
-        /// generation. If not provided, a latents tensor will be generated for you.</param>
+        /// generation. If not provided, a latents tensor will be generated for you using the supplied <paramref name="seed"/>.</param>
         /// <param name="callback">A function that will be called at every step during inference.
         /// The function will be called with the following arguments:
         /// `callback(step: int, timestep: int, latents: torch.FloatTensor)`.</param>
@@ -121,6 +126,7 @@ namespace Doji.AI.Diffusers {
             Input negativePrompt = null,
             int numImagesPerPrompt = 1,
             float eta = 0.0f,
+            uint? seed = null,
             TensorFloat latents = null,
             Action<int, int, TensorFloat> callback = null)
         {
@@ -133,6 +139,8 @@ namespace Doji.AI.Diffusers {
             _numImagesPerPrompt = numImagesPerPrompt;
             _guidanceScale = guidanceScale;
             _eta = eta;
+            _seed = seed != null ? seed.Value : unchecked((uint)new System.Random().Next());
+            _latents = latents;
             CheckInputs();
 
             if (prompt != null && prompt is TextInput) {
@@ -155,7 +163,7 @@ namespace Doji.AI.Diffusers {
             TensorShape latentsShape = GetLatentsShape();
             if (latents == null) {
                 Profiler.BeginSample("Generate Latents");
-                latents = _ops.RandomNormal(latentsShape, 0, 1, new System.Random().Next());
+                latents = _ops.RandomNormal(latentsShape, 0, 1, _seed);
                 Profiler.EndSample();
             } else if (latents.shape != latentsShape) {
                 throw new ArgumentException($"Unexpected latents shape, got {latents.shape}, expected {latentsShape}");
@@ -237,6 +245,9 @@ namespace Doji.AI.Diffusers {
             }
             if (_numImagesPerPrompt > 1) {
                 throw new ArgumentException($"More than one image per prompt not supported yet. `numImagesPerPrompt` was {_numImagesPerPrompt}.");
+            }
+            if (_latents != null && _seed != null) {
+                throw new ArgumentException($"Both a seed and pre-generated noise has been passed. Please use either one or the other.");
             }
         }
 
@@ -337,20 +348,21 @@ namespace Doji.AI.Diffusers {
         }
 
         public Parameters GetParameters() {
-            if (_prompt is not SingleInput || _negativePrompt is not SingleInput) {
+            if (_prompt is not SingleInput) {
                 throw new NotImplementedException("GetParameters not yet implemented for batch inputs.");
             }
 
             return new Parameters() {
                 PackageVersion = System.Diagnostics.FileVersionInfo.GetVersionInfo(System.Reflection.Assembly.GetExecutingAssembly().Location).ProductVersion,
                 Prompt = (_prompt as SingleInput).Text,
+                Model = NameOrPath,
                 NegativePrompt = _negativePrompt != null ? (_negativePrompt as SingleInput).Text : null,
                 Steps = _steps,
                 Sampler = Scheduler.GetType().Name,
                 CfgScale = _guidanceScale,
+                Seed = _seed,
                 Width = _width,
                 Height = _height,
-                Model = NameOrPath,
                 Eta = _eta
             };
         }

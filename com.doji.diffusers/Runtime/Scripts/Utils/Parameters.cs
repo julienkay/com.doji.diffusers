@@ -7,10 +7,15 @@ namespace Doji.AI.Diffusers {
     /// </summary>
     public class Parameters {
         [JsonProperty("comment")]
+#pragma warning disable IDE0051
         private const string COMMENT = "This image was generated using https://github.com/julienkay/com.doji.diffusers";
+#pragma warning restore IDE0051
 
         [JsonProperty("package_version")]
         public string PackageVersion { get; set; }
+
+        [JsonProperty("model")]
+        public string Model { get; set; }
 
         [JsonProperty("prompt")]
         public string Prompt { get; set; }
@@ -27,8 +32,8 @@ namespace Doji.AI.Diffusers {
         [JsonProperty("cfg_scale")]
         public float CfgScale { get; set; }
 
-        //[JsonProperty("seed")]
-        //public int? Seed { get; set; }
+        [JsonProperty("seed")]
+        public uint? Seed { get; set; }
 
         [JsonProperty("width")]
         public int Width { get; set; }
@@ -36,14 +41,13 @@ namespace Doji.AI.Diffusers {
         [JsonProperty("height")]
         public int Height { get; set; }
 
-        [JsonProperty("model")]
-        public string Model { get; set; }
-
         [JsonProperty("eta")]
         public float? Eta { get; set; }
 
         public string Serialize() {
-            return JsonConvert.SerializeObject(this);
+            return JsonConvert.SerializeObject(this, new JsonSerializerSettings {
+                NullValueHandling = NullValueHandling.Ignore
+            });
         }
     }
 }

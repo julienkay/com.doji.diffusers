@@ -47,16 +47,14 @@ namespace Doji.AI.Diffusers.Editor.Tests {
         /// <summary>
         /// Dumps a tensor to a png file.
         /// </summary>
-        public static void ToFile(string prompt, int width, int height, TensorFloat generated) {
+        public static void ToFile(StableDiffusionPipeline sd, TensorFloat generated) {
+            var parameters = sd.GetParameters();
+            int width = parameters.Width;
+            int height = parameters.Height;
+            string prompt = parameters.Prompt;
             var tmp = RenderTexture.GetTemporary(width, height);
             TextureConverter.RenderToTexture(generated, tmp);
-            var invalids = Path.GetInvalidFileNameChars();
-            var fileName = string.Join("_", prompt.Split(invalids, StringSplitOptions.RemoveEmptyEntries)).TrimEnd('.');
-            string filePath = $"{fileName}_{DateTime.Now.ToString("yyyyMMddHHmmss")}.png";
-            Texture2D tex = new Texture2D(width, height, TextureFormat.ARGB32, false);
-            RenderTexture.active = tmp;
-            tex.ReadPixels(new Rect(0, 0, width, height), 0, 0);
-            File.WriteAllBytes(filePath, tex.EncodeToPNG());
+            PNGUtils.SaveToDisk(tmp, ".", parameters);
         }
     }
 }
