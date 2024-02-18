@@ -10,13 +10,6 @@ namespace Doji.AI.Diffusers {
         public TensorFloat AlphasCumprod { get; private set; }
         public float FinalAlphaCumprod { get; private set; }
 
-        protected bool ClipSample { get => Config.ClipSample.Value; set => Config.ClipSample = value; }
-        protected float ClipSampleRange { get => Config.ClipSampleRange.Value; set => Config.ClipSampleRange = value; }
-        protected bool Thresholding { get => Config.Thresholding.Value; set => Config.Thresholding = value; }
-        protected float DynamicThresholdingRatio { get => Config.DynamicThresholdingRatio.Value; set => Config.DynamicThresholdingRatio = value; }
-        protected float SampleMaxValue { get => Config.SampleMaxValue.Value; set => Config.SampleMaxValue = value; }
-        protected bool RescaleBetasZeroSnr { get => Config.RescaleBetasZeroSnr.Value; set => Config.RescaleBetasZeroSnr = value; }
-
         public DDIMScheduler(SchedulerConfig config = null, BackendType backend = BackendType.GPUCompute) : base(config, backend) {
             Config.NumTrainTimesteps        ??= 1000;
             Config.BetaStart                ??= 0.0001f;
@@ -62,7 +55,7 @@ namespace Doji.AI.Diffusers {
         /// TODO: Eventually use tensor ops for all this, but that's somewhat blocked
         /// by availability of a CumProd() implementation in <see cref="Ops"/>.
         /// </remarks>
-        public static float[] RescaleZeroTerminalSnr(float[] betas) {
+        internal static float[] RescaleZeroTerminalSnr(float[] betas) {
             // Convert betas to alphas_bar_sqrt
             float[] alphas = Sub(1f, betas);
             float[] alphasCumprod = alphas.CumProd();
@@ -111,6 +104,10 @@ namespace Doji.AI.Diffusers {
             }
         }
 
+        /// <summary>
+        /// This overload should never be called on DDIMScheduler because it uses an additional 'eta' parameter.
+        /// Use <see cref="Step(TensorFloat, int, TensorFloat, float, bool, System.Random, TensorFloat)"/> instead.
+        /// </summary>
         protected override SchedulerOutput Step(TensorFloat modelOutput, int timestep, TensorFloat sample) {
             throw new InvalidOperationException();
         }

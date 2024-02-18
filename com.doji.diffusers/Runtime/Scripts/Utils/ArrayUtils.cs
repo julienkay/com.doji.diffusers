@@ -76,6 +76,32 @@ namespace Doji.AI.Diffusers {
             return resultArray;
         }
 
+        public static T[] Concatenate<T>(this T[] array1, T value) {
+            if (array1 == null) {
+                throw new ArgumentNullException(nameof(array1));
+            }
+
+            T[] resultArray = new T[array1.Length + 1];
+            Array.Copy(array1, resultArray, array1.Length);
+            resultArray[resultArray.Length - 1] = value;
+            return resultArray;
+        }
+
+        public static T Max<T>(this T[] array) where T : IComparable {
+            if (array == null) {
+                throw new ArgumentNullException(nameof(array));
+            }
+            if (array.Length <= 1) {
+                throw new ArgumentException("Number of elements must be greater than 1.");
+            }
+            T max = array[0];
+            for (int i = 1; i < array.Length; i++) {
+                if (array[i].CompareTo(max) > 0) {
+                    max = array[i];
+                }
+            }
+            return max;
+        }
 
         /// <summary>
         /// Takes a array, repeats it returns the repeated sequence as a new array.

@@ -12,21 +12,29 @@ namespace Doji.AI.Diffusers {
         /// <summary>
         /// standard deviation of the initial noise distribution
         /// </summary>
-        public virtual float InitNoiseSigma { get { return 1; } }
-        public virtual int Order { get { return 1; } }
-        public int NumInferenceSteps { get; protected set; }
-        public int[] Timesteps { get; protected set; }
+        public    virtual float InitNoiseSigma    { get { return 1.0f; } }
+        public    virtual int   Order             { get { return 1; } }
+        public    int           NumInferenceSteps { get; protected set; }
+        public    int[]         Timesteps         { get; protected set; }
 
-        protected float BetaStart { get => Config.BetaStart.Value; set => Config.BetaStart = value; }
-        protected float BetaEnd { get => Config.BetaEnd.Value; set => Config.BetaEnd = value; }
-        protected Schedule BetaSchedule { get => Config.BetaSchedule.Value; set => Config.BetaSchedule = value; }
-        protected int NumTrainTimesteps { get => Config.NumTrainTimesteps.Value; set => Config.NumTrainTimesteps = value; }
-        protected Prediction PredictionType { get => Config.PredictionType.Value; set => Config.PredictionType = value; }
-        protected bool SkipPrkSteps { get => Config.SkipPrkSteps.Value; set => Config.SkipPrkSteps = value; }
-        protected bool SetAlphaToOne { get => Config.SetAlphaToOne.Value; set => Config.SetAlphaToOne = value; }
-        protected int StepsOffset { get => Config.StepsOffset.Value; set => Config.StepsOffset = value; }
-        protected float[] TrainedBetas { get => Config.TrainedBetas; set => Config.TrainedBetas = value; }
-        protected internal Spacing TimestepSpacing { get => Config.TimestepSpacing.Value; set => Config.TimestepSpacing = value; }
+        protected float      BetaStart                { get => Config.BetaStart.Value;                set => Config.BetaStart                = value; }
+        protected float      BetaEnd                  { get => Config.BetaEnd.Value;                  set => Config.BetaEnd                  = value; }
+        protected Schedule   BetaSchedule             { get => Config.BetaSchedule.Value;             set => Config.BetaSchedule             = value; }
+        protected int        NumTrainTimesteps        { get => Config.NumTrainTimesteps.Value;        set => Config.NumTrainTimesteps        = value; }
+        protected Prediction PredictionType           { get => Config.PredictionType.Value;           set => Config.PredictionType           = value; }
+        protected bool       SkipPrkSteps             { get => Config.SkipPrkSteps.Value;             set => Config.SkipPrkSteps             = value; }
+        protected bool       SetAlphaToOne            { get => Config.SetAlphaToOne.Value;            set => Config.SetAlphaToOne            = value; }
+        protected int        StepsOffset              { get => Config.StepsOffset.Value;              set => Config.StepsOffset              = value; }
+        protected float[]    TrainedBetas             { get => Config.TrainedBetas;                   set => Config.TrainedBetas             = value; }
+        protected internal   Spacing TimestepSpacing  { get => Config.TimestepSpacing.Value;          set => Config.TimestepSpacing          = value; }
+        protected bool       ClipSample               { get => Config.ClipSample.Value;               set => Config.ClipSample               = value; }
+        protected float      ClipSampleRange          { get => Config.ClipSampleRange.Value;          set => Config.ClipSampleRange          = value; }
+        protected bool       Thresholding             { get => Config.Thresholding.Value;             set => Config.Thresholding             = value; }
+        protected float      DynamicThresholdingRatio { get => Config.DynamicThresholdingRatio.Value; set => Config.DynamicThresholdingRatio = value; }
+        protected float      SampleMaxValue           { get => Config.SampleMaxValue.Value;           set => Config.SampleMaxValue           = value; }
+        protected bool       RescaleBetasZeroSnr      { get => Config.RescaleBetasZeroSnr.Value;      set => Config.RescaleBetasZeroSnr      = value; }
+        protected Timestep   TimestepType             { get => Config.TimestepType.Value;             set => Config.TimestepType             = value; }
+        
 
         protected Ops _ops;
 

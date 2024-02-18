@@ -3,6 +3,9 @@ using System.Runtime.Serialization;
 
 namespace Doji.AI.Diffusers {
 
+    /// <summary>
+    /// The beta schedule, a mapping from a beta range to a sequence of betas for stepping the model.
+    /// </summary>
     public enum Schedule {
         [EnumMember(Value = "linear")]
         Linear,
@@ -14,6 +17,9 @@ namespace Doji.AI.Diffusers {
         SquaredCosCapV2
     }
 
+    /// <summary>
+    /// Prediction type of the scheduler function.
+    /// </summary>
     public enum Prediction {
 
         /// <summary>
@@ -35,6 +41,10 @@ namespace Doji.AI.Diffusers {
         V_Prediction
     }
 
+    /// <summary>
+    /// The way the timesteps should be scaled. Refer to Table 2 of the [Common Diffusion Noise Schedules and
+    /// Sample Steps are Flawed](https://huggingface.co/papers/2305.08891) for more information.
+    /// </summary>
     public enum Spacing {
         [EnumMember(Value = "leading")]
         Leading,
@@ -42,6 +52,23 @@ namespace Doji.AI.Diffusers {
         Trailing,
         [EnumMember(Value = "linspace")]
         Linspace
+    }
+
+    /// <summary>
+    /// The interpolation type to compute intermediate sigmas for the scheduler denoising steps.
+    /// </summary>
+    public enum Interpolation {
+        [EnumMember(Value = "linear")]
+        Linear,
+        [EnumMember(Value = "log_linear")]
+        LogLinear,
+    }
+
+    public enum Timestep {
+        [EnumMember(Value = "discrete")]
+        Discrete,
+        [EnumMember(Value = "continuous")]
+        Continuous,
     }
 
     public partial class SchedulerConfig {
@@ -68,6 +95,9 @@ namespace Doji.AI.Diffusers {
 
         [JsonProperty("dynamic_thresholding_ratio")]
         public float? DynamicThresholdingRatio { get; set; }
+
+        [JsonProperty("interpolation_type")]
+        public Interpolation? InterpolationType { get; set; }
 
         [JsonProperty("num_train_timesteps")]
         public int? NumTrainTimesteps { get; set; }
@@ -98,5 +128,17 @@ namespace Doji.AI.Diffusers {
 
         [JsonProperty("trained_betas")]
         public float[] TrainedBetas { get; set; }
+
+        [JsonProperty("use_karras_sigmas")]
+        public bool? UseKarrasSigmas { get; set; }
+
+        [JsonProperty("sigma_min")]
+        public float? SigmaMin { get; set; }
+
+        [JsonProperty("sigma_max")]
+        public float? SigmaMax { get; set; }
+
+        [JsonProperty("timestep_type")]
+        public Timestep? TimestepType { get; set; }
     }
 }
