@@ -34,7 +34,6 @@ namespace Doji.AI.Diffusers.Editor.Tests {
             }
         }
 
-
         [SetUp]
         public void SetUp() {
             var config = new SchedulerConfig() {

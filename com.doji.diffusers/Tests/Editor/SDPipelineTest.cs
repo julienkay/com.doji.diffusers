@@ -49,7 +49,7 @@ namespace Doji.AI.Diffusers.Editor.Tests {
             //TestUtils.ToFile(prompt, width, height, generated);   
         }
 
-        private void TestPredictedNoise(int i, int t, TensorFloat latents) {
+        private void TestPredictedNoise(int i, float t, TensorFloat latents) {
             latents.MakeReadable();
             CollectionAssert.AreEqual(GetLatents(i), latents.ToReadOnlyArray(), new FloatArrayComparer(0.00001f), $"Latents differ at step {i}");
         }
@@ -77,7 +77,7 @@ namespace Doji.AI.Diffusers.Editor.Tests {
             //TestUtils.ToFile(prompt, width, height, generated);   
         }
 
-        private void TestPredictedNoiseLarge(int i, int t, TensorFloat latents) {
+        private void TestPredictedNoiseLarge(int i, float t, TensorFloat latents) {
             latents.MakeReadable();
             CollectionAssert.AreEqual(GetLatentsLarge(i), latents.ToReadOnlyArray(), new FloatArrayComparer(0.0001f), $"Latents differ at step {i}");
         }

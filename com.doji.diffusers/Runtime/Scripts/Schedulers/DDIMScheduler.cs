@@ -4,7 +4,7 @@ using System;
 
 namespace Doji.AI.Diffusers {
 
-    public class DDIMScheduler : Scheduler {
+    public class DDIMScheduler : SchedulerInt {
 
         public float[] Betas { get; private set; }
         public TensorFloat AlphasCumprod { get; private set; }
@@ -106,16 +106,16 @@ namespace Doji.AI.Diffusers {
 
         /// <summary>
         /// This overload should never be called on DDIMScheduler because it uses an additional 'eta' parameter.
-        /// Use <see cref="Step(TensorFloat, int, TensorFloat, float, bool, System.Random, TensorFloat)"/> instead.
+        /// Use <see cref="Step(TensorFloat, float, TensorFloat, float, bool, System.Random, TensorFloat)"/> instead.
         /// </summary>
-        protected override SchedulerOutput Step(TensorFloat modelOutput, int timestep, TensorFloat sample) {
+        protected override SchedulerOutput Step(TensorFloat modelOutput, float timestep, TensorFloat sample) {
             throw new InvalidOperationException();
         }
 
         /// <inheritdoc/>
         public override SchedulerOutput Step(
             TensorFloat modelOutput,
-            int timestep,
+            float timestep,
             TensorFloat sample,
             float eta = 0.0f,
             bool useClippedModelOutput = false,
@@ -138,10 +138,10 @@ namespace Doji.AI.Diffusers {
             // - pred_prev_sample -> "x_t-1"
 
             // 1. get previous step value (=t-1)
-            int prevTimestep = timestep - NumTrainTimesteps / NumInferenceSteps;
+            int prevTimestep = (int)timestep - NumTrainTimesteps / NumInferenceSteps;
 
             // 2. compute alphas, betas
-            float alphaProdT = AlphasCumprod[timestep];
+            float alphaProdT = AlphasCumprod[(int)timestep];
             float alphaProdTPrev = prevTimestep >= 0 ? AlphasCumprod[prevTimestep] : FinalAlphaCumprod;
 
             float betaProdT = 1.0f - alphaProdT;
@@ -180,7 +180,7 @@ namespace Doji.AI.Diffusers {
 
             // 5. compute variance: "sigma_t(η)" -> see formula (16)
             // σ_t = sqrt((1 − α_t−1)/(1 − α_t)) * sqrt(1 − α_t/α_t−1)
-            float variance = GetVariance(timestep, prevTimestep);
+            float variance = GetVariance((int)timestep, prevTimestep);
             float stdDevT = eta * MathF.Pow(variance, 0.5f);
 
             if (useClippedModelOutput) {

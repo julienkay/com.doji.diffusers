@@ -2,10 +2,32 @@ using static Doji.AI.Diffusers.ArrayUtils;
 using System;
 using Unity.Sentis;
 using System.Linq;
+using System.Collections.Generic;
+using System.Collections;
 
 namespace Doji.AI.Diffusers {
 
-    public abstract class Scheduler : IDisposable {
+    public abstract class SchedulerFloat : Scheduler {
+        public float[] Timesteps { get; protected set; }
+        protected SchedulerFloat(SchedulerConfig config, BackendType backend) : base(config, backend) { }
+        public override IEnumerator<float> GetEnumerator() {
+            foreach (float item in Timesteps) {
+                yield return item;
+            }
+        }
+    }
+
+    public abstract class SchedulerInt : Scheduler {
+        public int[] Timesteps { get; protected set; }
+        protected SchedulerInt(SchedulerConfig config, BackendType backend) : base(config, backend) { }
+        public override IEnumerator<float> GetEnumerator() {
+            foreach (float item in Timesteps) {
+                yield return item;
+            }
+        }
+    }
+
+    public abstract class Scheduler : IDisposable, IEnumerable<float> {
 
         public SchedulerConfig Config { get; protected set; }
 
@@ -15,7 +37,6 @@ namespace Doji.AI.Diffusers {
         public    virtual float InitNoiseSigma    { get { return 1.0f; } }
         public    virtual int   Order             { get { return 1; } }
         public    int           NumInferenceSteps { get; protected set; }
-        public    int[]         Timesteps         { get; protected set; }
 
         protected float      BetaStart                { get => Config.BetaStart.Value;                set => Config.BetaStart                = value; }
         protected float      BetaEnd                  { get => Config.BetaEnd.Value;                  set => Config.BetaEnd                  = value; }
@@ -54,7 +75,7 @@ namespace Doji.AI.Diffusers {
         /// outputs (most often the predicted noise), and calls step_prk or
         /// step_plms depending on the internal variable <see cref="Counter"/>.
         /// </summary>
-        protected abstract SchedulerOutput Step(TensorFloat modelOutput, int timestep, TensorFloat sample);
+        protected abstract SchedulerOutput Step(TensorFloat modelOutput, float timestep, TensorFloat sample);
 
         /// <inheritdoc cref="Step"/>
         /// <remarks>
@@ -62,7 +83,7 @@ namespace Doji.AI.Diffusers {
         /// </remarks>
         public virtual SchedulerOutput Step(
             TensorFloat modelOutput,
-            int timestep,
+            float timestep,
             TensorFloat sample,
             float eta = 0.0f,
             bool useClippedModelOutput = false,
@@ -185,12 +206,18 @@ namespace Doji.AI.Diffusers {
         /// Ensures interchangeability with schedulers that need to scale
         /// the denoising model input depending on the current timestep.
         /// </summary>
-        public virtual TensorFloat ScaleModelInput(TensorFloat sample, int timestep) {
+        public virtual TensorFloat ScaleModelInput(TensorFloat sample, float t) {
             return sample;
         }
 
         public virtual void Dispose() {
             _ops?.Dispose();
+        }
+
+        public abstract IEnumerator<float> GetEnumerator();
+
+        IEnumerator IEnumerable.GetEnumerator() {
+            return GetEnumerator();
         }
     }
 }

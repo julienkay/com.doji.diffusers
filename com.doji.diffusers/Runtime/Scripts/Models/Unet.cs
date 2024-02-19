@@ -63,7 +63,7 @@ namespace Doji.AI.Diffusers {
             return _worker.PeekOutput("out_sample") as TensorFloat;
         }
 
-        public Tensor CreateTimestep(TensorShape shape, int t) {
+        public Tensor CreateTimestep(TensorShape shape, float t) {
             if (_model == null) {
                 throw new NullReferenceException($"{nameof(_model)} was null");
             }

@@ -8,7 +8,7 @@ namespace Doji.AI.Diffusers {
 
     public enum AlphaTransform { Cosine, Exp }
 
-    public class PNDMScheduler : Scheduler {
+    public class PNDMScheduler : SchedulerInt {
 
         public TensorFloat Betas { get; private set; }
         public TensorFloat Alphas { get; private set; }
@@ -95,11 +95,11 @@ namespace Doji.AI.Diffusers {
         }
 
         /// <inheritdoc/>
-        protected override SchedulerOutput Step(TensorFloat modelOutput, int timestep, TensorFloat sample) {
+        protected override SchedulerOutput Step(TensorFloat modelOutput, float timestep, TensorFloat sample) {
             if (Counter < PrkTimesteps.Length && !SkipPrkSteps) {
-                return StepPrk(modelOutput: modelOutput, timestep: timestep, sample: sample);
+                return StepPrk(modelOutput, (int)timestep, sample);
             } else {
-                return StepPlms(modelOutput: modelOutput, timestep: timestep, sample: sample);
+                return StepPlms(modelOutput, (int)timestep, sample);
             }
         }
 

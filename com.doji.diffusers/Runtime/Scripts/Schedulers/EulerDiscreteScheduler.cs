@@ -5,13 +5,12 @@ using System.Collections.Generic;
 
 namespace Doji.AI.Diffusers {
 
-    public class EulerDiscreteScheduler : Scheduler {
+    public class EulerDiscreteScheduler : SchedulerFloat {
 
         public float[] Betas { get; private set; }
         public TensorFloat AlphasCumprod { get; private set; }
         public TensorFloat SigmasT { get; protected set; }
         private float[] Sigmas { get; set; }
-        public float[] TimestepsF { get; private set; }
 
         public bool IsScaleInputCalled { get; private set; }
 
@@ -73,7 +72,7 @@ namespace Doji.AI.Diffusers {
             var tmp1 = Sub(1f, alphasCumprod);
             var tmp2 = tmp1.Div(alphasCumprod);
             var sigmas = tmp2.Pow(0.5f).Reverse();
-            TimestepsF = Linspace(0f, NumTrainTimesteps - 1, NumTrainTimesteps).Reverse();
+            Timesteps = Linspace(0f, NumTrainTimesteps - 1, NumTrainTimesteps).Reverse();
 
             // setable values
             NumInferenceSteps = 0;
@@ -81,7 +80,7 @@ namespace Doji.AI.Diffusers {
             // TODO: Support the full EDM scalings for all prediction types and timestep types
             if (TimestepType == Timestep.Continuous && PredictionType == Prediction.V_Prediction) {
                 for (int i = 0; i < sigmas.Length; i++) {
-                    TimestepsF[i] = 0.25f * MathF.Log(sigmas[i]);
+                    Timesteps[i] = 0.25f * MathF.Log(sigmas[i]);
                 }
             }
 
@@ -97,7 +96,7 @@ namespace Doji.AI.Diffusers {
         /// Scales the denoising model input by `(sigma**2 + 1) ** 0.5` to match the Euler algorithm.
         /// </summary>
         /// <inheritdoc/>
-        public override TensorFloat ScaleModelInput(TensorFloat sample, int timestep) {
+        public override TensorFloat ScaleModelInput(TensorFloat sample, float timestep) {
             if (StepIndex == null) {
                 InitStepIndex(timestep);
             }
@@ -109,8 +108,8 @@ namespace Doji.AI.Diffusers {
             return sample;
         }
 
-        private int IndexForTimestep(int timestep, int[] scheduleTimesteps = null) {
-            scheduleTimesteps ??= Timesteps;
+        private int IndexForTimestep(float timestep, float[] scheduleTimesteps = null) {
+            scheduleTimesteps ??= base.Timesteps as float[];
 
             List<int> indices = new List<int>();
             for (int i = 0; i < scheduleTimesteps.Length; i++) {
@@ -128,7 +127,7 @@ namespace Doji.AI.Diffusers {
             return indices[pos];
         }
 
-        private void InitStepIndex(int timestep) {
+        private void InitStepIndex(float timestep) {
             if (BeginIndex == null) {
                 StepIndex = IndexForTimestep(timestep);
             } else {
@@ -136,11 +135,13 @@ namespace Doji.AI.Diffusers {
             }
         }
 
+        /// <inheritdoc/>
         public override void SetTimesteps(int numInferenceSteps) {
             throw new NotImplementedException();
         }
 
-        protected override SchedulerOutput Step(TensorFloat modelOutput, int timestep, TensorFloat sample) {
+        /// <inheritdoc/>
+        protected override SchedulerOutput Step(TensorFloat modelOutput, float timestep, TensorFloat sample) {
             throw new NotImplementedException();
         }
 
