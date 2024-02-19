@@ -185,8 +185,8 @@ namespace Doji.AI.Diffusers {
         /// Ensures interchangeability with schedulers that need to scale
         /// the denoising model input depending on the current timestep.
         /// </summary>
-        public TensorFloat ScaleModelInput(TensorFloat latentModelInput, int t) {
-            return latentModelInput;
+        public virtual TensorFloat ScaleModelInput(TensorFloat sample, int timestep) {
+            return sample;
         }
 
         public virtual void Dispose() {

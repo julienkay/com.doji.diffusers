@@ -1,7 +1,6 @@
 using static Doji.AI.Diffusers.ArrayUtils;
 using System;
 using Unity.Sentis;
-using Unity.Sentis.Layers;
 using System.Collections.Generic;
 
 namespace Doji.AI.Diffusers {
@@ -16,8 +15,27 @@ namespace Doji.AI.Diffusers {
 
         public bool IsScaleInputCalled { get; private set; }
 
-        private int _stepIndex;
-        private int _beginIndex;
+        public override float InitNoiseSigma {
+            get {
+                // TODO: can we calculate this once after calling SetTimesteps() and cache it?
+                // standard deviation of the initial noise distribution
+                var maxSigma = Sigmas.Max();
+                if (TimestepSpacing == Spacing.Linspace || TimestepSpacing == Spacing.Trailing) {
+                    return maxSigma;
+                }
+                return MathF.Pow(MathF.Pow(maxSigma, 2f) + 1, 0.5f);
+            }
+        }
+
+        /// <summary>
+        /// The index counter for current timestep. It will increae 1 after each scheduler step.
+        /// </summary>
+        private int? StepIndex { get; set; }
+
+        /// <summary>
+        /// The index for the first timestep. It should be set from pipeline before the inference.
+        /// </summary>
+        public int? BeginIndex { get; private set; }
 
         public EulerDiscreteScheduler(SchedulerConfig config, BackendType backend) : base(config, backend) {
             Config.NumTrainTimesteps ??= 1000;
@@ -70,22 +88,51 @@ namespace Doji.AI.Diffusers {
             sigmas = sigmas.Concatenate(0);
 
             IsScaleInputCalled = false;
-            _stepIndex = 0;
-            _beginIndex = 0;
+            StepIndex = null;
+            BeginIndex = null;
             SigmasT = new TensorFloat(new TensorShape(sigmas.Length), sigmas);
         }
 
+        /// <summary>
+        /// Scales the denoising model input by `(sigma**2 + 1) ** 0.5` to match the Euler algorithm.
+        /// </summary>
+        /// <inheritdoc/>
+        public override TensorFloat ScaleModelInput(TensorFloat sample, int timestep) {
+            if (StepIndex == null) {
+                InitStepIndex(timestep);
+            }
 
-        public override float InitNoiseSigma {
-            get {
-                // TODO: can we calculate this once after calling SetTimesteps() and cache it?
-                // standard deviation of the initial noise distribution
-                var maxSigma = Sigmas.Max();
-                if (TimestepSpacing == Spacing.Linspace || TimestepSpacing == Spacing.Trailing) {
-                    return maxSigma;
+            float sigma = Sigmas[StepIndex.Value];
+            sample = _ops.Div(sample, MathF.Pow((MathF.Pow(sigma, 2f) + 1f), 0.5f));
+
+            IsScaleInputCalled = true;
+            return sample;
+        }
+
+        private int IndexForTimestep(int timestep, int[] scheduleTimesteps = null) {
+            scheduleTimesteps ??= Timesteps;
+
+            List<int> indices = new List<int>();
+            for (int i = 0; i < scheduleTimesteps.Length; i++) {
+                if (scheduleTimesteps[i] == timestep) {
+                    indices.Add(i);
                 }
-                return MathF.Pow(MathF.Pow(maxSigma, 2f) + 1, 0.5f);
+            }
 
+            // The sigma index that is taken for the **very** first `step`
+            // is always the second index (or the last index if there is only 1)
+            // This way we can ensure we don't accidentally skip a sigma in
+            // case we start in the middle of the denoising schedule (e.g. for image-to-image)
+            int pos = indices.Count > 1 ? 1 : 0;
+
+            return indices[pos];
+        }
+
+        private void InitStepIndex(int timestep) {
+            if (BeginIndex == null) {
+                StepIndex = IndexForTimestep(timestep);
+            } else {
+                StepIndex = BeginIndex;
             }
         }
 
