@@ -139,9 +139,11 @@ namespace Doji.AI.Diffusers {
             _numImagesPerPrompt = numImagesPerPrompt;
             _guidanceScale = guidanceScale;
             _eta = eta;
-            _seed = seed != null ? seed.Value : unchecked((uint)new System.Random().Next());
+            if (latents == null) {
+                _seed = seed != null ? seed : unchecked((uint)new System.Random().Next());
+            }
             _latents = latents;
-            CheckInputs();
+            CheckInputs(seed);
 
             if (prompt != null && prompt is TextInput) {
                 _batchSize = 1;
@@ -239,14 +241,14 @@ namespace Doji.AI.Diffusers {
             return image;
         }
 
-        private void CheckInputs() {
+        private void CheckInputs(uint? seed) {
             if (_height % 8 != 0 || _width % 8 != 0) {
                 throw new ArgumentException($"`height` and `width` have to be divisible by 8 but are {_height} and {_width}.");
             }
             if (_numImagesPerPrompt > 1) {
                 throw new ArgumentException($"More than one image per prompt not supported yet. `numImagesPerPrompt` was {_numImagesPerPrompt}.");
             }
-            if (_latents != null && _seed != null) {
+            if (_latents != null && seed != null) {
                 throw new ArgumentException($"Both a seed and pre-generated noise has been passed. Please use either one or the other.");
             }
         }
