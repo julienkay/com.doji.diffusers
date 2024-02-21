@@ -245,6 +245,22 @@ namespace Doji.AI.Diffusers {
             return result;
         }
 
+        public static float[] Log(this float[] a) {
+            float[] result = new float[a.Length];
+            for (int i = 0; i < a.Length; i++) {
+                result[i] = MathF.Log(a[i]);
+            }
+            return result;
+        }
+
+        public static float[] Exp(this float[] a) {
+            float[] result = new float[a.Length];
+            for (int i = 0; i < a.Length; i++) {
+                result[i] = MathF.Exp(a[i]);
+            }
+            return result;
+        }
+
         /// <summary>
         /// numpy.full
         /// </summary>
@@ -307,6 +323,21 @@ namespace Doji.AI.Diffusers {
             return result;
         }
 
+        public static float[] ArangeF(int start, int stop, int step = 1) {
+            if (step <= 0) {
+                throw new ArgumentException("Step must be a positive integer.");
+            }
+
+            int length = ((stop - start - 1) / step) + 1;
+            float[] result = new float[length];
+
+            for (int i = 0, value = start; i < length; i++, value += step) {
+                result[i] = value;
+            }
+
+            return result;
+        }
+
         /// <summary>
         /// numpy.linspace
         /// </summary>
@@ -323,6 +354,37 @@ namespace Doji.AI.Diffusers {
             }
 
             return result;
+        }
+
+        public static float[] Interpolate(float[] x, float[] xp, float[] fp, float? left = null, float? right = null) {
+            int n = xp.Length;
+            int m = x.Length;
+            float[] interpolatedValues = new float[m];
+            
+            left ??= fp[0];
+            right ??= fp[^1];
+
+            for (int i = 0; i < m; i++) {
+                if (x[i] <= xp[0]) {
+                    interpolatedValues[i] = left.Value;
+                } else if (x[i] >= xp[n - 1]) {
+                    interpolatedValues[i] = right.Value;
+                } else {
+                    int j = Array.BinarySearch(xp, x[i]);
+                    if (j < 0) {
+                        j = ~j;
+                        float x0 = xp[j - 1];
+                        float x1 = xp[j];
+                        float f0 = fp[j - 1];
+                        float f1 = fp[j];
+                        interpolatedValues[i] = f0 + (f1 - f0) * (x[i] - x0) / (x1 - x0);
+                    } else {
+                        interpolatedValues[i] = fp[j];
+                    }
+                }
+            }
+
+            return interpolatedValues;
         }
     }
 }

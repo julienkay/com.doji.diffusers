@@ -38,24 +38,27 @@ namespace Doji.AI.Diffusers {
         public    virtual int   Order             { get { return 1; } }
         public    int           NumInferenceSteps { get; protected set; }
 
-        protected float      BetaStart                { get => Config.BetaStart.Value;                set => Config.BetaStart                = value; }
-        protected float      BetaEnd                  { get => Config.BetaEnd.Value;                  set => Config.BetaEnd                  = value; }
-        protected Schedule   BetaSchedule             { get => Config.BetaSchedule.Value;             set => Config.BetaSchedule             = value; }
-        protected int        NumTrainTimesteps        { get => Config.NumTrainTimesteps.Value;        set => Config.NumTrainTimesteps        = value; }
-        protected Prediction PredictionType           { get => Config.PredictionType.Value;           set => Config.PredictionType           = value; }
-        protected bool       SkipPrkSteps             { get => Config.SkipPrkSteps.Value;             set => Config.SkipPrkSteps             = value; }
-        protected bool       SetAlphaToOne            { get => Config.SetAlphaToOne.Value;            set => Config.SetAlphaToOne            = value; }
-        protected int        StepsOffset              { get => Config.StepsOffset.Value;              set => Config.StepsOffset              = value; }
-        protected float[]    TrainedBetas             { get => Config.TrainedBetas;                   set => Config.TrainedBetas             = value; }
-        protected internal   Spacing TimestepSpacing  { get => Config.TimestepSpacing.Value;          set => Config.TimestepSpacing          = value; }
-        protected bool       ClipSample               { get => Config.ClipSample.Value;               set => Config.ClipSample               = value; }
-        protected float      ClipSampleRange          { get => Config.ClipSampleRange.Value;          set => Config.ClipSampleRange          = value; }
-        protected bool       Thresholding             { get => Config.Thresholding.Value;             set => Config.Thresholding             = value; }
-        protected float      DynamicThresholdingRatio { get => Config.DynamicThresholdingRatio.Value; set => Config.DynamicThresholdingRatio = value; }
-        protected float      SampleMaxValue           { get => Config.SampleMaxValue.Value;           set => Config.SampleMaxValue           = value; }
-        protected bool       RescaleBetasZeroSnr      { get => Config.RescaleBetasZeroSnr.Value;      set => Config.RescaleBetasZeroSnr      = value; }
-        protected Timestep   TimestepType             { get => Config.TimestepType.Value;             set => Config.TimestepType             = value; }
-        
+        protected float         BetaStart                { get => Config.BetaStart.Value;                set => Config.BetaStart                = value; }
+        protected float         BetaEnd                  { get => Config.BetaEnd.Value;                  set => Config.BetaEnd                  = value; }
+        protected Schedule      BetaSchedule             { get => Config.BetaSchedule.Value;             set => Config.BetaSchedule             = value; }
+        protected int           NumTrainTimesteps        { get => Config.NumTrainTimesteps.Value;        set => Config.NumTrainTimesteps        = value; }
+        protected Prediction    PredictionType           { get => Config.PredictionType.Value;           set => Config.PredictionType           = value; }
+        protected bool          SkipPrkSteps             { get => Config.SkipPrkSteps.Value;             set => Config.SkipPrkSteps             = value; }
+        protected bool          SetAlphaToOne            { get => Config.SetAlphaToOne.Value;            set => Config.SetAlphaToOne            = value; }
+        protected int           StepsOffset              { get => Config.StepsOffset.Value;              set => Config.StepsOffset              = value; }
+        protected float[]       TrainedBetas             { get => Config.TrainedBetas;                   set => Config.TrainedBetas             = value; }
+        protected internal      Spacing TimestepSpacing  { get => Config.TimestepSpacing.Value;          set => Config.TimestepSpacing          = value; }
+        protected bool          ClipSample               { get => Config.ClipSample.Value;               set => Config.ClipSample               = value; }
+        protected float         ClipSampleRange          { get => Config.ClipSampleRange.Value;          set => Config.ClipSampleRange          = value; }
+        protected bool          Thresholding             { get => Config.Thresholding.Value;             set => Config.Thresholding             = value; }
+        protected float         DynamicThresholdingRatio { get => Config.DynamicThresholdingRatio.Value; set => Config.DynamicThresholdingRatio = value; }
+        protected Interpolation InterpolationType        { get => Config.InterpolationType.Value;        set => Config.InterpolationType        = value; }
+        protected float         SampleMaxValue           { get => Config.SampleMaxValue.Value;           set => Config.SampleMaxValue           = value; }
+        protected bool          RescaleBetasZeroSnr      { get => Config.RescaleBetasZeroSnr.Value;      set => Config.RescaleBetasZeroSnr      = value; }
+        protected Timestep      TimestepType             { get => Config.TimestepType.Value;             set => Config.TimestepType             = value; }
+        protected bool          UseKarrasSigmas          { get => Config.UseKarrasSigmas.Value;          set => Config.UseKarrasSigmas          = value; }
+        protected float?        SigmaMin                 { get => Config.SigmaMin;                       set => Config.SigmaMin                 = value; }
+        protected float?        SigmaMax                 { get => Config.SigmaMax;                       set => Config.SigmaMax                 = value; }
 
         protected Ops _ops;
 
@@ -162,6 +165,16 @@ namespace Doji.AI.Diffusers {
         }
 
         /// <summary>
+        /// timesteps = np.linspace(0, num_train_timesteps - 1, num_inference_steps)
+        /// </summary>
+        protected float[] GetTimeStepsLinspaceF() {
+            int start = 0;
+            int stop = NumTrainTimesteps - 1;
+            int num = NumInferenceSteps;
+            return ArrayUtils.Linspace(start, stop, num);
+        }
+
+        /// <summary>
         /// timesteps = np.arange(0, num_inference_steps) * step_ratio).round()
         /// timesteps += steps_offset
         /// </summary>
@@ -173,6 +186,22 @@ namespace Doji.AI.Diffusers {
 
             int length = ((stop - start - 1) / step) + 1;
             int[] result = new int[length];
+
+            for (int i = 0, value = start; i < length; i++, value += step) {
+                result[i] = (value * stepRatio) + StepsOffset;
+            }
+
+            return result;
+        }
+
+        protected float[] GetTimeStepsLeadingF() {
+            int stepRatio = NumTrainTimesteps / NumInferenceSteps;
+            int start = 0;
+            int stop = NumInferenceSteps;
+            int step = 1;
+
+            int length = ((stop - start - 1) / step) + 1;
+            float[] result = new float[length];
 
             for (int i = 0, value = start; i < length; i++, value += step) {
                 result[i] = (value * stepRatio) + StepsOffset;
@@ -195,7 +224,24 @@ namespace Doji.AI.Diffusers {
 
             float value = start;
             for (int i = 0; i < length; i++) {
-                result[length - i - 1] = (int)Math.Round(value) - 1;
+                result[length - i - 1] = (int)MathF.Round(value) - 1;
+                value += step;
+            }
+
+            return result;
+        }
+
+        protected float[] GetTimeStepsTrailingF() {
+            int start = NumTrainTimesteps;
+            int stop = 0;
+            float step = -NumTrainTimesteps / (float)NumInferenceSteps;
+
+            int length = ((int)((stop - start - 1) / step)) + 1;
+            float[] result = new float[length];
+
+            float value = start;
+            for (int i = 0; i < length; i++) {
+                result[length - i - 1] = MathF.Round(value) - 1f;
                 value += step;
             }
 

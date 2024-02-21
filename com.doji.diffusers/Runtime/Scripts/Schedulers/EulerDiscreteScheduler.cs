@@ -9,6 +9,7 @@ namespace Doji.AI.Diffusers {
 
         public float[] Betas { get; private set; }
         public TensorFloat AlphasCumprod { get; private set; }
+        private float[] _AlphasCumprod { get; set; }
         public TensorFloat SigmasT { get; protected set; }
         private float[] Sigmas { get; set; }
 
@@ -59,8 +60,8 @@ namespace Doji.AI.Diffusers {
             }
 
             float[] alphas = Sub(1f, Betas);
-            float[] alphasCumprod = alphas.CumProd();
-            AlphasCumprod = new TensorFloat(new TensorShape(alphas.Length), alphasCumprod);
+            _AlphasCumprod = alphas.CumProd();
+            AlphasCumprod = new TensorFloat(new TensorShape(alphas.Length), _AlphasCumprod);
 
             if (RescaleBetasZeroSnr) {
                 // Close to 0 without being 0 so first sigma is not inf
@@ -69,9 +70,9 @@ namespace Doji.AI.Diffusers {
                 throw new NotImplementedException();
             }
 
-            var tmp1 = Sub(1f, alphasCumprod);
-            var tmp2 = tmp1.Div(alphasCumprod);
-            var sigmas = tmp2.Pow(0.5f).Reverse();
+            float[] tmp1 = Sub(1f, _AlphasCumprod);
+            float[] tmp2 = tmp1.Div(_AlphasCumprod);
+            float[] sigmas = tmp2.Pow(0.5f).Reverse();
             Timesteps = Linspace(0f, NumTrainTimesteps - 1, NumTrainTimesteps).Reverse();
 
             // setable values
@@ -137,7 +138,131 @@ namespace Doji.AI.Diffusers {
 
         /// <inheritdoc/>
         public override void SetTimesteps(int numInferenceSteps) {
-            throw new NotImplementedException();
+            NumInferenceSteps = numInferenceSteps;
+
+            // "linspace", "leading", "trailing" corresponds to annotation of Table 2. of https://arxiv.org/abs/2305.08891
+            if (TimestepSpacing == Spacing.Linspace) {
+                Timesteps = GetTimeStepsLinspaceF().Reverse();
+            } else if (TimestepSpacing == Spacing.Leading) {
+                Timesteps = GetTimeStepsLeadingF().Reverse();
+            } else if (TimestepSpacing == Spacing.Trailing) {
+                Timesteps = GetTimeStepsTrailingF().Reverse();
+            } else {
+                throw new ArgumentException($"{TimestepSpacing} is not supported. Please choose one of {string.Join(", ", Enum.GetNames(typeof(Spacing)))}.");
+            }
+
+            //float[] tmp1 = Sub(1f, _AlphasCumprod);
+            //float[] tmp2 = tmp1.Div(_AlphasCumprod);
+            //float[] sigmas = tmp2.Pow(0.5f);
+            //float[] log_sigmas = sigmas.Log();
+            var tmp1 = _ops.Sub(1f, AlphasCumprod);
+            var tmp2 = _ops.Div(tmp1, AlphasCumprod);
+            using TensorFloat pow = new TensorFloat(0.5f);
+            var sigmas = _ops.Pow(tmp2, pow);
+            var log_sigmas = _ops.Log(sigmas);
+
+            if (InterpolationType == Interpolation.Linear) {
+                sigmas = Interpolate(Timesteps, ArangeF(0, sigmas.Length), sigmas);
+            } else  if (InterpolationType == Interpolation.LogLinear) {
+                sigmas = Linspace(MathF.Log(sigmas[^1]), MathF.Log(sigmas[0]), NumInferenceSteps + 1).Exp();
+            } else {
+                throw new ArgumentException($"{InterpolationType} is not supported. Please choose one of {string.Join(", ", Enum.GetNames(typeof(Interpolation)))}.");
+            }
+
+            if (UseKarrasSigmas) {
+                sigmas = ConvertToKarras(sigmas, NumInferenceSteps);
+                using TensorFloat sigmasT = new TensorFloat(new TensorShape(sigmas.Length), sigmas);
+                SigmaToT(sigmasT, log_sigmas)
+            }
+
+            /*
+            if self.use_karras_sigmas:
+                sigmas = self._convert_to_karras(in_sigmas=sigmas, num_inference_steps=self.num_inference_steps)
+                timesteps = np.array([self._sigma_to_t(sigma, log_sigmas) for sigma in sigmas])
+
+            sigmas = torch.from_numpy(sigmas).to(dtype=torch.float32, device=device)
+
+            # TODO: Support the full EDM scalings for all prediction types and timestep types
+            if self.config.timestep_type == "continuous" and self.config.prediction_type == "v_prediction":
+                self.timesteps = torch.Tensor([0.25 * sigma.log() for sigma in sigmas]).to(device=device)
+            else:
+                self.timesteps = torch.from_numpy(timesteps.astype(np.float32)).to(device=device)
+
+            self.sigmas = torch.cat([sigmas, torch.zeros(1, device=sigmas.device)])
+            self._step_index = None
+            self._begin_index = None
+            self.sigmas = self.sigmas.to("cpu")  # to avoid too much CPU/GPU communication
+             */
+        }
+        public float[] SigmaToT(float sigma, float[] logSigmas) {
+            // get log sigma
+            float logSigma = (float)Math.Log(Math.Max(sigma, 1e-10));
+
+            float[] _dists = logSigmas > 0;
+            // get distribution
+            float[] dists = new float[logSigmas.Length];
+            for (int i = 0; i < logSigmas.Length; i++) {
+                dists[i] = logSigma - logSigmas[i];
+            }
+
+            // get sigmas range
+            int[] lowIdx = new int[logSigmas.Length];
+            for (int i = 0; i < logSigmas.Length; i++) {
+                for (int j = 0; j < dists.Length; j++) {
+                    if (dists[j] >= 0) {
+                        lowIdx[i] = j;
+                        break;
+                    }
+                }
+            }
+            int[] highIdx = new int[logSigmas.Length];
+            for (int i = 0; i < lowIdx.Length; i++) {
+                highIdx[i] = Math.Min(lowIdx[i] + 1, logSigmas.Length - 2);
+            }
+
+            float[] low = new float[lowIdx.Length];
+            float[] high = new float[highIdx.Length];
+            for (int i = 0; i < lowIdx.Length; i++) {
+                low[i] = logSigmas[lowIdx[i]];
+                high[i] = logSigmas[highIdx[i]];
+            }
+
+            // interpolate sigmas
+            float[] w = new float[low.Length];
+            for (int i = 0; i < low.Length; i++) {
+                w[i] = (low[i] - logSigma) / (low[i] - high[i]);
+                w[i] = Math.Min(Math.Max(w[i], 0), 1);
+            }
+
+            // transform interpolation to time range
+            float[] t = new float[sigma.Length];
+            for (int i = 0; i < sigma.Length; i++) {
+                t[i] = (1 - w[i]) * lowIdx[i] + w[i] * highIdx[i];
+            }
+
+            return t;
+        }
+
+        /// <summary>
+        /// Constructs the noise schedule of Karras et al. (2022).
+        /// </summary>
+        private float[] ConvertToKarras(float[] inSigmas, int numInferenceSteps) {
+            // Hack to make sure that other schedulers which copy this function don't break
+            // TODO: Add this logic to the other schedulers
+            float sigmaMin = SigmaMin != null ? SigmaMin.Value : inSigmas[^1];
+            float sigmaMax = SigmaMax != null ? SigmaMax.Value : inSigmas[0];
+
+            float rho = 7.0f;  // 7.0 is the value used in the paper
+            float[] ramp = Linspace(0, 1, numInferenceSteps);
+            float minInvRho = MathF.Pow(sigmaMin, 1f / rho);
+            float maxInvRho = MathF.Pow(sigmaMax, 1f / rho);
+            float[] sigmas = new float[numInferenceSteps];
+
+            for (int i = 0; i < numInferenceSteps; i++) {
+                sigmas[i] = MathF.Pow(maxInvRho + ramp[i] * (minInvRho - maxInvRho), rho);
+            }
+
+            return sigmas;
         }
 
         /// <inheritdoc/>
