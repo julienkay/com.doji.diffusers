@@ -2,6 +2,7 @@ using static Doji.AI.Diffusers.ArrayUtils;
 using System;
 using Unity.Sentis;
 using System.Collections.Generic;
+using UnityEngine;
 
 namespace Doji.AI.Diffusers {
 
@@ -140,29 +141,30 @@ namespace Doji.AI.Diffusers {
         public override void SetTimesteps(int numInferenceSteps) {
             NumInferenceSteps = numInferenceSteps;
 
+            float[] timesteps;
             // "linspace", "leading", "trailing" corresponds to annotation of Table 2. of https://arxiv.org/abs/2305.08891
             if (TimestepSpacing == Spacing.Linspace) {
-                Timesteps = GetTimeStepsLinspaceF().Reverse();
+                timesteps = GetTimeStepsLinspaceF().Reverse();
             } else if (TimestepSpacing == Spacing.Leading) {
-                Timesteps = GetTimeStepsLeadingF().Reverse();
+                timesteps = GetTimeStepsLeadingF().Reverse();
             } else if (TimestepSpacing == Spacing.Trailing) {
-                Timesteps = GetTimeStepsTrailingF().Reverse();
+                timesteps = GetTimeStepsTrailingF().Reverse();
             } else {
                 throw new ArgumentException($"{TimestepSpacing} is not supported. Please choose one of {string.Join(", ", Enum.GetNames(typeof(Spacing)))}.");
             }
 
-            //float[] tmp1 = Sub(1f, _AlphasCumprod);
-            //float[] tmp2 = tmp1.Div(_AlphasCumprod);
-            //float[] sigmas = tmp2.Pow(0.5f);
-            //float[] log_sigmas = sigmas.Log();
-            var tmp1 = _ops.Sub(1f, AlphasCumprod);
-            var tmp2 = _ops.Div(tmp1, AlphasCumprod);
-            using TensorFloat pow = new TensorFloat(0.5f);
-            var sigmas = _ops.Pow(tmp2, pow);
-            var log_sigmas = _ops.Log(sigmas);
-
+            float[] tmp1 = Sub(1f, _AlphasCumprod);
+            float[] tmp2 = tmp1.Div(_AlphasCumprod);
+            float[] sigmas = tmp2.Pow(0.5f);
+            float[] log_sigmas = sigmas.Log();
+            //var tmp1 = _ops.Sub(1f, AlphasCumprod);
+            //var tmp2 = _ops.Div(tmp1, AlphasCumprod);
+            //using TensorFloat pow = new TensorFloat(0.5f);
+            //var sigmas = _ops.Pow(tmp2, pow);
+            //var log_sigmas = _ops.Log(sigmas);
+            
             if (InterpolationType == Interpolation.Linear) {
-                sigmas = Interpolate(Timesteps, ArangeF(0, sigmas.Length), sigmas);
+                sigmas = Interpolate(Timesteps, ArangeF(0, NumTrainTimesteps), sigmas);
             } else  if (InterpolationType == Interpolation.LogLinear) {
                 sigmas = Linspace(MathF.Log(sigmas[^1]), MathF.Log(sigmas[0]), NumInferenceSteps + 1).Exp();
             } else {
@@ -171,74 +173,57 @@ namespace Doji.AI.Diffusers {
 
             if (UseKarrasSigmas) {
                 sigmas = ConvertToKarras(sigmas, NumInferenceSteps);
-                using TensorFloat sigmasT = new TensorFloat(new TensorShape(sigmas.Length), sigmas);
-                SigmaToT(sigmasT, log_sigmas)
-            }
-
-            /*
-            if self.use_karras_sigmas:
-                sigmas = self._convert_to_karras(in_sigmas=sigmas, num_inference_steps=self.num_inference_steps)
-                timesteps = np.array([self._sigma_to_t(sigma, log_sigmas) for sigma in sigmas])
-
-            sigmas = torch.from_numpy(sigmas).to(dtype=torch.float32, device=device)
-
-            # TODO: Support the full EDM scalings for all prediction types and timestep types
-            if self.config.timestep_type == "continuous" and self.config.prediction_type == "v_prediction":
-                self.timesteps = torch.Tensor([0.25 * sigma.log() for sigma in sigmas]).to(device=device)
-            else:
-                self.timesteps = torch.from_numpy(timesteps.astype(np.float32)).to(device=device)
-
-            self.sigmas = torch.cat([sigmas, torch.zeros(1, device=sigmas.device)])
-            self._step_index = None
-            self._begin_index = None
-            self.sigmas = self.sigmas.to("cpu")  # to avoid too much CPU/GPU communication
-             */
-        }
-        public float[] SigmaToT(float sigma, float[] logSigmas) {
-            // get log sigma
-            float logSigma = (float)Math.Log(Math.Max(sigma, 1e-10));
-
-            float[] _dists = logSigmas > 0;
-            // get distribution
-            float[] dists = new float[logSigmas.Length];
-            for (int i = 0; i < logSigmas.Length; i++) {
-                dists[i] = logSigma - logSigmas[i];
-            }
-
-            // get sigmas range
-            int[] lowIdx = new int[logSigmas.Length];
-            for (int i = 0; i < logSigmas.Length; i++) {
-                for (int j = 0; j < dists.Length; j++) {
-                    if (dists[j] >= 0) {
-                        lowIdx[i] = j;
-                        break;
-                    }
+                for (int i = 0; i < sigmas.Length; i++) {
+                    timesteps[i] = SigmaToT(sigmas[i], log_sigmas);
                 }
             }
-            int[] highIdx = new int[logSigmas.Length];
-            for (int i = 0; i < lowIdx.Length; i++) {
-                highIdx[i] = Math.Min(lowIdx[i] + 1, logSigmas.Length - 2);
+
+            // TODO: Support the full EDM scalings for all prediction types and timestep types
+            if (TimestepType == Timestep.Continuous && PredictionType == Prediction.V_Prediction) {
+                for (int i = 0; i < sigmas.Length; i++) {
+                    Timesteps[i] = 0.25f * MathF.Log(sigmas[i]);
+                }
+            } else {
+                Timesteps = timesteps;
             }
 
-            float[] low = new float[lowIdx.Length];
-            float[] high = new float[highIdx.Length];
-            for (int i = 0; i < lowIdx.Length; i++) {
-                low[i] = logSigmas[lowIdx[i]];
-                high[i] = logSigmas[highIdx[i]];
-            }
+            Sigmas = sigmas.Concatenate(0);
+            StepIndex = null;
+            BeginIndex = null;
+        }
+
+        public float SigmaToT(float sigma, float[] logSigmas) {
+            using TensorFloat sigmaT = new TensorFloat(sigma);
+            using TensorFloat logSigmasT = new TensorFloat(new TensorShape(logSigmas.Length), logSigmas);
+            using TensorFloat zero = new TensorFloat(0f);
+
+            // get log sigma
+            float logSigma = MathF.Log(MathF.Max(sigma, 1e-10f));
+
+            // get distribution
+            var expanded = _ops.Reshape(logSigmasT, new TensorShape(5, 1));
+            var dists = _ops.Sub(logSigmasT, expanded);
+
+            // get sigmas range
+            var greater = _ops.Greater(dists, zero);
+            var cumsum = _ops.CumSum(greater, 0);
+            var argmax = _ops.ArgMax(cumsum, 0, true);
+            var clip = _ops.Clip(cumsum, 0, logSigmas.Length - 2);
+            Debug.Assert(clip.shape.Equals(new TensorShape(1)));
+            clip.MakeReadable();
+
+            int lowIdx = clip.ToReadOnlyArray()[0];
+            int highIdx = lowIdx + 1;
+
+            float low = logSigmas[lowIdx];
+            float high = logSigmas[highIdx];
 
             // interpolate sigmas
-            float[] w = new float[low.Length];
-            for (int i = 0; i < low.Length; i++) {
-                w[i] = (low[i] - logSigma) / (low[i] - high[i]);
-                w[i] = Math.Min(Math.Max(w[i], 0), 1);
-            }
+            float w = (low - logSigma) / (low - high);
+            w = MathF.Min(MathF.Max(w, 0), 1);
 
             // transform interpolation to time range
-            float[] t = new float[sigma.Length];
-            for (int i = 0; i < sigma.Length; i++) {
-                t[i] = (1 - w[i]) * lowIdx[i] + w[i] * highIdx[i];
-            }
+            float t = (1f - w) * lowIdx + w * highIdx;
 
             return t;
         }
