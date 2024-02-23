@@ -11,21 +11,28 @@ A Unity package to run pretrained diffusion models with Unity Sentis
 
 This is essentially a port of Hugging Face’s [diffusers] library.
 
-It is still ***very*** early though, so as of today we only support:
-- a simple Stable Diffusion pipeline compatible with Stable Diffusion 1.5 & 2.1
-- implementations for PNDMScheduler & DDIMScheduler
+It is still ***very*** early though, so as of today only a limited number of pipelines and schedulers are supported (see below).
 
 ### Roadmap
 Some things that might be worked on next are:
 - [x] add/fix classifier-free guidance
-- [ ] async pipeline methods
-- [ ] pipelines for img2img, inpaint, upscale, depth2img
-- [ ] support for other models
-  - [x] 2.1
+- [ ] support more models
+  - [x] SD 1.5
+  - [x] SD 2.1
   - [ ] SDXL
   - [ ] sdxl-turbo
   - [ ] LoRA models
 - [ ] more scheduler implementations
+  - [x] PNDM
+  - [x] DDIM
+  - [x] EulerDiscrete
+  - [ ] EulerAncestralDiscreteScheduler
+  - [ ] LCMScheduler 
+  - [ ] DDPMSchedulerOutput
+  - [ ] KDPM2DiscreteScheduler
+  - [ ] KDPM2AncestralDiscreteScheduler
+- [ ] async pipeline methods (sliced inference)
+- [ ] pipelines for img2img, inpaint, upscale, depth2img
 - [ ] support multiple images per prompt
 - [ ] write some documentation
 
