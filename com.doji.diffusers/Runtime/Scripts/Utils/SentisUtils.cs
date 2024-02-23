@@ -1,6 +1,5 @@
 using System;
 using Unity.Sentis;
-using UnityEngine;
 
 namespace Doji.AI.Diffusers {
 
@@ -36,6 +35,39 @@ namespace Doji.AI.Diffusers {
 
         public static TensorFloat Clamp(this Ops ops, TensorFloat tensor, TensorFloat min, TensorFloat max) {
             return ops.Min(ops.Max(tensor, min), max);
+        }
+
+        /// <summary>
+        /// Returns the indices of the elements of the input tensor that are not zero.
+        /// </summary>
+        /// <param name="X">The input tensor.</param>
+        /// <returns>The computed output tensor.</returns>
+        public static TensorInt NonZero(this Ops ops, TensorFloat X) {
+            ArrayTensorData.Pin(X);
+            int nbNonZeroIndices = 0;
+            var end = X.shape.length;
+            for (int i = 0; i < end; ++i) {
+                if (X[i] != 0.0f)
+                    nbNonZeroIndices += 1;
+            }
+
+            var tmpO = TensorInt.Zeros(new TensorShape(X.shape.rank, nbNonZeroIndices));
+            if (tmpO.shape.HasZeroDims())
+                return tmpO;
+
+            ArrayTensorData.Pin(tmpO, clearOnInit: false);
+            int nonZeroIndicesIdx = 0;
+            for (var it = new TensorNDIterator(X.shape); it.HasNext(); it.MoveNext()) {
+                if (X[it.index] != 0.0f) {
+                    for (int i = 0; i < X.shape.rank; i++)
+                        tmpO[i * nbNonZeroIndices + nonZeroIndicesIdx] = it[i];
+                    nonZeroIndicesIdx++;
+                }
+            }
+
+            var O = ops.Copy(tmpO);
+            tmpO.Dispose();
+            return O;
         }
     }
 }

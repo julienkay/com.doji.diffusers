@@ -3,6 +3,7 @@ using System;
 using Unity.Sentis;
 using System.Collections.Generic;
 using UnityEngine;
+using System.Numerics;
 
 namespace Doji.AI.Diffusers {
 
@@ -110,33 +111,6 @@ namespace Doji.AI.Diffusers {
             return sample;
         }
 
-        private int IndexForTimestep(float timestep, float[] scheduleTimesteps = null) {
-            scheduleTimesteps ??= base.Timesteps as float[];
-
-            List<int> indices = new List<int>();
-            for (int i = 0; i < scheduleTimesteps.Length; i++) {
-                if (scheduleTimesteps[i] == timestep) {
-                    indices.Add(i);
-                }
-            }
-
-            // The sigma index that is taken for the **very** first `step`
-            // is always the second index (or the last index if there is only 1)
-            // This way we can ensure we don't accidentally skip a sigma in
-            // case we start in the middle of the denoising schedule (e.g. for image-to-image)
-            int pos = indices.Count > 1 ? 1 : 0;
-
-            return indices[pos];
-        }
-
-        private void InitStepIndex(float timestep) {
-            if (BeginIndex == null) {
-                StepIndex = IndexForTimestep(timestep);
-            } else {
-                StepIndex = BeginIndex;
-            }
-        }
-
         /// <inheritdoc/>
         public override void SetTimesteps(int numInferenceSteps) {
             NumInferenceSteps = numInferenceSteps;
@@ -205,7 +179,7 @@ namespace Doji.AI.Diffusers {
             var dists = _ops.Sub(logSigmasT, expanded);
 
             // get sigmas range
-            var greater = _ops.Greater(dists, zero);
+            var greater = _ops.GreaterOrEqual(dists, zero);
             var cumsum = _ops.CumSum(greater, 0);
             var argmax = _ops.ArgMax(cumsum, 0, true);
             var clip = _ops.Clip(cumsum, 0, logSigmas.Length - 2);
@@ -250,9 +224,99 @@ namespace Doji.AI.Diffusers {
             return sigmas;
         }
 
+        private int IndexForTimestep(float timestep, float[] scheduleTimesteps = null) {
+            scheduleTimesteps ??= Timesteps;
+
+            List<int> indices = new List<int>();
+            for (int i = 0; i < scheduleTimesteps.Length; i++) {
+                if (scheduleTimesteps[i] == timestep) {
+                    indices.Add(i);
+                }
+            }
+
+            // The sigma index that is taken for the **very** first `step`
+            // is always the second index (or the last index if there is only 1)
+            // This way we can ensure we don't accidentally skip a sigma in
+            // case we start in the middle of the denoising schedule (e.g. for image-to-image)
+            int pos = indices.Count > 1 ? 1 : 0;
+
+            return indices[pos];
+        }
+
+        private void InitStepIndex(float timestep) {
+            if (BeginIndex == null) {
+                StepIndex = IndexForTimestep(timestep);
+            } else {
+                StepIndex = BeginIndex;
+            }
+        }
+
+        /// <inheritdoc cref="Step(TensorFloat, float, TensorFloat)"/>
+        private SchedulerOutput Step(
+            TensorFloat modelOutput,
+            float timestep,
+            TensorFloat sample,
+            float s_churn = 0.0f,
+            float s_tmin = 0.0f,
+            float s_tmax = float.PositiveInfinity,
+            float s_noise = 1.0f,
+            uint? seed = null,
+            TensorFloat varianceNoise = null)
+        {
+            if (!IsScaleInputCalled) {
+                Debug.LogWarning("The `ScaleModelInput()` function should be called before `Step()`.");
+            }
+
+            if (StepIndex == null) {
+                InitStepIndex(timestep);
+            }
+
+            var sigma = Sigmas[StepIndex.Value];
+
+            var gamma = 0.0f;
+            if (s_tmin <= sigma && sigma <= s_tmax) {
+                gamma = MathF.Min(s_churn / (Sigmas.Length - 1), MathF.Sqrt(2f) - 1f);
+            }
+
+            var noise = _ops.RandomNormal(modelOutput.shape, 0, 1, seed.Value);
+
+            var eps = _ops.Mul(noise, s_noise);
+            float sigma_hat = sigma * (gamma + 1f);
+
+            if (gamma > 0f) {
+                var tmp1 = _ops.Mul(eps, MathF.Pow(sigma_hat, 2f) - MathF.Pow(sigma, 2f));
+                sample = _ops.Add(sample, tmp1);
+            }
+
+            // 1. compute predicted original sample (x_0) from sigma-scaled predicted noise
+            // NOTE: "original_sample" should not be an expected prediction_type but is left in for
+            // backwards compatibility
+            TensorFloat predOriginalSample;
+            if (PredictionType == Prediction.Sample) {
+                predOriginalSample = modelOutput;
+            } else if (PredictionType == Prediction.Epsilon) {
+                predOriginalSample = _ops.Sub(sample, _ops.Mul(modelOutput, sigma_hat));
+            } else if (PredictionType == Prediction.V_Prediction) {
+                predOriginalSample = _ops.Add(_ops.Mul(modelOutput, -sigma / MathF.Sqrt(MathF.Pow(sigma, 2f) + 1f)),
+                    _ops.Div(sample, MathF.Pow(sigma, 2f) + 1f));
+            } else {
+                throw new ArgumentException($"Invalid prediction_type: {PredictionType}");
+            }
+
+            // 2. Convert to an ODE derivative
+            TensorFloat derivative = _ops.Div(_ops.Sub(sample, predOriginalSample), sigma_hat);
+            float dt = Sigmas[StepIndex.Value + 1] - sigma_hat;
+            TensorFloat prev_sample = _ops.Add(sample, _ops.Mul(derivative, dt));
+
+            // Increase step index by one
+            StepIndex++;
+
+            return new SchedulerOutput(prev_sample, predOriginalSample);
+        }
+
         /// <inheritdoc/>
         protected override SchedulerOutput Step(TensorFloat modelOutput, float timestep, TensorFloat sample) {
-            throw new NotImplementedException();
+            return Step(modelOutput, timestep, sample);
         }
 
         public override void Dispose() {

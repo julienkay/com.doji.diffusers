@@ -95,6 +95,11 @@ namespace Doji.AI.Diffusers {
         }
 
         /// <inheritdoc/>
+        /// <remarks>
+        /// Calls <see cref="StepPrk(TensorFloat, int, TensorFloat)"/> or
+        /// <see cref="StepPlms(TensorFloat, int, TensorFloat)"/> depending
+        /// on the internal variable <see cref="Counter"/>.
+        /// </remarks>
         protected override SchedulerOutput Step(TensorFloat modelOutput, float timestep, TensorFloat sample) {
             if (Counter < PrkTimesteps.Length && !SkipPrkSteps) {
                 return StepPrk(modelOutput, (int)timestep, sample);

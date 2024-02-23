@@ -75,14 +75,13 @@ namespace Doji.AI.Diffusers {
         /// <summary>
         /// Predict the sample from the previous timestep by reversing the SDE.
         /// This function propagates the diffusion process from the learned model
-        /// outputs (most often the predicted noise), and calls step_prk or
-        /// step_plms depending on the internal variable <see cref="Counter"/>.
+        /// outputs (most often the predicted noise).
         /// </summary>
         protected abstract SchedulerOutput Step(TensorFloat modelOutput, float timestep, TensorFloat sample);
 
-        /// <inheritdoc cref="Step"/>
+        /// <inheritdoc cref="Step(TensorFloat, float, TensorFloat)"/>
         /// <remarks>
-        /// Override this method only in DDIMSCheduler which takes an additional eta parameter.
+        /// Override this method only in DDIMScheduler which handles the additional eta parameter.
         /// </remarks>
         public virtual SchedulerOutput Step(
             TensorFloat modelOutput,
