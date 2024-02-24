@@ -44,6 +44,7 @@ namespace Doji.AI.Diffusers {
 
         public static readonly IEnumerable<string> OptionalFiles = new List<string>() {
             $"text_encoder_2/model.onnx",           // SDXL
+            $"text_encoder_2/model.onnx_data",      // SDXL
             $"tokenizer_2/merges.txt",              // SDXL
             $"tokenizer_2/special_tokens_map.json", // SDXL
             $"tokenizer_2/tokenizer_config.json",   // SDXL

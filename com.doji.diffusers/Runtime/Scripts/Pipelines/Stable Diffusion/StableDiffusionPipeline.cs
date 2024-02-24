@@ -186,7 +186,7 @@ namespace Doji.AI.Diffusers {
             int i = 0;
             foreach (float t in Scheduler) {
                 // expand the latents if doing classifier free guidance
-                TensorFloat latentModelInput = doClassifierFreeGuidance ? _ops.Concat(new Tensor[] { latents, latents }, 0) as TensorFloat : latents;
+                TensorFloat latentModelInput = doClassifierFreeGuidance ? _ops.Concatenate(latents, latents, 0) : latents;
                 latentModelInput = Scheduler.ScaleModelInput(latentModelInput, t);
 
                 // predict the noise residual
@@ -271,6 +271,13 @@ namespace Doji.AI.Diffusers {
                     truncation: Truncation.LongestFirst
                 ) as InputEncoding;
                 int[] textInputIds = textInputs.InputIds.ToArray() ?? throw new Exception("Failed to get input ids from tokenizer.");
+                int[] untruncatedIds = (Tokenizer.Encode(text: prompt, padding: Padding.Longest) as InputEncoding).InputIds.ToArray();
+
+                if (untruncatedIds.Length >= textInputIds.Length && !textInputIds.ArrayEqual(untruncatedIds)) {
+                    //TODO: support decoding tokens to text to be able to eventually display to user
+                    UnityEngine.Debug.LogWarning("A part of your input was truncated because CLIP can only handle sequences up to " +
+                    $"{Tokenizer.ModelMaxLength} tokens.");
+                }
                 Profiler.EndSample();
 
                 Profiler.BeginSample("Prepare Text ID Tensor");
@@ -278,16 +285,15 @@ namespace Doji.AI.Diffusers {
                 Profiler.EndSample();
 
                 Profiler.BeginSample("Execute TextEncoder");
-                promptEmbeds = TextEncoder.ExecuteModel(textIdTensor);
+                promptEmbeds = TextEncoder.ExecuteModel(textIdTensor)[0] as TensorFloat;
                 Profiler.EndSample();
             }
-            bool ownsPromptEmbeds = false;
-               
-            // get unconditional embeddings for classifier free guidance
-            if (doClassifierFreeGuidance && negativePromptEmbeds == null) {
-                ownsPromptEmbeds = true;
-                promptEmbeds.TakeOwnership();
 
+            promptEmbeds = _ops.Repeat(promptEmbeds, numImagesPerPrompt, axis: 0);
+
+            // get unconditional embeddings for classifier free guidance
+            bool ownsPromptEmbeds = false;
+            if (doClassifierFreeGuidance && negativePromptEmbeds == null) {
                 List<string> uncondTokens;
                 if (negativePrompt == null) {
                     uncondTokens = Enumerable.Repeat("", _batchSize).ToList();
@@ -295,9 +301,9 @@ namespace Doji.AI.Diffusers {
                     throw new ArgumentException($"`negativePrompt` should be the same type as `prompt`, but got {negativePrompt.GetType()} != {prompt.GetType()}.");
                 } else if (negativePrompt is SingleInput) {
                     uncondTokens = Enumerable.Repeat((negativePrompt as SingleInput).Text, _batchSize).ToList();
-                } else if (_batchSize != negativePromptEmbeds.shape.length) {
-                    throw new ArgumentException($"`negativePrompt`: {negativePrompt} has batch size {negativePromptEmbeds.shape.length}, " +
-                        $"but `prompt`: {promptEmbeds} has batch size {_batchSize}. Please make sure that passed `negativePrompt` matches " +
+                } else if (_batchSize != (negativePrompt as BatchInput).Sequence.Count) {
+                    throw new ArgumentException($"`negativePrompt`: {negativePrompt} has batch size {(negativePrompt as BatchInput).Sequence.Count}, " +
+                        $"but `prompt`: {prompt} has batch size {_batchSize}. Please make sure that passed `negativePrompt` matches " +
                         $"the batch size of `prompt`.");
                 } else {
                     uncondTokens = (negativePrompt as BatchInput).Sequence as List<string>;
@@ -318,17 +324,21 @@ namespace Doji.AI.Diffusers {
                 using TensorInt uncondIdTensor = new TensorInt(new TensorShape(_batchSize, uncondInputIds.Length), uncondInputIds);
                 Profiler.EndSample();
 
+                ownsPromptEmbeds = true;
+                promptEmbeds.TakeOwnership();
                 Profiler.BeginSample("Execute TextEncoder For Unconditioned Input");
-                negativePromptEmbeds = TextEncoder.ExecuteModel(uncondIdTensor);
+                negativePromptEmbeds = TextEncoder.ExecuteModel(uncondIdTensor)[0] as TensorFloat;
                 Profiler.EndSample();
             }
 
             if (doClassifierFreeGuidance) {
+                negativePromptEmbeds = _ops.Repeat(negativePromptEmbeds, numImagesPerPrompt, axis: 0);
+
                 // For classifier free guidance, we need to do two forward passes.
                 // Here we concatenate the unconditional and text embeddings into a single batch
                 // to avoid doing two forward passes
                 Profiler.BeginSample("Concat Prompt Embeds For Classifier-Fee Guidance");
-                TensorFloat combinedEmbeddings = _ops.Concat(new Tensor[] { negativePromptEmbeds, promptEmbeds }, 0) as TensorFloat;
+                TensorFloat combinedEmbeddings = _ops.Concatenate(negativePromptEmbeds, promptEmbeds, 0);
                 Profiler.EndSample();
 
                 if (ownsPromptEmbeds) {

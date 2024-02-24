@@ -1,4 +1,6 @@
 using System;
+using System.Buffers;
+using System.Collections.Generic;
 using Unity.Sentis;
 
 namespace Doji.AI.Diffusers {
@@ -68,6 +70,52 @@ namespace Doji.AI.Diffusers {
             var O = ops.Copy(tmpO);
             tmpO.Dispose();
             return O;
+        }
+
+        private static readonly Tensor[] _tmpTensorRefs = new Tensor[2];
+
+        /// <summary>
+        /// Alias for <see cref="Ops.Concat(Tensor[], int)"/> to match numpy.concatenate()
+        /// naming and for convenience of not needing to create a Tensor array.
+        /// </summary>
+        public static Tensor Concatenate(this Ops ops, Tensor tensor1, Tensor tensor2, int dim) {
+            _tmpTensorRefs[0] = tensor1;
+            _tmpTensorRefs[1] = tensor2;
+            return ops.Concat(_tmpTensorRefs, dim);
+        }
+
+        /// <summary>
+        /// Alias for <see cref="Ops.Concat(Tensor[], int)"/> to match numpy.concatenate()
+        /// naming and for convenience by adding a List<TensorFloat> overload.
+        /// </summary>
+        public static TensorFloat Concatenate(this Ops ops, List<TensorFloat> tensors, int dim) {
+            TensorFloat[] tensorArray = ArrayPool<TensorFloat>.Shared.Rent(tensors.Count);
+            var result = ops.Concat(tensorArray, dim);
+            ArrayPool<TensorFloat>.Shared.Return(tensorArray);
+            return result as TensorFloat;
+        }
+
+        public static TensorFloat Concatenate(this Ops ops, TensorFloat tensor1, TensorFloat tensor2, int dim) {
+            return ops.Concatenate(tensor1 as Tensor, tensor2 as Tensor, dim) as TensorFloat;
+        }
+
+        /// <summary>
+        /// numpy.repeat()
+        /// </summary>
+        /// <remarks>
+        /// TODO: Implement this using <see cref="Ops.Tile{T}(T, ReadOnlySpan{int})"/>
+        /// to support multiple images per prompt
+        /// </remarks>
+        public static TensorFloat Repeat(this Ops ops, TensorFloat tensor, int repeats, int axis) {
+            if (repeats <= 0) {
+                throw new ArgumentException($"Repeat count must be greater than zero, was {repeats}.", nameof(repeats));
+            }
+            
+            if (repeats == 1) {
+                return tensor;
+            }
+
+            throw new NotImplementedException();
         }
     }
 }

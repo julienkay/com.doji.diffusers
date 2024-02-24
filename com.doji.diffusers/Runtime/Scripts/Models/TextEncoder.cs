@@ -1,9 +1,22 @@
 using System;
 using Unity.Sentis;
-using UnityEngine;
 
 namespace Doji.AI.Diffusers {
 
+    public class CLIPOutput : ModelOutput {
+
+        public new Tensor this[int index] {
+            get {
+                // wrap around to allow for negative indexing
+                index = (Count + (index % Count)) % Count;
+                return this[index];
+            }
+            set {
+                this[index] = value;
+            }
+        }
+    }
+    
     public class TextEncoder : IDisposable {
 
         /// <summary>
@@ -20,9 +33,12 @@ namespace Doji.AI.Diffusers {
         private ITensorAllocator _allocator;
         private Ops _ops;
 
+        private ModelOutput _output;
+
         public TextEncoder(Model model, BackendType backend = BackendType.GPUCompute) {
             Backend = backend;
             InitializeNetwork(model);
+            _output = new ModelOutput();
         }
 
         private void InitializeNetwork(Model textEncoder) {
@@ -35,7 +51,7 @@ namespace Doji.AI.Diffusers {
             _allocator = new TensorCachingAllocator();
         }
 
-        public TensorFloat ExecuteModel(TensorInt inputIds) {
+        public ModelOutput ExecuteModel(TensorInt inputIds) {
             if (inputIds is null) {
                 throw new ArgumentNullException(nameof(inputIds));
             }
@@ -47,7 +63,8 @@ namespace Doji.AI.Diffusers {
             }
 
             _worker.Execute(inputIds);
-            return _worker.PeekOutput("last_hidden_state") as TensorFloat;
+            _output.GetOutputs(_model, _worker);
+            return _output;
         }
 
         public void Dispose() {
