@@ -27,19 +27,10 @@ namespace Doji.AI.Diffusers {
         
         private float VaeScaleFactor { get; set; }
 
-        private Input _prompt;
-        private Input _negativePrompt;
-        private int _steps;
-        private int _height;
-        private int _width;
-        private int _batchSize;
-        private int _numImagesPerPrompt;
-        private float _guidanceScale;
-        private float? _eta;
-        private uint? _seed;
-        private Tensor _latents;
-
         private Ops _ops;
+
+        private List<TensorFloat> _promptEmbedsList = new List<TensorFloat>();
+        private List<TensorFloat> _negativePromptEmbedsList = new List<TensorFloat>();
 
         /// <summary>
         /// Initializes a new Stable Diffusion XL pipeline.
@@ -67,9 +58,6 @@ namespace Doji.AI.Diffusers {
 
             _ops = WorkerFactory.CreateOps(backend, null);
         }
-
-        private List<TensorFloat> _promptEmbedsList = new List<TensorFloat>();
-        private List<TensorFloat> _negativePromptEmbedsList = new List<TensorFloat>();
 
         private Embeddings EncodePrompt(
             Input prompt,

@@ -21,18 +21,6 @@ namespace Doji.AI.Diffusers {
         public Scheduler Scheduler { get; private set; }
         public Unet Unet { get; private set; }
 
-        private Input _prompt;
-        private Input _negativePrompt;
-        private int _steps;
-        private int _height;
-        private int _width;
-        private int _batchSize;
-        private int _numImagesPerPrompt;
-        private float _guidanceScale;
-        private float? _eta;
-        private uint? _seed;
-        private Tensor _latents;
-
         private Ops _ops;
 
         /// <summary>
@@ -239,18 +227,6 @@ namespace Doji.AI.Diffusers {
             initialLatents.Dispose();
             Profiler.EndSample();
             return image;
-        }
-
-        private void CheckInputs(uint? seed) {
-            if (_height % 8 != 0 || _width % 8 != 0) {
-                throw new ArgumentException($"`height` and `width` have to be divisible by 8 but are {_height} and {_width}.");
-            }
-            if (_numImagesPerPrompt > 1) {
-                throw new ArgumentException($"More than one image per prompt not supported yet. `numImagesPerPrompt` was {_numImagesPerPrompt}.");
-            }
-            if (_latents != null && seed != null) {
-                throw new ArgumentException($"Both a seed and pre-generated noise has been passed. Please use either one or the other.");
-            }
         }
 
         private TensorFloat EncodePrompt(
