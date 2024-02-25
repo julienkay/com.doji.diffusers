@@ -9,6 +9,7 @@ namespace Doji.AI.Diffusers {
 
     public abstract class SchedulerFloat : Scheduler {
         public float[] Timesteps { get; protected set; }
+        public override int TimestepsLength { get { return Timesteps.Length; } }
         protected SchedulerFloat(SchedulerConfig config, BackendType backend) : base(config, backend) { }
         public override IEnumerator<float> GetEnumerator() {
             foreach (float item in Timesteps) {
@@ -19,6 +20,7 @@ namespace Doji.AI.Diffusers {
 
     public abstract class SchedulerInt : Scheduler {
         public int[] Timesteps { get; protected set; }
+        public override int TimestepsLength { get {  return Timesteps.Length; } }
         protected SchedulerInt(SchedulerConfig config, BackendType backend) : base(config, backend) { }
         public override IEnumerator<float> GetEnumerator() {
             foreach (float item in Timesteps) {
@@ -30,6 +32,8 @@ namespace Doji.AI.Diffusers {
     public abstract class Scheduler : IDisposable, IEnumerable<float> {
 
         public SchedulerConfig Config { get; protected set; }
+
+        public abstract int TimestepsLength { get; }
 
         /// <summary>
         /// standard deviation of the initial noise distribution

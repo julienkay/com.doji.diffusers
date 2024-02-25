@@ -3,7 +3,6 @@ using System;
 using Unity.Sentis;
 using System.Collections.Generic;
 using UnityEngine;
-using System.Numerics;
 
 namespace Doji.AI.Diffusers {
 

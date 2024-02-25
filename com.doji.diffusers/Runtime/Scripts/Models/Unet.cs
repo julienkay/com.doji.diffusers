@@ -6,6 +6,8 @@ namespace Doji.AI.Diffusers {
 
     public class Unet : IDisposable {
 
+        public UnetConfig Config { get; protected set; }
+
         /// <summary>
         /// Which <see cref="BackendType"/> to run the model with.
         /// </summary>
@@ -33,7 +35,14 @@ namespace Doji.AI.Diffusers {
             _worker = WorkerFactory.CreateWorker(Backend, _model);
         }
 
-        public TensorFloat ExecuteModel(TensorFloat sample, Tensor timestep, TensorFloat encoderHiddenStates) {
+        public TensorFloat ExecuteModel(
+            TensorFloat sample,
+            Tensor timestep,
+            TensorFloat encoderHiddenStates,
+            Tensor textEmbeds = null,
+            Tensor timeIds = null
+            )
+        {
             if (sample is null) {
                 throw new ArgumentNullException(nameof(sample));
             }
@@ -58,6 +67,12 @@ namespace Doji.AI.Diffusers {
             _inputs["sample"] = sample;
             _inputs["timestep"] = timestep;
             _inputs["encoder_hidden_states"] = encoderHiddenStates;
+            if (textEmbeds != null) {
+                _inputs["text_embeds"] = textEmbeds;
+            }
+            if (timeIds != null) {
+                _inputs["time_ids"] = timeIds;
+            }
 
             _worker.Execute(_inputs);
             return _worker.PeekOutput("out_sample") as TensorFloat;

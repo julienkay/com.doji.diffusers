@@ -78,25 +78,25 @@ namespace Doji.AI.Diffusers {
         /// Alias for <see cref="Ops.Concat(Tensor[], int)"/> to match numpy.concatenate()
         /// naming and for convenience of not needing to create a Tensor array.
         /// </summary>
-        public static Tensor Concatenate(this Ops ops, Tensor tensor1, Tensor tensor2, int dim) {
+        public static Tensor Concatenate(this Ops ops, Tensor tensor1, Tensor tensor2, int axis = 0) {
             _tmpTensorRefs[0] = tensor1;
             _tmpTensorRefs[1] = tensor2;
-            return ops.Concat(_tmpTensorRefs, dim);
+            return ops.Concat(_tmpTensorRefs, axis);
         }
 
         /// <summary>
         /// Alias for <see cref="Ops.Concat(Tensor[], int)"/> to match numpy.concatenate()
         /// naming and for convenience by adding a List<TensorFloat> overload.
         /// </summary>
-        public static TensorFloat Concatenate(this Ops ops, List<TensorFloat> tensors, int dim) {
+        public static TensorFloat Concatenate(this Ops ops, List<TensorFloat> tensors, int axis = 0) {
             TensorFloat[] tensorArray = ArrayPool<TensorFloat>.Shared.Rent(tensors.Count);
-            var result = ops.Concat(tensorArray, dim);
+            var result = ops.Concat(tensorArray, axis);
             ArrayPool<TensorFloat>.Shared.Return(tensorArray);
             return result as TensorFloat;
         }
 
-        public static TensorFloat Concatenate(this Ops ops, TensorFloat tensor1, TensorFloat tensor2, int dim) {
-            return ops.Concatenate(tensor1 as Tensor, tensor2 as Tensor, dim) as TensorFloat;
+        public static TensorFloat Concatenate(this Ops ops, TensorFloat tensor1, TensorFloat tensor2, int axis = 0) {
+            return ops.Concatenate(tensor1 as Tensor, tensor2 as Tensor, axis) as TensorFloat;
         }
 
         /// <summary>
@@ -116,6 +116,41 @@ namespace Doji.AI.Diffusers {
             }
 
             throw new NotImplementedException();
+        }
+
+        /// <summary>
+        /// Alias for <see cref="Ops.Split{T}(T, int, int, int)"/> to match the
+        /// arguments of numpy.split() i.e. providing <paramref name="sections"/>
+        /// that the original tensor is split into.
+        /// </summary>
+        public static void Split(this Ops ops, Tensor tensor, int sections, int axis = 0, List<TensorFloat> splitTensors = null) {
+            if (tensor.shape[axis] % sections != 0) {
+                throw new ArgumentException($"Tensor dimension {axis} (length: {tensor.shape[axis]}) can not be divided into {sections} sections.");
+            }
+            splitTensors ??= new List<TensorFloat>();
+            splitTensors.Clear();
+
+            int step = tensor.shape[axis] / sections;
+            int end = tensor.shape[axis] - step;
+            for (int i = 0; i < end; i += step) {
+                var section = ops.Split(tensor, axis: axis, i, i + step) as TensorFloat;
+                splitTensors.Add(section);
+            }
+        }
+
+        /// <summary>
+        /// Splits a tensor into two sections.
+        /// </summary>
+        public static (TensorFloat a, TensorFloat b) SplitHalf(this Ops ops, Tensor tensor, int axis = 0) {
+            if (tensor.shape[axis] % 2 != 0) {
+                throw new ArgumentException($"Tensor dimension {axis} (length: {tensor.shape[axis]}) can not be divided into 2 sections.");
+            }
+            int half = tensor.shape[axis] / 2;
+            int start = 0;
+            int end = tensor.shape[axis];    
+            var a = ops.Split(tensor, axis: axis, start, half) as TensorFloat;
+            var b = ops.Split(tensor, axis: axis, half, end) as TensorFloat;
+            return (a, b);
         }
     }
 }

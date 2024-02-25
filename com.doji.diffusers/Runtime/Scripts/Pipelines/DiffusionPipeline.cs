@@ -19,7 +19,7 @@ namespace Doji.AI.Diffusers {
         protected float _guidanceScale;
         protected float? _eta;
         protected uint? _seed;
-        protected Tensor _latents;
+        protected TensorFloat _latents;
 
         protected void CheckInputs(uint? seed) {
             if (_height % 8 != 0 || _width % 8 != 0) {

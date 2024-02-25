@@ -78,11 +78,13 @@ namespace Doji.AI.Diffusers.Editor.Tests {
         [Test]
         public void TestFullLoop() {
             _scheduler.SetTimesteps(10);
-            var sample = DummySamples;
+            using var dummySamples = DummySamples;
+            var sample = dummySamples;
 
             foreach (int t in _scheduler.Timesteps) {
                 var residual = Model(sample, t);
                 sample = _scheduler.Step(residual, t, sample).PrevSample;
+                residual.Dispose();
             }
 
             sample.MakeReadable();

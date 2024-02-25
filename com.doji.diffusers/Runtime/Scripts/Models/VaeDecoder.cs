@@ -1,10 +1,11 @@
 using System;
 using Unity.Sentis;
-using UnityEngine;
 
 namespace Doji.AI.Diffusers {
 
     public class VaeDecoder : IDisposable {
+
+        public VaeConfig Config { get; protected set; }
 
         /// <summary>
         /// Which <see cref="BackendType"/> to run the model with.

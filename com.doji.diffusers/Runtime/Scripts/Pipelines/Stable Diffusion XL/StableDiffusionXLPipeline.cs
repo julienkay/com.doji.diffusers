@@ -25,7 +25,7 @@ namespace Doji.AI.Diffusers {
 
         private List<(ClipTokenizer Tokenizer, TextEncoder TextEncoder)> Encoders { get; set; }
         
-        private float VaeScaleFactor { get; set; }
+        private int VaeScaleFactor { get; set; }
 
         private Ops _ops;
 
@@ -57,6 +57,162 @@ namespace Doji.AI.Diffusers {
                 : new() { (Tokenizer2, TextEncoder2) };
 
             _ops = WorkerFactory.CreateOps(backend, null);
+
+            //TODO: move this into a base class, but need to consolidate 
+            //diffusers-based onnx pipelines with optimum-based pipelines
+            if (VaeDecoder.Config.BlockOutChannels != null) {
+                VaeScaleFactor = 1 << (VaeDecoder.Config.BlockOutChannels.Length - 1);
+            } else {
+                VaeScaleFactor = 8;
+            }
+        }
+
+        public TensorFloat Generate(
+            Input prompt,
+            int? height = 512,
+            int? width = 512,
+            int numInferenceSteps = 50,
+            float guidanceScale = 7.5f,
+            Input negativePrompt = null,
+            int numImagesPerPrompt = 1,
+            float eta = 0.0f,
+            uint? seed = null,
+            TensorFloat latents = null,
+            Action<int, float, TensorFloat> callback = null,
+            float guidanceRescale = 0.0f,
+            (int width, int height)? originalSize = null,
+            (int x, int y) cropsCoordsTopLeft = default((int, int)),
+            (int width, int height)? targetSize = null)
+        {
+            Profiler.BeginSample($"{GetType().Name}.Generate");
+
+            // 0. Default height and width to unet
+            _height = height ?? Unet.Config.SampleSize * VaeScaleFactor;
+            _width = width ?? Unet.Config.SampleSize * VaeScaleFactor;
+            originalSize = originalSize ?? (_height, _width);
+            targetSize = targetSize ?? (_height, _width);
+
+            _prompt = prompt;
+            _negativePrompt = negativePrompt;
+            _numImagesPerPrompt = numImagesPerPrompt;
+            _guidanceScale = guidanceScale;
+            _eta = eta;
+            CheckInputs(seed);
+
+            // 2. Define call parameters
+            if (prompt == null) {
+                throw new ArgumentNullException(nameof(prompt));
+            } else if (prompt is TextInput) {
+                _batchSize = 1;
+            } else if (prompt is BatchInput prompts) {
+                _batchSize = prompts.Sequence.Count;
+            } else {
+                throw new ArgumentException($"Invalid prompt argument {nameof(prompt)}");
+            }
+
+            if (latents == null) {
+                _seed = seed != null ? seed : unchecked((uint)new System.Random().Next());
+            }
+            _latents = latents;
+
+            bool doClassifierFreeGuidance = guidanceScale > 1.0f;
+
+            // 3. Encode input prompt
+            Profiler.BeginSample("Encode Prompt(s)");
+            Embeddings promptEmbeds = EncodePrompt(prompt, numImagesPerPrompt, doClassifierFreeGuidance, negativePrompt);
+            Profiler.EndSample();
+
+            // 4. Prepare timesteps
+            Profiler.BeginSample($"{Scheduler.GetType().Name}.SetTimesteps");
+            Scheduler.SetTimesteps(numInferenceSteps);
+            Profiler.EndSample();
+
+            // 5. Prepare latent variables
+            PrepareLatents();
+
+            // 7. Prepare added time ids & embeddings
+            TensorFloat addTextEmbeds = promptEmbeds.PooledPromptEmbeds;
+            float[] timeIds = GetTimeIds(originalSize.Value, cropsCoordsTopLeft, targetSize.Value);
+            TensorFloat addTimeIds = new TensorFloat(new TensorShape(timeIds.Length), timeIds);
+            if (doClassifierFreeGuidance) {
+                promptEmbeds.PromptEmbeds = _ops.Concatenate(promptEmbeds.NegativePromptEmbeds, promptEmbeds.PromptEmbeds, axis: 0);
+                addTextEmbeds = _ops.Concatenate(promptEmbeds.NegativePooledPromptEmbeds, addTextEmbeds, axis: 0);
+                addTimeIds = _ops.Concatenate(addTimeIds, addTimeIds, axis: 0);
+            }
+            addTimeIds = _ops.Repeat(addTimeIds, _batchSize * _numImagesPerPrompt, axis: 0);
+
+            // 8. Denoising loop
+            Profiler.BeginSample($"Denoising Loop");
+            int num_warmup_steps = Scheduler.TimestepsLength - numInferenceSteps * Scheduler.Order;
+            int i = 0;
+            foreach (float t in Scheduler) {
+                // expand the latents if doing classifier free guidance
+                TensorFloat latentModelInput = doClassifierFreeGuidance ? _ops.Concatenate(latents, latents, 0) : latents;
+                latentModelInput = Scheduler.ScaleModelInput(latentModelInput, t);
+
+                // predict the noise residual
+                Profiler.BeginSample("Prepare Timestep Tensor");
+                using Tensor timestep = Unet.CreateTimestep(new TensorShape(_batchSize), t);
+                Profiler.EndSample();
+
+                Profiler.BeginSample("Execute Unet");
+                TensorFloat noisePred = Unet.ExecuteModel(
+                    latentModelInput,
+                    timestep,
+                    promptEmbeds.PromptEmbeds,
+                    addTextEmbeds,
+                    addTimeIds
+                );
+                Profiler.EndSample();
+
+                // perform guidance
+                if (doClassifierFreeGuidance) {
+                    Profiler.BeginSample("Extend Predicted Noise For Classifier-Free Guidance");
+                    (var noisePredUncond, var noisePredText) = _ops.SplitHalf(noisePred, axis: 0);
+                    var tmp = _ops.Sub(noisePredText, noisePredUncond);
+                    var tmp2 = _ops.Mul(guidanceScale, tmp);
+                    noisePred = _ops.Add(noisePredUncond, tmp2);
+                    if (guidanceRescale > 0.0f) {
+                        // Based on 3.4. in https://arxiv.org/pdf/2305.08891.pdf
+                        noisePred = RescaleNoiseCfg(noisePred, noisePredText, guidanceRescale);
+                    }
+                    Profiler.EndSample();
+                }
+
+                // compute the previous noisy sample x_t -> x_t-1
+                Profiler.BeginSample($"{Scheduler.GetType().Name}.Step");
+                var schedulerOutput = Scheduler.Step(noisePred, t, latents, eta);
+                latents = schedulerOutput.PrevSample;
+                Profiler.EndSample();
+
+                if (i == Scheduler.TimestepsLength - 1 || ((i + 1) > num_warmup_steps && (i + 1) % Scheduler.Order == 0)) {
+                    int stepIdx = i / Scheduler.Order;
+                    if (callback != null) {
+                        Profiler.BeginSample($"{GetType()} Callback");
+                        callback.Invoke(i / Scheduler.Order, t, latents);
+                        Profiler.EndSample();
+                    }
+                }
+
+                i++;
+            }
+            Profiler.EndSample();
+
+            Profiler.BeginSample($"Scale Latents");
+            TensorFloat result = _ops.Div(latents, VaeDecoder.Config.ScalingFactor ?? 0.18215f);
+            Profiler.EndSample();
+
+            // batch decode
+            if (_batchSize > 1) {
+                throw new NotImplementedException();
+            }
+
+            Profiler.BeginSample($"VaeDecoder Decode Image");
+            TensorFloat image = VaeDecoder.ExecuteModel(result);
+            Profiler.EndSample();
+
+            Profiler.EndSample();
+            return image;
         }
 
         private Embeddings EncodePrompt(
@@ -179,6 +335,56 @@ namespace Doji.AI.Diffusers {
                 PooledPromptEmbeds = pooledPromptEmbeds,
                 NegativePooledPromptEmbeds = negativePooledPromptEmbeds
             };
+        }
+
+        private void PrepareLatents() {
+            var shape = new TensorShape(
+                _batchSize * _numImagesPerPrompt,
+                Unet.Config.InChannels,
+                _height / 8,
+                _width / 8
+            );
+
+            if (_latents == null) {
+                Profiler.BeginSample("Generate Latents");
+                _latents = _ops.RandomNormal(shape, 0, 1, _seed);
+                Profiler.EndSample();
+            } else if (_latents.shape != shape) {
+                throw new ArgumentException($"Unexpected latents shape, got {_latents.shape}, expected {shape}");
+            }
+            
+            // scale the initial noise by the standard deviation required by the scheduler
+            if (Scheduler.InitNoiseSigma > 1.0f) {
+                Profiler.BeginSample("Multiply latents with scheduler sigma");
+                _latents = _ops.Mul(Scheduler.InitNoiseSigma, _latents);
+                Profiler.EndSample();
+            }
+        }
+
+        private float[] GetTimeIds((int, int) a, (int, int) b, (int, int) c) {
+            return new float[] {
+                a.Item1,
+                a.Item2,
+                b.Item1,
+                b.Item2,
+                c.Item1,
+                c.Item2
+            };
+        }
+
+        /// <summary>
+        /// Rescale `noise_cfg` according to `guidance_rescale`. Based on findings of [Common Diffusion Noise Schedules and
+        /// Sample Steps are Flawed](https://arxiv.org/pdf/2305.08891.pdf). See Section 3.4
+        /// </summary>
+        private TensorFloat RescaleNoiseCfg(TensorFloat noiseCfg, TensorFloat noise_pred_text, float guidanceRescale = 0.0f) {
+            throw new NotImplementedException("guidanceRescale > 0.0f not supported yet.");
+            /*TensorFloat std_text = np.std(noise_pred_text, axis = tuple(range(1, noise_pred_text.ndim)), keepdims = True);
+            TensorFloat std_cfg = np.std(noiseCfg, axis = tuple(range(1, noiseCfg.ndim)), keepdims = True);
+            // rescale the results from guidance (fixes overexposure)
+            TensorFloat noisePredRescaled = noiseCfg * (std_text / std_cfg);
+            // mix with the original results from guidance by factor guidance_rescale to avoid "plain looking" images
+            noiseCfg = guidanceRescale * noisePredRescaled + (1f - guidanceRescale) * noiseCfg;
+            return noiseCfg;*/
         }
 
         public void Dispose() {

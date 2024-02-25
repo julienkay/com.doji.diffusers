@@ -28,11 +28,7 @@ namespace Doji.AI.Diffusers {
         /// The runtime model.
         /// </summary>
         private Model _model;
-
         private IWorker _worker;
-        private ITensorAllocator _allocator;
-        private Ops _ops;
-
         private ModelOutput _output;
 
         public TextEncoder(Model model, BackendType backend = BackendType.GPUCompute) {
@@ -48,7 +44,6 @@ namespace Doji.AI.Diffusers {
 
             _model = textEncoder;
             _worker = WorkerFactory.CreateWorker(Backend, _model);
-            _allocator = new TensorCachingAllocator();
         }
 
         public ModelOutput ExecuteModel(TensorInt inputIds) {
@@ -69,8 +64,6 @@ namespace Doji.AI.Diffusers {
 
         public void Dispose() {
             _worker?.Dispose();
-            _allocator?.Dispose();
-            _ops?.Dispose();
         }
     }
 }

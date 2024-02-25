@@ -127,21 +127,22 @@ namespace Doji.AI.Diffusers {
             _numImagesPerPrompt = numImagesPerPrompt;
             _guidanceScale = guidanceScale;
             _eta = eta;
+            CheckInputs(seed);
+
+            if (prompt == null) {
+                throw new ArgumentNullException(nameof(prompt));
+            } else if (prompt is TextInput) {
+                _batchSize = 1;
+            } else if (prompt is BatchInput prompts) {
+                _batchSize = prompts.Sequence.Count;
+            } else {
+                throw new ArgumentException($"Invalid prompt argument {nameof(prompt)}");
+            }
+
             if (latents == null) {
                 _seed = seed != null ? seed : unchecked((uint)new System.Random().Next());
             }
             _latents = latents;
-            CheckInputs(seed);
-
-            if (prompt != null && prompt is TextInput) {
-                _batchSize = 1;
-            } else if (prompt != null && prompt is BatchInput prompts) {
-                _batchSize = prompts.Sequence.Count;
-            } else if (prompt == null) {
-                throw new ArgumentNullException(nameof(prompt));
-            } else {
-                throw new ArgumentException($"Invalid prompt argument {nameof(prompt)}");
-            }
 
             bool doClassifierFreeGuidance = guidanceScale > 1.0f;
 
@@ -149,7 +150,7 @@ namespace Doji.AI.Diffusers {
             TensorFloat promptEmbeds = EncodePrompt(prompt, numImagesPerPrompt, doClassifierFreeGuidance, negativePrompt);
             Profiler.EndSample();
 
-            // get the initial random noise
+            // get the initial random noise unless the user supplied it
             TensorShape latentsShape = GetLatentsShape();
             if (latents == null) {
                 Profiler.BeginSample("Generate Latents");
@@ -158,8 +159,8 @@ namespace Doji.AI.Diffusers {
             } else if (latents.shape != latentsShape) {
                 throw new ArgumentException($"Unexpected latents shape, got {latents.shape}, expected {latentsShape}");
             }
-            TensorFloat initialLatents = latents;
 
+            // set timesteps
             Profiler.BeginSample($"{Scheduler.GetType().Name}.SetTimesteps");
             Scheduler.SetTimesteps(numInferenceSteps);
             Profiler.EndSample();
@@ -189,11 +190,7 @@ namespace Doji.AI.Diffusers {
                 // perform guidance
                 if (doClassifierFreeGuidance) {
                     Profiler.BeginSample("Extend Predicted Noise For Classifier-Free Guidance");
-
-                    int halfLength = noisePred.shape.length / 2;
-                    var noisePredUncond = _ops.Split(noisePred, axis: 0, start: 0, end: 1);
-                    var noisePredText = _ops.Split(noisePred, axis: 0, start: 1, end: 2);
-
+                    (var noisePredUncond, var noisePredText) = _ops.SplitHalf(noisePred, axis: 0);
                     var tmp = _ops.Sub(noisePredText, noisePredUncond);
                     var tmp2 = _ops.Mul(guidanceScale, tmp);
                     noisePred = _ops.Add(noisePredUncond, tmp2);
@@ -206,7 +203,12 @@ namespace Doji.AI.Diffusers {
                 latents = schedulerOutput.PrevSample;
                 Profiler.EndSample();
 
-                callback?.Invoke(i / Scheduler.Order, t, latents);
+                if (callback != null) {
+                    Profiler.BeginSample($"{GetType()} Callback");
+                    callback.Invoke(i / Scheduler.Order, t, latents);
+                    Profiler.EndSample();
+                }
+
                 i++;
             }
             Profiler.EndSample();
@@ -224,7 +226,6 @@ namespace Doji.AI.Diffusers {
             TensorFloat image = VaeDecoder.ExecuteModel(result);
             Profiler.EndSample();
 
-            initialLatents.Dispose();
             Profiler.EndSample();
             return image;
         }
@@ -332,7 +333,8 @@ namespace Doji.AI.Diffusers {
                 _batchSize * _numImagesPerPrompt,
                 4, // unet.in_channels
                 _height / 8,
-                _width / 8);
+                _width / 8
+            );
         }
 
         public Parameters GetParameters() {
