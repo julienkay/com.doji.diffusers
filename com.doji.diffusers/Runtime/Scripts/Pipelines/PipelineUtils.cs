@@ -1,7 +1,6 @@
 using Doji.AI.Transformers;
 using Newtonsoft.Json;
 using System;
-using System.Collections.Generic;
 using System.IO;
 using Unity.Sentis;
 using UnityEngine;
@@ -10,8 +9,13 @@ namespace Doji.AI.Diffusers {
 
     public partial class StableDiffusionPipeline {
 
-        internal static ModelIndex LoadModelIndex(DiffusionModel model) {
-            return LoadJsonFromTextAsset<ModelIndex>(Path.Combine(model.Name, "model_index"));
+        internal static PipelineConfig LoadPipelineConfig(DiffusionModel model) {
+            return LoadJsonFromTextAsset<PipelineConfig>(Path.Combine(model.Name, "model_index"));
+        }
+
+        internal static VaeConfig LoadVaeConfig(string subFolder) {
+            string path = Path.Combine(subFolder, "vae_decoder", "config");
+            return LoadJsonFromTextAsset<VaeConfig>(path);
         }
 
         internal static Model LoadVaeDecoder(string subFolder) {
@@ -97,8 +101,25 @@ namespace Doji.AI.Diffusers {
 #if UNITY_EDITOR
             OnModelRequested?.Invoke(model);
 #endif
+            
+            PipelineConfig config = LoadPipelineConfig(model);
 
-            ModelIndex index = LoadModelIndex(model);
+            /*string modelDir = model.Name;
+            var subModelsToLoad = config.Components.Keys.Intersect(new string[] { "tokenizer", "tokenizer_2", "scheduler" });
+            foreach (var name in subModelsToLoad) {
+                string className = config.Components[name][1];
+                className = ResolveClassName(name, className);
+                Type type = Type.GetType("Doji.AI.Diffusers." + className) ?? throw new NotImplementedException($"Unknown pipeline component: {className}");
+                if (!typeof(IConfigurable).IsAssignableFrom(type)) {
+                    throw new ArgumentException($"Can not load component {name} from config.");
+                }
+                string path = Path.Combine(modelDir, name);
+                var component = IConfigurable.FromPretrained(type, path, backend);
+                Scheduler x = Scheduler.FromPretrained(path, backend);
+            }
+
+            return null;*/
+
             var vocab = LoadVocab(model.Name);
             var merges = LoadMerges(model.Name);
             var tokenizerConfig = LoadTokenizerConfig(model.Name);
@@ -108,8 +129,9 @@ namespace Doji.AI.Diffusers {
                 tokenizerConfig
             );
             var schedulerConfig = LoadSchedulerConfig(model.Name);
-            var scheduler = CreateScheduler(schedulerConfig, backend: backend);
-            var vaeDecoder = LoadVaeDecoder(model.Name);
+            var scheduler = Scheduler.FromPretrained(Path.Combine(model.Name, "scheduler"), backend);
+            var vaeConfig = LoadVaeConfig(model.Name);
+            var vaeDecoder = new VaeDecoder(LoadVaeDecoder(model.Name), vaeConfig, backend);
             var textEncoder = LoadTextEncoder(model.Name);
             var unet = LoadUnet(model.Name);
             StableDiffusionPipeline sdPipeline = new StableDiffusionPipeline(
@@ -121,32 +143,75 @@ namespace Doji.AI.Diffusers {
                 backend
             );
             sdPipeline.NameOrPath = model.Name;
-            sdPipeline.Config = index;
+            sdPipeline.Config = config;
             return sdPipeline;
         }
 
-        private static readonly Dictionary<string, Type> _schedulerTypes = new Dictionary<string, Type>() {
-            { "DDIMScheduler", typeof(DDIMScheduler) },
-            { "PNDMScheduler", typeof(PNDMScheduler) },
-        };
+        /// <summary>
+        /// Translates class names from a model_index.json into class names used in this Unity diffusers package.
+        /// </summary>
+        /// <remarks>
+        /// Wish the whole "model" concept & ONNX conversions were more standardized.
+        /// onnx export can be don through either huggingface/diffusers export scripts or huggingface/optimum. 
+        /// Then some repos throw the onnx files in with the other model files without changing the class names in model_index.
+        /// </remarks>
+        private static string ResolveClassName(string subModel, string className) {
+            switch (className) {
+                case "OnnxRuntimeModel":
+                    switch (subModel) {
+                        case "text_encoder":
+                            return "TextEncoder";
+                        case "text_encoder_2":
+                            return "TextEncoder";
+                        case "unet":
+                            return "Unet";
+                        case "vae_decoder":
+                            return "VaeDecoder";
+                        case "vae_encoder":
+                            return "VaeEncoder";
+                        default:
+                            return className;
+                    }
+                case "CLIPTextModel":
+                    return "TextEncoder";
+                case "CLIPTextModelWithProjection":
+                    return "TextEncoder";
+                case "UNet2DConditionModel":
+                    return "Unet";
+                case "AutoencoderKL":
+                    return "VaeDecoder";
+                default:
+                    return className;
+            }
+        }
 
         /// <summary>
         /// Creates a Scheduler of the correct subclass based on the given <paramref name="config"/>.
-        /// TODO: Might need to tag scheduler classes or constructors with [UnityEngine.Scripting.Preserve]
+        /// TODO: Might need to tag pipeline & scheduler classes or constructors with [UnityEngine.Scripting.Preserve]
         /// attribute for IL2CPP code stripping.
         /// </summary>
-        private static Scheduler CreateScheduler(SchedulerConfig config, BackendType backend) {
-            if (!_schedulerTypes.TryGetValue(config.ClassName, out Type type)) {
-                throw new InvalidDataException($"Invalid/Unsupported scheduler type in config: {config.ClassName}");
-            } else {
-                try {
-                    return (Scheduler)Activator.CreateInstance(type, config, backend);
-                } catch (Exception e) {
-                    Debug.LogError($"{e.GetType().Name} when trying to create scheduler of type '{config.ClassName}'");
-                    throw e;
-                }
+        /*private static DiffusionPipeline CreatePipeline(PipelineConfig config, BackendType backend) {
+            Type type = Type.GetType(config.ClassName) ?? throw new NotImplementedException($"Unknown diffusion pipeline in config: {config.ClassName}");
+            try {
+                return (DiffusionPipeline)Activator.CreateInstance(type, config, backend);
+            } catch (Exception e) {
+                Debug.LogError($"{e.GetType().Name} when trying to create '{config.ClassName}'");
+                throw e;
             }
         }
+
+        /// <summary>
+        /// Creates a Scheduler of the correct subclass based on the given <paramref name="config"/>.
+        /// </summary>
+        private static Scheduler CreateScheduler(SchedulerConfig config, BackendType backend) {
+            Type type = Type.GetType(config.ClassName) ?? throw new NotImplementedException($"Unknown scheduler type in config: {config.ClassName}");
+            try {
+                return (Scheduler)Activator.CreateInstance(type, config, backend);
+            } catch (Exception e) {
+                Debug.LogError($"{e.GetType().Name} when trying to create scheduler of type '{config.ClassName}'");
+                throw e;
+            }
+        }*/
 
         public static bool IsModelAvailable(DiffusionModel model) {
             if (ExistsInStreamingAssets(model)) {

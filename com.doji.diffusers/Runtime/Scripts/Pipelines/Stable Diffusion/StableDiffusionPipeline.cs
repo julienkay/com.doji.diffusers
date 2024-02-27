@@ -27,17 +27,14 @@ namespace Doji.AI.Diffusers {
         /// Initializes a new stable diffusion pipeline.
         /// </summary>
         public StableDiffusionPipeline(
-            Model vaeDecoder,
+            VaeDecoder vaeDecoder,
             Model textEncoder,
             ClipTokenizer tokenizer,
             Scheduler scheduler,
             Model unet,
             BackendType backend = BackendType.GPUCompute)
         {
-            // FIXME: VaeDecoder exceeds the thread group limit with GPU backend,
-            // decoding on CPU is much slower, but curiously the outputs with GPUCompute backend
-            // seem correct even despite errors?
-            VaeDecoder = new VaeDecoder(vaeDecoder, BackendType.GPUCompute);
+            VaeDecoder = vaeDecoder;
             Tokenizer = tokenizer;
             TextEncoder = new TextEncoder(textEncoder, backend);
             Scheduler = scheduler;

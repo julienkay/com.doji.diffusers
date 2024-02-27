@@ -36,7 +36,7 @@ namespace Doji.AI.Diffusers {
         /// Initializes a new Stable Diffusion XL pipeline.
         /// </summary>
         public StableDiffusionXLPipeline(
-            Model vaeDecoder,
+            VaeDecoder vaeDecoder,
             Model textEncoder,
             ClipTokenizer tokenizer,
             Scheduler scheduler,
@@ -45,7 +45,7 @@ namespace Doji.AI.Diffusers {
             ClipTokenizer tokenizer2,
             BackendType backend = BackendType.GPUCompute)
         {
-            VaeDecoder = new VaeDecoder(vaeDecoder, BackendType.GPUCompute);
+            VaeDecoder = vaeDecoder;
             Tokenizer = tokenizer;
             Tokenizer2 = tokenizer2;
             TextEncoder = new TextEncoder(textEncoder, backend);

@@ -2,13 +2,7 @@ using Newtonsoft.Json;
 
 namespace Doji.AI.Diffusers {
 
-    public class VaeConfig {
-
-        [JsonProperty("_class_name")]
-        public string ClassName { get; set; }
-
-        [JsonProperty("_diffusers_version")]
-        public string DiffusersVersion { get; set; }
+    public class VaeConfig : IConfig {
 
         [JsonProperty("act_fn")]
         public string ActFn { get; set; }

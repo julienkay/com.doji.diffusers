@@ -7,7 +7,7 @@ namespace Doji.AI.Diffusers {
     public abstract class DiffusionPipeline {
 
         public string NameOrPath { get; protected set; }
-        public ModelIndex Config { get; protected set; }
+        public PipelineConfig Config { get; protected set; }
 
         protected Input _prompt;
         protected Input _negativePrompt;

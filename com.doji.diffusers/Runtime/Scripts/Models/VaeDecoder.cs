@@ -3,8 +3,9 @@ using Unity.Sentis;
 
 namespace Doji.AI.Diffusers {
 
-    public class VaeDecoder : IDisposable {
+    public class VaeDecoder : IConfigurable, IDisposable {
 
+        public IConfig IConfig { get => Config; }
         public VaeConfig Config { get; protected set; }
 
         /// <summary>
@@ -20,8 +21,9 @@ namespace Doji.AI.Diffusers {
         private IWorker _worker;
         private Ops _ops;
 
-        public VaeDecoder(Model model, BackendType backend = BackendType.GPUCompute) {
+        public VaeDecoder(Model model, VaeConfig config, BackendType backend = BackendType.GPUCompute) {
             Backend = backend;
+            Config = config;
             InitializeNetwork(model);
         }
 

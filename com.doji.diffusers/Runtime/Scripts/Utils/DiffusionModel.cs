@@ -27,30 +27,34 @@ namespace Doji.AI.Diffusers {
             return Name.Equals(other.Name);
         }
 
-        private const string ModelIndex = "model_index.json";
-
         public static readonly IEnumerable<string> Files = new List<string>() {
-            ModelIndex,
-            $"scheduler/scheduler_config.json",
-            $"text_encoder/model.onnx",
-            $"tokenizer/merges.txt",
-            $"tokenizer/special_tokens_map.json",
-            $"tokenizer/tokenizer_config.json",
-            $"tokenizer/vocab.json",
-            $"unet/model.onnx",
-            $"vae_decoder/model.onnx",
-            $"vae_encoder/model.onnx"
+            "model_index.json",
+            "scheduler/scheduler_config.json",
+            "text_encoder/model.onnx",
+            "tokenizer/merges.txt",
+            "tokenizer/special_tokens_map.json",
+            "tokenizer/tokenizer_config.json",
+            "tokenizer/vocab.json",
+            "unet/model.onnx",
+            "vae_decoder/model.onnx",
+            "vae_encoder/model.onnx"
         };
 
         public static readonly IEnumerable<string> OptionalFiles = new List<string>() {
-            $"text_encoder_2/model.onnx",           // SDXL
-            $"text_encoder_2/model.onnx_data",      // SDXL
-            $"tokenizer_2/merges.txt",              // SDXL
-            $"tokenizer_2/special_tokens_map.json", // SDXL
-            $"tokenizer_2/tokenizer_config.json",   // SDXL
-            $"tokenizer_2/vocab.json",              // SDXL
-            $"unet/model.onnx_data",                // runwayml repo stores it that way
-            $"unet/weights.pb"                      // runwayml repo stores it that way
+            "text_encoder_2/model.onnx",           // SDXL
+            "text_encoder_2/model.onnx_data",      // SDXL
+            "tokenizer_2/merges.txt",              // SDXL
+            "tokenizer_2/special_tokens_map.json", // SDXL
+            "tokenizer_2/tokenizer_config.json",   // SDXL
+            "tokenizer_2/vocab.json",              // SDXL
+            "unet/model.onnx_data",                // runwayml repo stores it that way
+            "unet/weights.pb",                     // runwayml repo stores it that way
+            "text_encoder/config.json",
+            "text_encoder_2/config.json",
+            "text_encoder_2/config.json",
+            "unet/config.json",
+            "vae_decoder/config.json",
+            "vae_encoder/config.json"
         };
 
         private const string HF_URL = "https://huggingface.co";

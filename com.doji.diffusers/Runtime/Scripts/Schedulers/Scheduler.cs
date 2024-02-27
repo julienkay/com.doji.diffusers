@@ -4,10 +4,12 @@ using Unity.Sentis;
 using System.Linq;
 using System.Collections.Generic;
 using System.Collections;
+using System.IO;
 
 namespace Doji.AI.Diffusers {
 
     public abstract class SchedulerFloat : Scheduler {
+        public SchedulerFloat() { }
         public float[] Timesteps { get; protected set; }
         public override int TimestepsLength { get { return Timesteps.Length; } }
         protected SchedulerFloat(SchedulerConfig config, BackendType backend) : base(config, backend) { }
@@ -19,6 +21,7 @@ namespace Doji.AI.Diffusers {
     }
 
     public abstract class SchedulerInt : Scheduler {
+        public SchedulerInt() { }
         public int[] Timesteps { get; protected set; }
         public override int TimestepsLength { get {  return Timesteps.Length; } }
         protected SchedulerInt(SchedulerConfig config, BackendType backend) : base(config, backend) { }
@@ -29,8 +32,9 @@ namespace Doji.AI.Diffusers {
         }
     }
 
-    public abstract class Scheduler : IDisposable, IEnumerable<float> {
+    public abstract class Scheduler : IConfigurable, IDisposable, IEnumerable<float> {
 
+        public IConfig IConfig { get => Config;}
         public SchedulerConfig Config { get; protected set; }
 
         public abstract int TimestepsLength { get; }
@@ -65,6 +69,8 @@ namespace Doji.AI.Diffusers {
         protected float?        SigmaMax                 { get => Config.SigmaMax;                       set => Config.SigmaMax                 = value; }
 
         protected Ops _ops;
+
+        public Scheduler() { }
 
         public Scheduler(SchedulerConfig config, BackendType backend) {
             Config = config ?? new SchedulerConfig();
@@ -267,6 +273,15 @@ namespace Doji.AI.Diffusers {
 
         IEnumerator IEnumerable.GetEnumerator() {
             return GetEnumerator();
+        }
+
+        /// <summary>
+        /// Instantiate a Scheduler from a pre-defined JSON configuration file in a local directory.
+        /// </summary>
+        public static Scheduler FromPretrained(string path, BackendType backend) {
+            var config = IConfigurable.LoadConfig(path, Path.GetFileNameWithoutExtension(SchedulerConfig.ConfigName));
+            var scheduler = IConfigurable.FromConfig<Scheduler>(config, backend);
+            return scheduler;
         }
     }
 }
