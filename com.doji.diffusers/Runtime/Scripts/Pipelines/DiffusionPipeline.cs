@@ -4,7 +4,7 @@ using Unity.Sentis;
 
 namespace Doji.AI.Diffusers {
 
-    public abstract class DiffusionPipeline {
+    public abstract partial class DiffusionPipeline {
 
         public string NameOrPath { get; protected set; }
         public PipelineConfig Config { get; protected set; }

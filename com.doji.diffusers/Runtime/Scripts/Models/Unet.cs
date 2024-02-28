@@ -4,9 +4,9 @@ using Unity.Sentis;
 
 namespace Doji.AI.Diffusers {
 
-    public class Unet : IDisposable {
+    public class Unet : IModel<UnetConfig>, IDisposable {
 
-        public UnetConfig Config { get; protected set; }
+        public UnetConfig Config { get; }
 
         /// <summary>
         /// Which <see cref="BackendType"/> to run the model with.
@@ -21,7 +21,8 @@ namespace Doji.AI.Diffusers {
         private IWorker _worker;
         private Dictionary<string, Tensor> _inputs = new Dictionary<string, Tensor>();
 
-        public Unet(Model model, BackendType backend = BackendType.GPUCompute) {
+        public Unet(Model model, UnetConfig config, BackendType backend = BackendType.GPUCompute) {
+            Config = config ?? new UnetConfig();
             Backend = backend;
             InitializeNetwork(model);
         }
@@ -94,6 +95,12 @@ namespace Doji.AI.Diffusers {
             }
         }
 
+        /// <summary>
+        /// Instantiate a Unet from a pre-defined JSON configuration file in a local directory.
+        /// </summary>
+        public static Unet FromPretrained(string modelName, string subFolder, BackendType backend) {
+            return IModel<UnetConfig>.FromPretrained<Unet>(modelName, subFolder, UnetConfig.ConfigName, backend);
+        }
         public void Dispose() {
             _worker?.Dispose();
         }

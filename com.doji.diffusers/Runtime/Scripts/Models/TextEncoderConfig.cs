@@ -2,7 +2,7 @@ using Newtonsoft.Json;
 
 namespace Doji.AI.Diffusers {
 
-    public class TextEncoderConfig {
+    public class TextEncoderConfig : Config {
 
         [JsonProperty("architectures")]
         public string[] Architectures { get; set; }

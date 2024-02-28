@@ -2,13 +2,8 @@ using Newtonsoft.Json;
 
 namespace Doji.AI.Diffusers {
 
-    public class UnetConfig {
+    public class UnetConfig : Config {
 
-        [JsonProperty("_class_name")]
-        public string ClassName { get; set; }
-
-        [JsonProperty("_diffusers_version")]
-        public string DiffusersVersion { get; set; }
 
         [JsonProperty("act_fn")]
         public string ActFn { get; set; }

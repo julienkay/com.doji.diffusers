@@ -17,7 +17,9 @@ namespace Doji.AI.Diffusers {
         }
     }
     
-    public class TextEncoder : IDisposable {
+    public class TextEncoder : IModel<TextEncoderConfig>, IDisposable {
+
+        public TextEncoderConfig Config { get; }
 
         /// <summary>
         /// Which <see cref="BackendType"/> to run the model with.
@@ -31,7 +33,8 @@ namespace Doji.AI.Diffusers {
         private IWorker _worker;
         private ModelOutput _output;
 
-        public TextEncoder(Model model, BackendType backend = BackendType.GPUCompute) {
+        public TextEncoder(Model model, TextEncoderConfig config, BackendType backend = BackendType.GPUCompute) {
+            Config = config ?? new TextEncoderConfig();
             Backend = backend;
             InitializeNetwork(model);
             _output = new ModelOutput();
@@ -60,6 +63,13 @@ namespace Doji.AI.Diffusers {
             _worker.Execute(inputIds);
             _output.GetOutputs(_model, _worker);
             return _output;
+        }
+
+        /// <summary>
+        /// Instantiate a TextEncoder from a pre-defined JSON configuration file in a local directory.
+        /// </summary>
+        public static TextEncoder FromPretrained(string modelName, string subFolder, BackendType backend) {
+            return IModel<TextEncoderConfig>.FromPretrained<TextEncoder>(modelName, subFolder, TextEncoderConfig.ConfigName, backend);
         }
 
         public void Dispose() {

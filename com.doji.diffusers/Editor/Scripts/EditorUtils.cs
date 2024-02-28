@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 using UnityEditor;
-using static Doji.AI.Diffusers.StableDiffusionPipeline;
+using static Doji.AI.Diffusers.DiffusionPipeline;
 
 namespace Doji.AI.Diffusers.Editor {
 

@@ -28,17 +28,17 @@ namespace Doji.AI.Diffusers {
         /// </summary>
         public StableDiffusionPipeline(
             VaeDecoder vaeDecoder,
-            Model textEncoder,
+            TextEncoder textEncoder,
             ClipTokenizer tokenizer,
             Scheduler scheduler,
-            Model unet,
-            BackendType backend = BackendType.GPUCompute)
+            Unet unet,
+            BackendType backend)
         {
             VaeDecoder = vaeDecoder;
             Tokenizer = tokenizer;
-            TextEncoder = new TextEncoder(textEncoder, backend);
+            TextEncoder = textEncoder;
             Scheduler = scheduler;
-            Unet = new Unet(unet, backend);
+            Unet = unet;
             _ops = WorkerFactory.CreateOps(backend, null);
         }
 

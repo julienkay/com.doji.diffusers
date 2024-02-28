@@ -7,52 +7,52 @@ using UnityEngine;
 
 namespace Doji.AI.Diffusers {
 
-    public partial class StableDiffusionPipeline {
+    public partial class DiffusionPipeline {
 
         internal static PipelineConfig LoadPipelineConfig(DiffusionModel model) {
             return LoadJsonFromTextAsset<PipelineConfig>(Path.Combine(model.Name, "model_index"));
         }
 
-        internal static VaeConfig LoadVaeConfig(string subFolder) {
-            string path = Path.Combine(subFolder, "vae_decoder", "config");
+        internal static VaeConfig LoadVaeConfig(string modelName) {
+            string path = Path.Combine(modelName, "vae_decoder", "config");
             return LoadJsonFromTextAsset<VaeConfig>(path);
         }
 
-        internal static Model LoadVaeDecoder(string subFolder) {
-            string path = Path.Combine(subFolder, "vae_decoder", "model");
+        internal static Model LoadVaeDecoder(string modelName) {
+            string path = Path.Combine(modelName, "vae_decoder", "model");
             return LoadFromModelAsset(path);
         }
 
-        internal static Model LoadTextEncoder(string subFolder) {
-            string path = Path.Combine(subFolder, "text_encoder", "model");
+        internal static Model LoadTextEncoder(string modelName) {
+            string path = Path.Combine(modelName, "text_encoder", "model");
             return LoadFromModelAsset(path);
         }
 
-        internal static Vocab LoadVocab(string subFolder) {
-            string path = Path.Combine(subFolder, "tokenizer", "vocab");
+        internal static Vocab LoadVocab(string modelName, string subFolder) {
+            string path = Path.Combine(modelName, subFolder, "vocab");
             TextAsset vocabFile = Resources.Load<TextAsset>(path);
             var vocab = Vocab.Deserialize(vocabFile.text);
             Resources.UnloadAsset(vocabFile);
             return vocab;
         }
 
-        internal static string LoadMerges(string subFolder) {
-            string path = Path.Combine(subFolder, "tokenizer", "merges");
+        internal static string LoadMerges(string modelName, string subFolder) {
+            string path = Path.Combine(modelName, subFolder, "merges");
             return LoadFromTextAsset(path);
         }
 
-        internal static TokenizerConfig LoadTokenizerConfig(string subFolder) {
-            string path = Path.Combine(subFolder, "tokenizer", "tokenizer_config");
+        internal static TokenizerConfig LoadTokenizerConfig(string modelName, string subFolder) {
+            string path = Path.Combine(modelName, subFolder, "tokenizer_config");
             return LoadJsonFromTextAsset<TokenizerConfig>(path);
         }
 
-        internal static SchedulerConfig LoadSchedulerConfig(string subFolder) {
-            string path = Path.Combine(subFolder, "scheduler", "scheduler_config");
+        internal static SchedulerConfig LoadSchedulerConfig(string modelName) {
+            string path = Path.Combine(modelName, "scheduler", "scheduler_config");
             return LoadJsonFromTextAsset<SchedulerConfig>(path);
         }
 
-        internal static Model LoadUnet(string subFolder) {
-            string path = Path.Combine(subFolder, "unet", "model");
+        internal static Model LoadUnet(string modelName) {
+            string path = Path.Combine(modelName, "unet", "model");
             return LoadFromModelAsset(path);
         }
 
@@ -97,121 +97,18 @@ namespace Doji.AI.Diffusers {
         public static event Action<DiffusionModel> OnModelRequested = (x) => { };
 #endif
 
-        public static StableDiffusionPipeline FromPretrained(DiffusionModel model, BackendType backend = BackendType.GPUCompute) {
+        public static DiffusionPipeline FromPretrained(DiffusionModel model, BackendType backend = BackendType.GPUCompute) {
 #if UNITY_EDITOR
             OnModelRequested?.Invoke(model);
 #endif
-            
+
             PipelineConfig config = LoadPipelineConfig(model);
-
-            /*string modelDir = model.Name;
-            var subModelsToLoad = config.Components.Keys.Intersect(new string[] { "tokenizer", "tokenizer_2", "scheduler" });
-            foreach (var name in subModelsToLoad) {
-                string className = config.Components[name][1];
-                className = ResolveClassName(name, className);
-                Type type = Type.GetType("Doji.AI.Diffusers." + className) ?? throw new NotImplementedException($"Unknown pipeline component: {className}");
-                if (!typeof(IConfigurable).IsAssignableFrom(type)) {
-                    throw new ArgumentException($"Can not load component {name} from config.");
-                }
-                string path = Path.Combine(modelDir, name);
-                var component = IConfigurable.FromPretrained(type, path, backend);
-                Scheduler x = Scheduler.FromPretrained(path, backend);
-            }
-
-            return null;*/
-
-            var vocab = LoadVocab(model.Name);
-            var merges = LoadMerges(model.Name);
-            var tokenizerConfig = LoadTokenizerConfig(model.Name);
-            var clipTokenizer = new ClipTokenizer(
-                vocab,
-                merges,
-                tokenizerConfig
-            );
-            var schedulerConfig = LoadSchedulerConfig(model.Name);
-            var scheduler = Scheduler.FromPretrained(Path.Combine(model.Name, "scheduler"), backend);
-            var vaeConfig = LoadVaeConfig(model.Name);
-            var vaeDecoder = new VaeDecoder(LoadVaeDecoder(model.Name), vaeConfig, backend);
-            var textEncoder = LoadTextEncoder(model.Name);
-            var unet = LoadUnet(model.Name);
-            StableDiffusionPipeline sdPipeline = new StableDiffusionPipeline(
-                vaeDecoder,
-                textEncoder,
-                clipTokenizer,
-                scheduler,
-                unet,
-                backend
-            );
-            sdPipeline.NameOrPath = model.Name;
-            sdPipeline.Config = config;
-            return sdPipeline;
+            return config.ClassName switch {
+                "StableDiffusionPipeline"   => StableDiffusionPipeline.FromPretrained(model, backend),
+                "StableDiffusionXLPipeline" => StableDiffusionXLPipeline.FromPretrained(model, backend),
+                _ => throw new NotImplementedException($"Unknown diffusion pipeline in config: {config.ClassName}"),
+            };
         }
-
-        /// <summary>
-        /// Translates class names from a model_index.json into class names used in this Unity diffusers package.
-        /// </summary>
-        /// <remarks>
-        /// Wish the whole "model" concept & ONNX conversions were more standardized.
-        /// onnx export can be don through either huggingface/diffusers export scripts or huggingface/optimum. 
-        /// Then some repos throw the onnx files in with the other model files without changing the class names in model_index.
-        /// </remarks>
-        private static string ResolveClassName(string subModel, string className) {
-            switch (className) {
-                case "OnnxRuntimeModel":
-                    switch (subModel) {
-                        case "text_encoder":
-                            return "TextEncoder";
-                        case "text_encoder_2":
-                            return "TextEncoder";
-                        case "unet":
-                            return "Unet";
-                        case "vae_decoder":
-                            return "VaeDecoder";
-                        case "vae_encoder":
-                            return "VaeEncoder";
-                        default:
-                            return className;
-                    }
-                case "CLIPTextModel":
-                    return "TextEncoder";
-                case "CLIPTextModelWithProjection":
-                    return "TextEncoder";
-                case "UNet2DConditionModel":
-                    return "Unet";
-                case "AutoencoderKL":
-                    return "VaeDecoder";
-                default:
-                    return className;
-            }
-        }
-
-        /// <summary>
-        /// Creates a Scheduler of the correct subclass based on the given <paramref name="config"/>.
-        /// TODO: Might need to tag pipeline & scheduler classes or constructors with [UnityEngine.Scripting.Preserve]
-        /// attribute for IL2CPP code stripping.
-        /// </summary>
-        /*private static DiffusionPipeline CreatePipeline(PipelineConfig config, BackendType backend) {
-            Type type = Type.GetType(config.ClassName) ?? throw new NotImplementedException($"Unknown diffusion pipeline in config: {config.ClassName}");
-            try {
-                return (DiffusionPipeline)Activator.CreateInstance(type, config, backend);
-            } catch (Exception e) {
-                Debug.LogError($"{e.GetType().Name} when trying to create '{config.ClassName}'");
-                throw e;
-            }
-        }
-
-        /// <summary>
-        /// Creates a Scheduler of the correct subclass based on the given <paramref name="config"/>.
-        /// </summary>
-        private static Scheduler CreateScheduler(SchedulerConfig config, BackendType backend) {
-            Type type = Type.GetType(config.ClassName) ?? throw new NotImplementedException($"Unknown scheduler type in config: {config.ClassName}");
-            try {
-                return (Scheduler)Activator.CreateInstance(type, config, backend);
-            } catch (Exception e) {
-                Debug.LogError($"{e.GetType().Name} when trying to create scheduler of type '{config.ClassName}'");
-                throw e;
-            }
-        }*/
 
         public static bool IsModelAvailable(DiffusionModel model) {
             if (ExistsInStreamingAssets(model)) {
@@ -241,6 +138,81 @@ namespace Doji.AI.Diffusers {
             } else {
                 return false;
             }
+        }
+    }
+
+    public partial class StableDiffusionPipeline {
+
+        public static new StableDiffusionPipeline FromPretrained(DiffusionModel model, BackendType backend = BackendType.GPUCompute) {
+            PipelineConfig config = LoadPipelineConfig(model);
+
+            var vocab = LoadVocab(model.Name, "tokenizer");
+            var merges = LoadMerges(model.Name, "tokenizer");
+            var tokenizerConfig = LoadTokenizerConfig(model.Name, "tokenizer");
+            var clipTokenizer = new ClipTokenizer(
+                vocab,
+                merges,
+                tokenizerConfig
+            );
+            var scheduler = Scheduler.FromPretrained(model.Name, "scheduler", backend);
+            var vaeDecoder = VaeDecoder.FromPretrained(model.Name, "vae_decoder", backend);
+            var textEncoder = TextEncoder.FromPretrained(model.Name, "text_encoder", backend);
+            var unet = Unet.FromPretrained(model.Name, "unet", backend);
+
+            StableDiffusionPipeline sdPipeline = new StableDiffusionPipeline(
+                vaeDecoder,
+                textEncoder,
+                clipTokenizer,
+                scheduler,
+                unet,
+                backend
+            );
+            sdPipeline.NameOrPath = model.Name;
+            sdPipeline.Config = config;
+            return sdPipeline;
+        }
+    }
+
+    public partial class StableDiffusionXLPipeline {
+
+        public static new StableDiffusionXLPipeline FromPretrained(DiffusionModel model, BackendType backend = BackendType.GPUCompute) {
+            PipelineConfig config = LoadPipelineConfig(model);
+
+            var vocab = LoadVocab(model.Name, "tokenizer");
+            var merges = LoadMerges(model.Name, "tokenizer");
+            var tokenizerConfig = LoadTokenizerConfig(model.Name, "tokenizer");
+            var tokenizer = new ClipTokenizer(
+                vocab,
+                merges,
+                tokenizerConfig
+            );
+            vocab = LoadVocab(model.Name, "tokenizer_2");
+            merges = LoadMerges(model.Name, "tokenizer_2");
+            tokenizerConfig = LoadTokenizerConfig(model.Name, "tokenizer_2");
+            var tokenizer2 = new ClipTokenizer(
+                vocab,
+                merges,
+                tokenizerConfig
+            );
+            var scheduler = Scheduler.FromPretrained(model.Name, "scheduler", backend);
+            var vaeDecoder = VaeDecoder.FromPretrained(model.Name, "vae_decoder", backend);
+            var textEncoder = TextEncoder.FromPretrained(model.Name, "text_encoder", backend);
+            var textEncoder2 = TextEncoder.FromPretrained(model.Name, "text_encoder_2", backend);
+            var unet = Unet.FromPretrained(model.Name, "unet", backend);
+
+            StableDiffusionXLPipeline sdPipeline = new StableDiffusionXLPipeline(
+                vaeDecoder,
+                textEncoder,
+                tokenizer,
+                scheduler,
+                unet,
+                textEncoder2,
+                tokenizer2,
+                backend
+            );
+            sdPipeline.NameOrPath = model.Name;
+            sdPipeline.Config = config;
+            return sdPipeline;
         }
     }
 }

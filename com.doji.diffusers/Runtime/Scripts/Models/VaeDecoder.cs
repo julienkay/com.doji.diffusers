@@ -3,10 +3,9 @@ using Unity.Sentis;
 
 namespace Doji.AI.Diffusers {
 
-    public class VaeDecoder : IConfigurable, IDisposable {
+    public class VaeDecoder : IModel<VaeConfig>, IDisposable {
 
-        public IConfig IConfig { get => Config; }
-        public VaeConfig Config { get; protected set; }
+        public VaeConfig Config { get; }
 
         /// <summary>
         /// Which <see cref="BackendType"/> to run the model with.
@@ -22,8 +21,8 @@ namespace Doji.AI.Diffusers {
         private Ops _ops;
 
         public VaeDecoder(Model model, VaeConfig config, BackendType backend = BackendType.GPUCompute) {
+            Config = config ?? new VaeConfig();
             Backend = backend;
-            Config = config;
             InitializeNetwork(model);
         }
 
@@ -53,6 +52,13 @@ namespace Doji.AI.Diffusers {
             TensorFloat normalized = _ops.Mad(sample, 0.5f, 0.5f);
             TensorFloat image = _ops.Clip(normalized, 0.0f, 1.0f);
             return image;
+        }
+
+        /// <summary>
+        /// Instantiate a VaeDecoder from a pre-defined JSON configuration file in a local directory.
+        /// </summary>
+        public static VaeDecoder FromPretrained(string modelName, string subFolder, BackendType backend) {
+            return IModel<VaeConfig>.FromPretrained<VaeDecoder>(modelName, subFolder, VaeConfig.ConfigName, backend);
         }
 
         public void Dispose() {

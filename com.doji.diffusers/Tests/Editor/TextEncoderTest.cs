@@ -41,7 +41,7 @@ namespace Doji.AI.Diffusers.Editor.Tests {
 
         [Test]
         public void TestEncode_1_5() {
-            var model = StableDiffusionPipeline.LoadTextEncoder(DiffusionModel.SD_1_5.Name);
+            var model = DiffusionPipeline.LoadTextEncoder(DiffusionModel.SD_1_5.Name);
 
             ClipTokenizer tokenizer = GetSDCLIPTokenizer_1_5();
 
@@ -54,7 +54,7 @@ namespace Doji.AI.Diffusers.Editor.Tests {
             ).InputIds;
 
             using TensorInt tokens = new TensorInt(new TensorShape(1, inputIds.Count()), inputIds.ToArray());
-            using TextEncoder textEncoder = new TextEncoder(model);
+            using TextEncoder textEncoder = new TextEncoder(model, null);
             TensorFloat output = textEncoder.ExecuteModel(tokens)[0] as TensorFloat;
             output.MakeReadable();
             float[] promptEmbeds = output.ToReadOnlyArray();
@@ -64,7 +64,7 @@ namespace Doji.AI.Diffusers.Editor.Tests {
 
         [Test]
         public void TestEncode_2_1() {
-            var model = StableDiffusionPipeline.LoadTextEncoder(DiffusionModel.SD_2_1.Name);
+            var model = DiffusionPipeline.LoadTextEncoder(DiffusionModel.SD_2_1.Name);
 
             ClipTokenizer tokenizer = GetSDCLIPTokenizer_2_1();
 
@@ -77,7 +77,7 @@ namespace Doji.AI.Diffusers.Editor.Tests {
             ).InputIds;
 
             using TensorInt tokens = new TensorInt(new TensorShape(1, inputIds.Count()), inputIds.ToArray());
-            using TextEncoder textEncoder = new TextEncoder(model);
+            using TextEncoder textEncoder = new TextEncoder(model, null);
             TensorFloat output = textEncoder.ExecuteModel(tokens)[0] as TensorFloat;
             output.MakeReadable();
             float[] promptEmbeds = output.ToReadOnlyArray();
@@ -87,7 +87,7 @@ namespace Doji.AI.Diffusers.Editor.Tests {
 
         [Test]
         public void TestEncodeUnconditional() {
-            var model = StableDiffusionPipeline.LoadTextEncoder(DiffusionModel.SD_1_5.Name);
+            var model = DiffusionPipeline.LoadTextEncoder(DiffusionModel.SD_1_5.Name);
 
             ClipTokenizer tokenizer = GetSDCLIPTokenizer_1_5();
 
@@ -100,7 +100,7 @@ namespace Doji.AI.Diffusers.Editor.Tests {
             ).InputIds;
 
             using TensorInt tokens = new TensorInt(new TensorShape(1, inputIds.Count()), inputIds.ToArray());
-            using TextEncoder textEncoder = new TextEncoder(model);
+            using TextEncoder textEncoder = new TextEncoder(model, null);
             TensorFloat output = textEncoder.ExecuteModel(tokens)[0] as TensorFloat;
             output.MakeReadable();
             float[] promptEmbeds = output.ToReadOnlyArray();

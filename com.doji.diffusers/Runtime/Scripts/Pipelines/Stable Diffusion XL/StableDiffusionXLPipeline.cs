@@ -13,7 +13,7 @@ namespace Doji.AI.Diffusers {
     /// <remarks>
     /// pipeline_stable_diffusion_xl.py from huggingface/optimum
     /// </remarks>
-    public class StableDiffusionXLPipeline : DiffusionPipeline, IDisposable {
+    public partial class StableDiffusionXLPipeline : DiffusionPipeline, IDisposable {
 
         public VaeDecoder VaeDecoder { get; private set; }
         public ClipTokenizer Tokenizer { get; private set; }
@@ -37,21 +37,21 @@ namespace Doji.AI.Diffusers {
         /// </summary>
         public StableDiffusionXLPipeline(
             VaeDecoder vaeDecoder,
-            Model textEncoder,
+            TextEncoder textEncoder,
             ClipTokenizer tokenizer,
             Scheduler scheduler,
-            Model unet,
-            Model textEncoder2,
+            Unet unet,
+            TextEncoder textEncoder2,
             ClipTokenizer tokenizer2,
-            BackendType backend = BackendType.GPUCompute)
+            BackendType backend)
         {
             VaeDecoder = vaeDecoder;
             Tokenizer = tokenizer;
             Tokenizer2 = tokenizer2;
-            TextEncoder = new TextEncoder(textEncoder, backend);
-            TextEncoder2 = new TextEncoder(textEncoder2, backend);
+            TextEncoder = textEncoder;
+            TextEncoder2 = textEncoder2;
             Scheduler = scheduler;
-            Unet = new Unet(unet, backend);
+            Unet = unet;
             Encoders = Tokenizer != null && TextEncoder != null
                 ? new() { (Tokenizer, TextEncoder), (Tokenizer2, TextEncoder2) }
                 : new() { (Tokenizer2, TextEncoder2) };
