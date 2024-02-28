@@ -329,7 +329,7 @@ namespace Doji.AI.Diffusers {
 
                     // duplicate unconditional embeddings for each generation per prompt
                     Profiler.BeginSample($"Process Unconditional Input for {numImagesPerPrompt} images per prompt.");
-                    negativePromptEmbeds = _ops.Repeat(promptEmbeds, numImagesPerPrompt, axis: 0);
+                    negativePromptEmbeds = _ops.Repeat(negativePromptEmbeds, numImagesPerPrompt, axis: 0);
                     Profiler.EndSample();
 
                     // For classifier free guidance, we need to do two forward passes.
