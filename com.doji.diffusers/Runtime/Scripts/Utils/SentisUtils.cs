@@ -90,6 +90,9 @@ namespace Doji.AI.Diffusers {
         /// </summary>
         public static TensorFloat Concatenate(this Ops ops, List<TensorFloat> tensors, int axis = 0) {
             TensorFloat[] tensorArray = ArrayPool<TensorFloat>.Shared.Rent(tensors.Count);
+            for (int i = 0; i < tensors.Count; i++) {
+                tensorArray[i] = tensors[i];
+            }
             var result = ops.Concat(tensorArray, axis);
             ArrayPool<TensorFloat>.Shared.Return(tensorArray);
             return result as TensorFloat;
