@@ -58,6 +58,7 @@ namespace Doji.AI.Diffusers {
             _numImagesPerPrompt = numImagesPerPrompt;
             _guidanceScale = guidanceScale;
             _eta = eta;
+            _latents = latents;
             CheckInputs(seed);
 
             if (prompt == null) {
@@ -73,7 +74,6 @@ namespace Doji.AI.Diffusers {
             if (latents == null) {
                 _seed = seed != null ? seed : unchecked((uint)new System.Random().Next());
             }
-            _latents = latents;
 
             bool doClassifierFreeGuidance = guidanceScale > 1.0f;
 

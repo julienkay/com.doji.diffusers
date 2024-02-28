@@ -107,6 +107,7 @@ namespace Doji.AI.Diffusers {
             _numImagesPerPrompt = numImagesPerPrompt;
             _guidanceScale = guidanceScale;
             _eta = eta;
+            _latents = latents;
             CheckInputs(seed);
 
             // 2. Define call parameters
@@ -123,7 +124,6 @@ namespace Doji.AI.Diffusers {
             if (latents == null) {
                 _seed = seed != null ? seed : unchecked((uint)new System.Random().Next());
             }
-            _latents = latents;
 
             bool doClassifierFreeGuidance = guidanceScale > 1.0f;
 
@@ -157,7 +157,7 @@ namespace Doji.AI.Diffusers {
             int i = 0;
             foreach (float t in Scheduler) {
                 // expand the latents if doing classifier free guidance
-                TensorFloat latentModelInput = doClassifierFreeGuidance ? _ops.Concatenate(latents, latents, 0) : latents;
+                TensorFloat latentModelInput = doClassifierFreeGuidance ? _ops.Concatenate(_latents, _latents, 0) : _latents;
                 latentModelInput = Scheduler.ScaleModelInput(latentModelInput, t);
 
                 // predict the noise residual
@@ -191,15 +191,15 @@ namespace Doji.AI.Diffusers {
 
                 // compute the previous noisy sample x_t -> x_t-1
                 Profiler.BeginSample($"{Scheduler.GetType().Name}.Step");
-                var schedulerOutput = Scheduler.Step(noisePred, t, latents, eta);
-                latents = schedulerOutput.PrevSample;
+                var schedulerOutput = Scheduler.Step(noisePred, t, _latents, eta);
+                _latents = schedulerOutput.PrevSample;
                 Profiler.EndSample();
 
                 if (i == Scheduler.TimestepsLength - 1 || ((i + 1) > num_warmup_steps && (i + 1) % Scheduler.Order == 0)) {
                     int stepIdx = i / Scheduler.Order;
                     if (callback != null) {
                         Profiler.BeginSample($"{GetType()} Callback");
-                        callback.Invoke(i / Scheduler.Order, t, latents);
+                        callback.Invoke(i / Scheduler.Order, t, _latents);
                         Profiler.EndSample();
                     }
                 }
@@ -209,7 +209,7 @@ namespace Doji.AI.Diffusers {
             Profiler.EndSample();
 
             Profiler.BeginSample($"Scale Latents");
-            TensorFloat result = _ops.Div(latents, VaeDecoder.Config.ScalingFactor ?? 0.18215f);
+            TensorFloat result = _ops.Div(_latents, VaeDecoder.Config.ScalingFactor ?? 0.18215f);
             Profiler.EndSample();
 
             // batch decode
