@@ -5,16 +5,6 @@ namespace Doji.AI.Diffusers {
 
     public class CLIPOutput : ModelOutput {
 
-        public new Tensor this[int index] {
-            get {
-                // wrap around to allow for negative indexing
-                index = (Count + (index % Count)) % Count;
-                return this[index];
-            }
-            set {
-                this[index] = value;
-            }
-        }
     }
     
     public class TextEncoder : IModel<TextEncoderConfig>, IDisposable {
