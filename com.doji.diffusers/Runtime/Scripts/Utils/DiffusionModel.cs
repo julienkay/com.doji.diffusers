@@ -5,8 +5,8 @@ using System.IO;
 namespace Doji.AI.Diffusers {
 
     /// <summary>
-    /// Stores file information for all components of a diffusion model.
-    /// (models, schedulers, and processors) and where to download them.
+    /// Stores file information for all components of a diffusion model hosted on
+    /// Hugging Face (models, schedulers, and processors) and where to download them.
     /// </summary>
     public class DiffusionModel : IEnumerable<(string url, string filePath, bool optional)> {
 

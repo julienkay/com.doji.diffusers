@@ -35,7 +35,7 @@ namespace Doji.AI.Diffusers {
         }
         private BackendType _backend = BackendType.GPUCompute;
 
-        private StableDiffusionPipeline _sdPipeline;
+        private DiffusionPipeline _sdPipeline;
         public RenderTexture RenderTexture;
 
         public StableDiffusion(DiffusionModel model) {
@@ -44,7 +44,7 @@ namespace Doji.AI.Diffusers {
         }
 
         private void Initialize() {
-            _sdPipeline = StableDiffusionPipeline.FromPretrained(Model, Backend);
+            _sdPipeline = DiffusionPipeline.FromPretrained(Model, Backend);
             if (RenderTexture == null) {
                 RenderTexture = new RenderTexture(512, 512, 0, RenderTextureFormat.ARGB32);
             }

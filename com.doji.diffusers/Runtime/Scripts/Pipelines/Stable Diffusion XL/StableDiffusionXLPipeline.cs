@@ -15,13 +15,8 @@ namespace Doji.AI.Diffusers {
     /// </remarks>
     public partial class StableDiffusionXLPipeline : DiffusionPipeline, IDisposable {
 
-        public VaeDecoder VaeDecoder { get; private set; }
-        public ClipTokenizer Tokenizer { get; private set; }
         public ClipTokenizer Tokenizer2 { get; private set; }
-        public TextEncoder TextEncoder { get; private set; }
         public TextEncoder TextEncoder2 { get; private set; }
-        public Scheduler Scheduler { get; private set; }
-        public Unet Unet { get; private set; }
 
         private List<(ClipTokenizer Tokenizer, TextEncoder TextEncoder)> Encoders { get; set; }
         
@@ -65,6 +60,21 @@ namespace Doji.AI.Diffusers {
             } else {
                 VaeScaleFactor = 8;
             }
+        }
+        public override TensorFloat Generate(
+            Input prompt,
+            int height = 512,
+            int width = 512,
+            int numInferenceSteps = 50,
+            float guidanceScale = 7.5f,
+            Input negativePrompt = null,
+            int numImagesPerPrompt = 1,
+            float eta = 0.0f,
+            uint? seed = null,
+            TensorFloat latents = null,
+            Action<int, float, TensorFloat> callback = null)
+        {
+            return Generate(prompt, height, width, numInferenceSteps, guidanceScale, negativePrompt, numImagesPerPrompt, eta, seed, latents, callback);
         }
 
         public TensorFloat Generate(
@@ -387,13 +397,9 @@ namespace Doji.AI.Diffusers {
             return noiseCfg;*/
         }
 
-        public void Dispose() {
-            TextEncoder?.Dispose();
-            VaeDecoder?.Dispose();
-            TextEncoder?.Dispose();
-            Scheduler?.Dispose();
-            Unet?.Dispose();
-            _ops?.Dispose();
+        public override void Dispose() {
+            base.Dispose();
+            TextEncoder2?.Dispose();
         }
 
         private struct Embeddings {
