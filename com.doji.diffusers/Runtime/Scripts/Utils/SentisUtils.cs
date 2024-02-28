@@ -1,5 +1,4 @@
 using System;
-using System.Buffers;
 using System.Collections.Generic;
 using Unity.Sentis;
 
@@ -72,7 +71,7 @@ namespace Doji.AI.Diffusers {
             return O;
         }
 
-        private static readonly Tensor[] _tmpTensorRefs = new Tensor[2];
+        private static Tensor[] _tmpTensorRefs = new Tensor[2];
 
         /// <summary>
         /// Alias for <see cref="Ops.Concat(Tensor[], int)"/> to match numpy.concatenate()
@@ -89,13 +88,13 @@ namespace Doji.AI.Diffusers {
         /// naming and for convenience by adding a List<TensorFloat> overload.
         /// </summary>
         public static TensorFloat Concatenate(this Ops ops, List<TensorFloat> tensors, int axis = 0) {
-            TensorFloat[] tensorArray = ArrayPool<TensorFloat>.Shared.Rent(tensors.Count);
-            for (int i = 0; i < tensors.Count; i++) {
-                tensorArray[i] = tensors[i];
+            if (_tmpTensorRefs.Length != tensors.Count) {
+                _tmpTensorRefs = new Tensor[tensors.Count];
             }
-            var result = ops.Concat(tensorArray, axis);
-            ArrayPool<TensorFloat>.Shared.Return(tensorArray);
-            return result as TensorFloat;
+            for (int i = 0; i < tensors.Count; i++) {
+                _tmpTensorRefs[i] = tensors[i];
+            }
+            return ops.Concat(_tmpTensorRefs, axis) as TensorFloat;
         }
 
         public static TensorFloat Concatenate(this Ops ops, TensorFloat tensor1, TensorFloat tensor2, int axis = 0) {
