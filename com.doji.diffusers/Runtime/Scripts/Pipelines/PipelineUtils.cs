@@ -104,8 +104,9 @@ namespace Doji.AI.Diffusers {
 
             PipelineConfig config = LoadPipelineConfig(model);
             return config.ClassName switch {
-                "StableDiffusionPipeline"   => StableDiffusionPipeline.FromPretrained(model, backend),
-                "StableDiffusionXLPipeline" => StableDiffusionXLPipeline.FromPretrained(model, backend),
+                "StableDiffusionPipeline"     => StableDiffusionPipeline.FromPretrained(model, backend),
+                "OnnxStableDiffusionPipeline" => StableDiffusionPipeline.FromPretrained(model, backend),
+                "StableDiffusionXLPipeline"   => StableDiffusionXLPipeline.FromPretrained(model, backend),
                 _ => throw new NotImplementedException($"Unknown diffusion pipeline in config: {config.ClassName}"),
             };
         }
