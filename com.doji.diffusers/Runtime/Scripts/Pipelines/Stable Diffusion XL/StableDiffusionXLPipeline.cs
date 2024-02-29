@@ -182,7 +182,7 @@ namespace Doji.AI.Diffusers {
                     var tmp = _ops.Sub(noisePredText, noisePredUncond);
                     var tmp2 = _ops.Mul(guidanceScale, tmp);
                     noisePred = _ops.Add(noisePredUncond, tmp2);
-                    if (guidanceRescale > 0.0f) {
+                    if (Math.Abs(guidanceRescale) > 0.0f) {
                         // Based on 3.4. in https://arxiv.org/pdf/2305.08891.pdf
                         noisePred = RescaleNoiseCfg(noisePred, noisePredText, guidanceRescale);
                     }
@@ -369,7 +369,7 @@ namespace Doji.AI.Diffusers {
             }
             
             // scale the initial noise by the standard deviation required by the scheduler
-            if (Math.Abs(Scheduler.InitNoiseSigma - 1.0f) < 0.00001f) {
+            if (Math.Abs(Scheduler.InitNoiseSigma - 1.0f) > 0.00001f) {
                 Profiler.BeginSample("Multiply latents with scheduler sigma");
                 _latents = _ops.Mul(Scheduler.InitNoiseSigma, _latents);
                 Profiler.EndSample();
