@@ -86,7 +86,7 @@ namespace Doji.AI.Diffusers {
                 }
             }
 
-            sigmas = sigmas.Concatenate(0);
+            Sigmas = sigmas.Concatenate(0);
 
             IsScaleInputCalled = false;
             StepIndex = null;
@@ -137,8 +137,8 @@ namespace Doji.AI.Diffusers {
             //var log_sigmas = _ops.Log(sigmas);
             
             if (InterpolationType == Interpolation.Linear) {
-                sigmas = Interpolate(Timesteps, ArangeF(0, NumTrainTimesteps), sigmas);
-            } else  if (InterpolationType == Interpolation.LogLinear) {
+                sigmas = Interpolate(timesteps, ArangeF(0, sigmas.Length), sigmas);
+            } else if (InterpolationType == Interpolation.LogLinear) {
                 sigmas = Linspace(MathF.Log(sigmas[^1]), MathF.Log(sigmas[0]), NumInferenceSteps + 1).Exp();
             } else {
                 throw new ArgumentException($"{InterpolationType} is not supported. Please choose one of {string.Join(", ", Enum.GetNames(typeof(Interpolation)))}.");
