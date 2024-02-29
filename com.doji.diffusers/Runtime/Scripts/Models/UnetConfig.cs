@@ -12,34 +12,34 @@ namespace Doji.AI.Diffusers {
         public string AdditionEmbedType { get; set; }
 
         [JsonProperty("addition_embed_type_num_heads")]
-        public int AdditionEmbedTypeNumHeads { get; set; }
+        public int? AdditionEmbedTypeNumHeads { get; set; }
 
         [JsonProperty("addition_time_embed_dim")]
-        public int AdditionTimeEmbedDim { get; set; }
+        public int? AdditionTimeEmbedDim { get; set; }
 
         [JsonProperty("attention_head_dim")]
-        public int[] AttentionHeadDim { get; set; }
+        public int?[] AttentionHeadDim { get; set; }
 
         [JsonProperty("block_out_channels")]
-        public int[] BlockOutChannels { get; set; }
+        public int?[] BlockOutChannels { get; set; }
 
         [JsonProperty("center_input_sample")]
-        public bool CenterInputSample { get; set; }
+        public bool? CenterInputSample { get; set; }
 
         [JsonProperty("class_embed_type")]
         public object ClassEmbedType { get; set; }
 
         [JsonProperty("class_embeddings_concat")]
-        public bool ClassEmbeddingsConcat { get; set; }
+        public bool? ClassEmbeddingsConcat { get; set; }
 
         [JsonProperty("conv_in_kernel")]
-        public int ConvInKernel { get; set; }
+        public int? ConvInKernel { get; set; }
 
         [JsonProperty("conv_out_kernel")]
-        public int ConvOutKernel { get; set; }
+        public int? ConvOutKernel { get; set; }
 
         [JsonProperty("cross_attention_dim")]
-        public int CrossAttentionDim { get; set; }
+        public int? CrossAttentionDim { get; set; }
 
         [JsonProperty("cross_attention_norm")]
         public object CrossAttentionNorm { get; set; }
@@ -48,10 +48,10 @@ namespace Doji.AI.Diffusers {
         public string[] DownBlockTypes { get; set; }
 
         [JsonProperty("downsample_padding")]
-        public int DownsamplePadding { get; set; }
+        public int? DownsamplePadding { get; set; }
 
         [JsonProperty("dual_cross_attention")]
-        public bool DualCrossAttention { get; set; }
+        public bool? DualCrossAttention { get; set; }
 
         [JsonProperty("encoder_hid_dim")]
         public object EncoderHidDim { get; set; }
@@ -60,22 +60,22 @@ namespace Doji.AI.Diffusers {
         public object EncoderHidDimType { get; set; }
 
         [JsonProperty("flip_sin_to_cos")]
-        public bool FlipSinToCos { get; set; }
+        public bool? FlipSinToCos { get; set; }
 
         [JsonProperty("freq_shift")]
-        public int FreqShift { get; set; }
+        public int? FreqShift { get; set; }
 
         [JsonProperty("in_channels")]
-        public int InChannels { get; set; }
+        public int? InChannels { get; set; }
 
         [JsonProperty("layers_per_block")]
-        public int LayersPerBlock { get; set; }
+        public int? LayersPerBlock { get; set; }
 
         [JsonProperty("mid_block_only_cross_attention")]
         public object MidBlockOnlyCrossAttention { get; set; }
 
         [JsonProperty("mid_block_scale_factor")]
-        public int MidBlockScaleFactor { get; set; }
+        public int? MidBlockScaleFactor { get; set; }
 
         [JsonProperty("mid_block_type")]
         public string MidBlockType { get; set; }
@@ -84,7 +84,7 @@ namespace Doji.AI.Diffusers {
         public double NormEps { get; set; }
 
         [JsonProperty("norm_num_groups")]
-        public int NormNumGroups { get; set; }
+        public int? NormNumGroups { get; set; }
 
         [JsonProperty("num_attention_heads")]
         public object NumAttentionHeads { get; set; }
@@ -93,19 +93,19 @@ namespace Doji.AI.Diffusers {
         public object NumClassEmbeds { get; set; }
 
         [JsonProperty("only_cross_attention")]
-        public bool OnlyCrossAttention { get; set; }
+        public bool? OnlyCrossAttention { get; set; }
 
         [JsonProperty("out_channels")]
-        public int OutChannels { get; set; }
+        public int? OutChannels { get; set; }
 
         [JsonProperty("projection_class_embeddings_input_dim")]
-        public int ProjectionClassEmbeddingsInputDim { get; set; }
+        public int? ProjectionClassEmbeddingsInputDim { get; set; }
 
         [JsonProperty("resnet_out_scale_factor")]
-        public float ResnetOutScaleFactor { get; set; }
+        public float? ResnetOutScaleFactor { get; set; }
 
         [JsonProperty("resnet_skip_time_act")]
-        public bool ResnetSkipTimeAct { get; set; }
+        public bool? ResnetSkipTimeAct { get; set; }
 
         [JsonProperty("resnet_time_scale_shift")]
         public string ResnetTimeScaleShift { get; set; }
@@ -129,7 +129,7 @@ namespace Doji.AI.Diffusers {
         public object TimestepPostAct { get; set; }
 
         [JsonProperty("transformer_layers_per_block")]
-        public int[] TransformerLayersPerBlock { get; set; }
+        public int?[] TransformerLayersPerBlock { get; set; }
 
         [JsonProperty("up_block_types")]
         public string[] UpBlockTypes { get; set; }
@@ -138,6 +138,6 @@ namespace Doji.AI.Diffusers {
         public object UpcastAttention { get; set; }
 
         [JsonProperty("use_linear_projection")]
-        public bool UseLinearProjection { get; set; }
+        public bool? UseLinearProjection { get; set; }
     }
 }

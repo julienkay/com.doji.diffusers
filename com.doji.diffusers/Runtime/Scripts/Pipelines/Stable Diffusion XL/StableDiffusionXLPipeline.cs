@@ -355,7 +355,7 @@ namespace Doji.AI.Diffusers {
         private void PrepareLatents() {
             var shape = new TensorShape(
                 _batchSize * _numImagesPerPrompt,
-                Unet.Config.InChannels,
+                Unet.Config.InChannels ?? 4,
                 _height / 8,
                 _width / 8
             );
