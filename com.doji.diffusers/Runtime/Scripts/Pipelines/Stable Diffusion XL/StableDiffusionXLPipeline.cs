@@ -105,8 +105,9 @@ namespace Doji.AI.Diffusers {
 
             _prompt = prompt;
             _negativePrompt = negativePrompt;
-            _numImagesPerPrompt = numImagesPerPrompt;
+            _steps = numInferenceSteps;
             _guidanceScale = guidanceScale;
+            _numImagesPerPrompt = numImagesPerPrompt;
             _eta = eta;
             _latents = latents;
             CheckInputs(seed);
