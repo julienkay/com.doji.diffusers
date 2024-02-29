@@ -12,7 +12,7 @@ namespace Doji.AI.Diffusers {
         public TensorFloat AlphasCumprod { get; private set; }
         private float[] _AlphasCumprod { get; set; }
         public TensorFloat SigmasT { get; protected set; }
-        private float[] Sigmas { get; set; }
+        internal float[] Sigmas { get; set; }
 
         public bool IsScaleInputCalled { get; private set; }
 

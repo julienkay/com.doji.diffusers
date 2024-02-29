@@ -38,6 +38,7 @@ namespace Doji.AI.Diffusers.Editor.Tests {
         }
 
         private StepArgs _stepArgs = new StepArgs();
+        private Ops _ops;
 
         [SetUp]
         public void SetUp() {
@@ -52,11 +53,13 @@ namespace Doji.AI.Diffusers.Editor.Tests {
                 TrainedBetas = null
             };
             _scheduler = new PNDMScheduler(config);
+            _ops = WorkerFactory.CreateOps(BackendType.GPUCompute, null);
         }
 
         [TearDown]
         public void TearDown() {
-            _scheduler.Dispose();
+            _scheduler?.Dispose();
+            _ops?.Dispose();
         }
 
         [Test]
@@ -132,13 +135,7 @@ namespace Doji.AI.Diffusers.Editor.Tests {
         }
 
         private TensorFloat Model(TensorFloat sampleTensor, int t) {
-            sampleTensor.MakeReadable();
-            float[] sample = sampleTensor.ToReadOnlyArray();
-            float[] result = new float[sample.Length];
-            for (int i = 0; i < sample.Length; i++) {
-                result[i] = sample[i] * ((float)t / (t + 1));
-            }
-            return new TensorFloat(sampleTensor.shape, result);
+            return _ops.Mul(sampleTensor, (float)t / (t + 1));
         }
     }
 }

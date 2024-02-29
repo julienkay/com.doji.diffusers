@@ -1,19 +1,21 @@
 using NUnit.Framework;
 using Unity.Sentis;
+using UnityEngine;
+using UnityEngine.TestTools.Utils;
 using static Doji.AI.Diffusers.Scheduler;
 
 namespace Doji.AI.Diffusers.Editor.Tests {
 
     /// <summary>
-    /// Tests for <see cref="DDIMScheduler"/>.
+    /// Tests for <see cref="EulerDiscreteScheduler"/>.
     /// </summary>
-    public class DDIMSchedulerTest {
+    public class EulerDiscreteSchedulerTest {
 
-        private DDIMScheduler _scheduler;
+        private EulerDiscreteScheduler _scheduler;
 
         private float[] ExpectedBetas {
             get {
-                return TestUtils.LoadFromFile("ddim_test_betas");
+                return TestUtils.LoadFromFile("euler_discrete_test_betas");
             }
         }
 
@@ -31,7 +33,7 @@ namespace Doji.AI.Diffusers.Editor.Tests {
         /// </summary>
         private float[] ExpectedOutput {
             get {
-                return TestUtils.LoadFromFile("ddim_test_expected_output");
+                return TestUtils.LoadFromFile("euler_discrete_test_expected_output");
             }
         }
 
@@ -41,16 +43,17 @@ namespace Doji.AI.Diffusers.Editor.Tests {
         [SetUp]
         public void SetUp() {
             var config = new SchedulerConfig() {
-                BetaEnd = 0.02f,
-                BetaSchedule = Schedule.Linear,
-                BetaStart = 0.0001f,
                 NumTrainTimesteps = 1000,
-                ClipSample = true,
-                SetAlphaToOne = false,
+                BetaEnd = 0.012f,
+                BetaSchedule = Schedule.ScaledLinear,
+                BetaStart = 0.00085f,
+                InterpolationType = Interpolation.Linear,
+                PredictionType = Prediction.Epsilon,
                 StepsOffset = 1,
-                PredictionType = Prediction.V_Prediction,
+                TimestepSpacing = Spacing.Leading,
+                UseKarrasSigmas = false
             };
-            _scheduler = new DDIMScheduler(config);
+            _scheduler = new EulerDiscreteScheduler(config);
             _ops = WorkerFactory.CreateOps(BackendType.GPUCompute, null);
         }
 
@@ -75,6 +78,20 @@ namespace Doji.AI.Diffusers.Editor.Tests {
         }
 
         [Test]
+        public void TestInitSigmas() {
+            CollectionAssert.AreEqual(TestUtils.LoadFromFile("euler_discrete_test_sigmas"), _scheduler.Sigmas, new FloatArrayComparer(0.00001f));
+            _scheduler.SetTimesteps(10);
+            CollectionAssert.AreEqual(TestUtils.LoadFromFile("euler_discrete_test_sigmas_2"), _scheduler.Sigmas, new FloatArrayComparer(0.00001f));
+        }
+
+        [Test]
+        public void TestInitNoiseSigma() {
+            Assert.That(_scheduler.InitNoiseSigma, Is.EqualTo(14.648818f).Using(new FloatEqualityComparer(0.00001f)));
+            _scheduler.SetTimesteps(10);
+            Assert.That(_scheduler.InitNoiseSigma, Is.EqualTo(8.4500665f).Using(new FloatEqualityComparer(0.00001f)));
+        }
+
+        [Test]
         public void TestStepsOffset() {
             _scheduler.SetTimesteps(10);
             var expected = new int[] { 901, 801, 701, 601, 501, 401, 301, 201, 101, 1 };
@@ -82,13 +99,15 @@ namespace Doji.AI.Diffusers.Editor.Tests {
         }
 
         [Test]
-        public void TestFullLoop() {
+        public void TestFullLoopNoNoise() {
             _scheduler.SetTimesteps(10);
             using var dummySamples = DummySamples;
             var sample = dummySamples;
+            sample = _ops.Mul(_scheduler.InitNoiseSigma, sample);
 
             foreach (int t in _scheduler.Timesteps) {
                 var residual = Model(sample, t);
+                residual = _scheduler.ScaleModelInput(residual, t);
                 _stepArgs.Set(residual, t, sample);
                 sample = _scheduler.Step(_stepArgs).PrevSample;
             }

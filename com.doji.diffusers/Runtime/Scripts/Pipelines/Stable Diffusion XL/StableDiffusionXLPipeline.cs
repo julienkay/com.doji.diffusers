@@ -369,7 +369,7 @@ namespace Doji.AI.Diffusers {
             }
             
             // scale the initial noise by the standard deviation required by the scheduler
-            if (Scheduler.InitNoiseSigma > 1.0f) {
+            if (Math.Abs(Scheduler.InitNoiseSigma - 1.0f) < 0.00001f) {
                 Profiler.BeginSample("Multiply latents with scheduler sigma");
                 _latents = _ops.Mul(Scheduler.InitNoiseSigma, _latents);
                 Profiler.EndSample();
