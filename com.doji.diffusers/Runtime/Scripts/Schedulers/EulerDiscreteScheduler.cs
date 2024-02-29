@@ -277,6 +277,7 @@ namespace Doji.AI.Diffusers {
                 gamma = MathF.Min(s_churn / (Sigmas.Length - 1), MathF.Sqrt(2f) - 1f);
             }
 
+            seed ??= unchecked((uint)new System.Random().Next());
             var noise = _ops.RandomNormal(modelOutput.shape, 0, 1, seed.Value);
 
             var eps = _ops.Mul(noise, s_noise);
