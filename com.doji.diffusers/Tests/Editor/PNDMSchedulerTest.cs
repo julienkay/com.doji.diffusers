@@ -2,6 +2,7 @@ using NUnit.Framework;
 using System.Collections;
 using Unity.Sentis;
 using UnityEngine.TestTools.Utils;
+using static Doji.AI.Diffusers.Scheduler;
 
 namespace Doji.AI.Diffusers.Editor.Tests {
 
@@ -35,6 +36,8 @@ namespace Doji.AI.Diffusers.Editor.Tests {
                 return TestUtils.LoadFromFile("pndm_test_expected_output");
             }
         }
+
+        private StepArgs _stepArgs = new StepArgs();
 
         [SetUp]
         public void SetUp() {
@@ -120,7 +123,8 @@ namespace Doji.AI.Diffusers.Editor.Tests {
            
             foreach(int t in scheduler.Timesteps) {
                 var residual = Model(sample, t);
-                sample = scheduler.Step(residual, t, sample).PrevSample;
+                _stepArgs.Set(residual, t, sample);
+                sample = scheduler.Step(_stepArgs).PrevSample;
             }
 
             sample.MakeReadable();

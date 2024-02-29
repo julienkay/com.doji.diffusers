@@ -38,7 +38,7 @@ namespace Doji.AI.Diffusers {
         /// </summary>
         public int? BeginIndex { get; private set; }
 
-        public EulerDiscreteScheduler(SchedulerConfig config, BackendType backend) : base(config, backend) {
+        public EulerDiscreteScheduler(SchedulerConfig config, BackendType backend =BackendType.GPUCompute) : base(config, backend) {
             Config.NumTrainTimesteps ??= 1000;
             Config.BetaStart ??= 0.0001f;
             Config.BetaEnd ??= 0.02f;
@@ -250,18 +250,10 @@ namespace Doji.AI.Diffusers {
             }
         }
 
-        /// <inheritdoc cref="Step(TensorFloat, float, TensorFloat)"/>
-        private SchedulerOutput Step(
-            TensorFloat modelOutput,
-            float timestep,
-            TensorFloat sample,
-            float s_churn = 0.0f,
-            float s_tmin = 0.0f,
-            float s_tmax = float.PositiveInfinity,
-            float s_noise = 1.0f,
-            uint? seed = null,
-            TensorFloat varianceNoise = null)
-        {
+        /// <inheritdoc/>
+        public override SchedulerOutput Step(StepArgs args) {
+            base.Step(args);
+
             if (!IsScaleInputCalled) {
                 Debug.LogWarning("The `ScaleModelInput()` function should be called before `Step()`.");
             }
@@ -277,8 +269,9 @@ namespace Doji.AI.Diffusers {
                 gamma = MathF.Min(s_churn / (Sigmas.Length - 1), MathF.Sqrt(2f) - 1f);
             }
 
-            seed ??= unchecked((uint)new System.Random().Next());
-            var noise = _ops.RandomNormal(modelOutput.shape, 0, 1, seed.Value);
+            generator ??= new System.Random();
+            uint seed = unchecked((uint)generator.Next());
+            var noise = _ops.RandomNormal(modelOutput.shape, 0, 1, seed);
 
             var eps = _ops.Mul(noise, s_noise);
             float sigma_hat = sigma * (gamma + 1f);
@@ -312,11 +305,6 @@ namespace Doji.AI.Diffusers {
             StepIndex++;
 
             return new SchedulerOutput(prev_sample, predOriginalSample);
-        }
-
-        /// <inheritdoc/>
-        protected override SchedulerOutput Step(TensorFloat modelOutput, float timestep, TensorFloat sample) {
-            return Step(modelOutput, timestep, sample);
         }
 
         public override void Dispose() {

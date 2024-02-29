@@ -104,24 +104,10 @@ namespace Doji.AI.Diffusers {
             }
         }
 
-        /// <summary>
-        /// This overload should never be called on DDIMScheduler because it uses an additional 'eta' parameter.
-        /// Use <see cref="Step(TensorFloat, float, TensorFloat, float, bool, System.Random, TensorFloat)"/> instead.
-        /// </summary>
-        protected override SchedulerOutput Step(TensorFloat modelOutput, float timestep, TensorFloat sample) {
-            throw new InvalidOperationException();
-        }
-
         /// <inheritdoc/>
-        public override SchedulerOutput Step(
-            TensorFloat modelOutput,
-            float timestep,
-            TensorFloat sample,
-            float eta = 0.0f,
-            bool useClippedModelOutput = false,
-            System.Random generator = null,
-            TensorFloat varianceNoise = null)
-        {
+        public override SchedulerOutput Step(StepArgs args) {
+            base.Step(args);
+
             if (NumInferenceSteps == 0) {
                 throw new ArgumentException("Number of inference steps is '0', you need to run 'SetTimesteps' after creating the scheduler");
             }

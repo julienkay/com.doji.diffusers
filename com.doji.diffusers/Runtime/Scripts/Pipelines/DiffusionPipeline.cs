@@ -28,6 +28,8 @@ namespace Doji.AI.Diffusers {
         protected uint? _seed;
         protected TensorFloat _latents;
 
+        protected Scheduler.StepArgs _stepArgs = new Scheduler.StepArgs();
+
         protected void CheckInputs(uint? seed) {
             if (_height % 8 != 0 || _width % 8 != 0) {
                 throw new ArgumentException($"`height` and `width` have to be divisible by 8 but are {_height} and {_width}.");

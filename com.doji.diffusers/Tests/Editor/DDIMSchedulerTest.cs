@@ -1,5 +1,6 @@
 using NUnit.Framework;
 using Unity.Sentis;
+using static Doji.AI.Diffusers.Scheduler;
 
 namespace Doji.AI.Diffusers.Editor.Tests {
 
@@ -33,6 +34,8 @@ namespace Doji.AI.Diffusers.Editor.Tests {
                 return TestUtils.LoadFromFile("ddim_test_expected_output");
             }
         }
+
+        private StepArgs _stepArgs = new StepArgs();
 
         [SetUp]
         public void SetUp() {
@@ -83,7 +86,8 @@ namespace Doji.AI.Diffusers.Editor.Tests {
 
             foreach (int t in _scheduler.Timesteps) {
                 var residual = Model(sample, t);
-                sample = _scheduler.Step(residual, t, sample).PrevSample;
+                _stepArgs.Set(residual, t, sample);
+                sample = _scheduler.Step(_stepArgs).PrevSample;
                 residual.Dispose();
             }
 

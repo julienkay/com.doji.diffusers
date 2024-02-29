@@ -191,7 +191,8 @@ namespace Doji.AI.Diffusers {
 
                 // compute the previous noisy sample x_t -> x_t-1
                 Profiler.BeginSample($"{Scheduler.GetType().Name}.Step");
-                var schedulerOutput = Scheduler.Step(noisePred, t, _latents, eta);
+                _stepArgs.Set(noisePred, t, _latents, eta);
+                var schedulerOutput = Scheduler.Step(_stepArgs);
                 _latents = schedulerOutput.PrevSample;
                 Profiler.EndSample();
 

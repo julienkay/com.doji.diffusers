@@ -100,7 +100,8 @@ namespace Doji.AI.Diffusers {
         /// <see cref="StepPlms(TensorFloat, int, TensorFloat)"/> depending
         /// on the internal variable <see cref="Counter"/>.
         /// </remarks>
-        protected override SchedulerOutput Step(TensorFloat modelOutput, float timestep, TensorFloat sample) {
+        public override SchedulerOutput Step(StepArgs args) {
+            base.Step(args);
             if (Counter < PrkTimesteps.Length && !SkipPrkSteps) {
                 return StepPrk(modelOutput, (int)timestep, sample);
             } else {

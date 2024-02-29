@@ -64,6 +64,47 @@ namespace Doji.AI.Diffusers {
         protected float?        SigmaMin                 { get => Config.SigmaMin;                       set => Config.SigmaMin                 = value; }
         protected float?        SigmaMax                 { get => Config.SigmaMax;                       set => Config.SigmaMax                 = value; }
 
+
+        /// <summary>
+        /// Arguments passed into <see cref="Scheduler.Step(TensorFloat, float, TensorFloat)"/> method.
+        /// </summary>
+        public class StepArgs {
+            public TensorFloat modelOutput;
+            public float timestep;
+            public TensorFloat sample;
+            public float eta = 0.0f;
+            public bool useClippedModelOutput;
+            public System.Random generator;
+            public TensorFloat varianceNoise;
+            public float s_churn = 0.0f;
+            public float s_tmin = 0.0f;
+            public float s_tmax = float.PositiveInfinity;
+            public float s_noise = 1.0f;
+
+            public void Set(TensorFloat modelOutput, float timestep, TensorFloat sample, float eta = 0.0f) {
+                this.modelOutput = modelOutput;
+                this.timestep = timestep;
+                this.sample = sample;
+                this.eta = eta;
+            }
+        }
+
+        private StepArgs _args;
+
+#pragma warning disable IDE1006 // Naming Styles
+        protected TensorFloat   modelOutput           { get => _args.modelOutput; }
+        protected float         timestep              { get => _args.timestep; }
+        protected TensorFloat   sample                { get => _args.sample;        set => _args.sample = value; }
+        protected float         eta                   { get => _args.eta; }
+        protected bool          useClippedModelOutput { get => _args.useClippedModelOutput; }
+        protected System.Random generator             { get => _args.generator;     set => _args.generator = value; }
+        protected TensorFloat   varianceNoise         { get => _args.varianceNoise; set => _args.varianceNoise = value; }
+        protected float s_churn { get => _args.s_churn; }
+        protected float s_tmin  { get => _args.s_tmin; }
+        protected float s_tmax  { get => _args.s_tmax; }
+        protected float s_noise { get => _args.s_noise; }
+#pragma warning restore IDE1006
+
         protected Ops _ops;
 
         public Scheduler(SchedulerConfig config, BackendType backend) {
@@ -81,22 +122,10 @@ namespace Doji.AI.Diffusers {
         /// This function propagates the diffusion process from the learned model
         /// outputs (most often the predicted noise).
         /// </summary>
-        protected abstract SchedulerOutput Step(TensorFloat modelOutput, float timestep, TensorFloat sample);
-
-        /// <inheritdoc cref="Step(TensorFloat, float, TensorFloat)"/>
-        /// <remarks>
-        /// Override this method only in DDIMScheduler which handles the additional eta parameter.
-        /// </remarks>
-        public virtual SchedulerOutput Step(
-            TensorFloat modelOutput,
-            float timestep,
-            TensorFloat sample,
-            float eta = 0.0f,
-            bool useClippedModelOutput = false,
-            System.Random generator = null,
-            TensorFloat varianceNoise = null)
-        {
-            return Step(modelOutput, timestep, sample);
+        public virtual SchedulerOutput Step(StepArgs args) {
+            // store args to allow for accessing them using properties for convenience.
+            _args = args;
+            return default;
         }
 
         protected float[] GetBetas() {
