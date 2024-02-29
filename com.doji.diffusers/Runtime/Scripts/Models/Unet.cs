@@ -101,6 +101,7 @@ namespace Doji.AI.Diffusers {
         public static Unet FromPretrained(string modelName, string subFolder, BackendType backend) {
             return IModel<UnetConfig>.FromPretrained<Unet>(modelName, subFolder, UnetConfig.ConfigName, backend);
         }
+
         public void Dispose() {
             _worker?.Dispose();
         }

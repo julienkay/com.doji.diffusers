@@ -61,6 +61,7 @@ namespace Doji.AI.Diffusers {
                 VaeScaleFactor = 8;
             }
         }
+
         public override TensorFloat Generate(
             Input prompt,
             int height = 512,
@@ -97,10 +98,10 @@ namespace Doji.AI.Diffusers {
             Profiler.BeginSample($"{GetType().Name}.Generate");
 
             // 0. Default height and width to unet
-            _height = height ?? Unet.Config.SampleSize * VaeScaleFactor;
-            _width = width ?? Unet.Config.SampleSize * VaeScaleFactor;
-            originalSize = originalSize ?? (_height, _width);
-            targetSize = targetSize ?? (_height, _width);
+            _height = height ?? (Unet.Config.SampleSize * VaeScaleFactor);
+            _width = width ?? (Unet.Config.SampleSize * VaeScaleFactor);
+            originalSize ??= (_height, _width);
+            targetSize ??= (_height, _width);
 
             _prompt = prompt;
             _negativePrompt = negativePrompt;
