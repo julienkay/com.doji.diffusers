@@ -137,13 +137,15 @@ namespace Doji.AI.Diffusers {
             TensorFloat predOriginalSample, predEpsilon;
 
             if (PredictionType == Prediction.Epsilon) {
-                //predOriginalSample = (sample - _ops.Pow(betaProdT, 0.5f) * modelOutput) / (float)Math.Pow(alphaProdT, 0.5f);
-                //predEpsilon = modelOutput;
-                throw new NotImplementedException();
+                var tmp = _ops.Mul(modelOutput, MathF.Sqrt(betaProdT));
+                var tmp2 = _ops.Sub(sample, tmp);
+                predOriginalSample = _ops.Div(tmp2, MathF.Sqrt(alphaProdT));
+                predEpsilon = modelOutput;
             } else if (PredictionType == Prediction.Sample) {
-                //predOriginalSample = modelOutput;
-                //predEpsilon = (sample - (float)MathF.Pow(alphaProdT, 0.5f) * predOriginalSample) / (float)Math.Pow(betaProdT, 0.5f);
-                throw new NotImplementedException();
+                predOriginalSample = modelOutput;
+                var tmp = _ops.Mul(predOriginalSample, MathF.Sqrt(alphaProdT));
+                var tmp2 = _ops.Sub(sample, tmp);
+                predEpsilon = _ops.Div(tmp2, MathF.Sqrt(betaProdT));
             } else if (PredictionType == Prediction.V_Prediction) {
                 var tmp = _ops.Mul(sample, MathF.Pow(alphaProdT, 0.5f));
                 var tmp2 = _ops.Mul(modelOutput, MathF.Pow(betaProdT, 0.5f));
