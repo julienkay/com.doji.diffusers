@@ -143,7 +143,7 @@ namespace Doji.AI.Diffusers {
             // 7. Prepare added time ids & embeddings
             TensorFloat addTextEmbeds = promptEmbeds.PooledPromptEmbeds;
             float[] timeIds = GetTimeIds(originalSize.Value, cropsCoordsTopLeft, targetSize.Value);
-            TensorFloat addTimeIds = new TensorFloat(new TensorShape(timeIds.Length), timeIds);
+            TensorFloat addTimeIds = new TensorFloat(new TensorShape(1, timeIds.Length), timeIds);
             if (doClassifierFreeGuidance) {
                 promptEmbeds.PromptEmbeds = _ops.Concatenate(promptEmbeds.NegativePromptEmbeds, promptEmbeds.PromptEmbeds, axis: 0);
                 addTextEmbeds = _ops.Concatenate(promptEmbeds.NegativePooledPromptEmbeds, addTextEmbeds, axis: 0);
