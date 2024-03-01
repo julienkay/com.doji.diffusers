@@ -37,7 +37,7 @@ namespace Doji.AI.Diffusers.Editor.Tests {
         }
 
         [Test]
-        public void TestSD() {
+        public void TestSD15Small() {
             using var sd = StableDiffusionPipeline.FromPretrained(DiffusionModel.SD_1_5);
             int width = 64;
             int height = 64;
@@ -62,26 +62,60 @@ namespace Doji.AI.Diffusers.Editor.Tests {
         /// Note that we had to bump the expected error somewhat for this test to pass.
         /// </remarks>
         [Test]
-        public void TestSDLarge() {
+        public void TestSD15() {
             LogAssert.Expect(LogType.Error, "Thread group count is above the maximum allowed limit. Maximum allowed thread group count is 65535.");
             LogAssert.Expect(LogType.Error, "Thread group count is above the maximum allowed limit. Maximum allowed thread group count is 65535.");
             LogAssert.Expect(LogType.Error, "Thread group count is above the maximum allowed limit. Maximum allowed thread group count is 65535.");
 
-            using var sd = StableDiffusionPipeline.FromPretrained(DiffusionModel.SD_1_5);
+            using var sd = DiffusionPipeline.FromPretrained(DiffusionModel.SD_1_5);
             int width = 512;
             int height = 512;
             string prompt = "a cat";
             using var latents = LatentsLarge;
 
-            var generated = sd.Generate(prompt, width, height, numInferenceSteps: 10, guidanceScale: 7.5f, latents: latents);
-            var tmp = RenderTexture.GetTemporary(width, height);
+            var generated = sd.Generate(prompt, width, height, numInferenceSteps: 10, guidanceScale: 7.5f, latents: latents, callback: TestPredictedNoiseLarge);
 
-            //TestUtils.ToFile(sd, generated);   
+            TestUtils.ToFile(sd, generated);   
         }
 
         private void TestPredictedNoiseLarge(int i, float t, TensorFloat latents) {
             latents.MakeReadable();
             CollectionAssert.AreEqual(GetLatentsLarge(i), latents.ToReadOnlyArray(), new FloatArrayComparer(0.0001f), $"Latents differ at step {i}");
+        }
+
+        [Test]
+        public void TestSD21() {
+            LogAssert.Expect(LogType.Error, "Thread group count is above the maximum allowed limit. Maximum allowed thread group count is 65535.");
+            LogAssert.Expect(LogType.Error, "Thread group count is above the maximum allowed limit. Maximum allowed thread group count is 65535.");
+            LogAssert.Expect(LogType.Error, "Thread group count is above the maximum allowed limit. Maximum allowed thread group count is 65535.");
+
+            using var sd = DiffusionPipeline.FromPretrained(DiffusionModel.SD_2_1);
+            int width = 512;
+            int height = 512;
+            string prompt = "a cat";
+            using var latents = LatentsLarge;
+
+            var generated = sd.Generate(prompt, width, height, numInferenceSteps: 20, guidanceScale: 7.5f, latents: latents);
+
+            TestUtils.ToFile(sd, generated);
+        }
+
+        [Test]
+        public void TestSDXL() {
+            LogAssert.Expect(LogType.Error, "Thread group count is above the maximum allowed limit. Maximum allowed thread group count is 65535.");
+            LogAssert.Expect(LogType.Error, "Thread group count is above the maximum allowed limit. Maximum allowed thread group count is 65535.");
+            LogAssert.Expect(LogType.Error, "Thread group count is above the maximum allowed limit. Maximum allowed thread group count is 65535.");
+            LogAssert.Expect(LogType.Error, "Thread group count is above the maximum allowed limit. Maximum allowed thread group count is 65535.");
+
+            using var sd = DiffusionPipeline.FromPretrained(DiffusionModel.SD_XL_BASE);
+            int width = 512;
+            int height = 512;
+            string prompt = "a cat";
+            using var latents = LatentsLarge;
+
+            var generated = sd.Generate(prompt, width, height, numInferenceSteps: 20, guidanceScale: 7.5f, latents: latents);
+
+            TestUtils.ToFile(sd, generated);
         }
     }
 }

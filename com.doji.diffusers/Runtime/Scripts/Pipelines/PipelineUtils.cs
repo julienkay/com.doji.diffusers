@@ -144,7 +144,7 @@ namespace Doji.AI.Diffusers {
 
     public partial class StableDiffusionPipeline {
 
-        public static new StableDiffusionPipeline FromPretrained(DiffusionModel model, BackendType backend = BackendType.GPUCompute) {
+        internal static new StableDiffusionPipeline FromPretrained(DiffusionModel model, BackendType backend = BackendType.GPUCompute) {
             PipelineConfig config = LoadPipelineConfig(model);
 
             var vocab = LoadVocab(model.Name, "tokenizer");
@@ -176,7 +176,7 @@ namespace Doji.AI.Diffusers {
 
     public partial class StableDiffusionXLPipeline {
 
-        public static new StableDiffusionXLPipeline FromPretrained(DiffusionModel model, BackendType backend = BackendType.GPUCompute) {
+        internal static new StableDiffusionXLPipeline FromPretrained(DiffusionModel model, BackendType backend = BackendType.GPUCompute) {
             PipelineConfig config = LoadPipelineConfig(model);
 
             var vocab = LoadVocab(model.Name, "tokenizer");
