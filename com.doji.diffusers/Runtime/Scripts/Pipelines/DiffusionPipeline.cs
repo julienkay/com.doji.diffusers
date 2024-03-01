@@ -28,14 +28,14 @@ namespace Doji.AI.Diffusers {
         protected uint? _seed;
         protected TensorFloat _latents;
 
-        protected void CheckInputs(uint? seed) {
+        protected void CheckInputs() {
             if (_height % 8 != 0 || _width % 8 != 0) {
                 throw new ArgumentException($"`height` and `width` have to be divisible by 8 but are {_height} and {_width}.");
             }
             if (_numImagesPerPrompt > 1) {
                 throw new ArgumentException($"More than one image per prompt not supported yet. `numImagesPerPrompt` was {_numImagesPerPrompt}.");
             }
-            if (_latents != null && seed != null) {
+            if (_latents != null && _seed != null) {
                 throw new ArgumentException($"Both a seed and pre-generated noise has been passed. Please use either one or the other.");
             }
         }

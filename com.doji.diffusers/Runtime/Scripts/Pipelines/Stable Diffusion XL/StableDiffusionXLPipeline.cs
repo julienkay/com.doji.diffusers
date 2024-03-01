@@ -109,8 +109,9 @@ namespace Doji.AI.Diffusers {
             _guidanceScale = guidanceScale;
             _numImagesPerPrompt = numImagesPerPrompt;
             _eta = eta;
+            _seed = seed;
             _latents = latents;
-            CheckInputs(seed);
+            CheckInputs();
 
             // 2. Define call parameters
             if (prompt == null) {
@@ -123,8 +124,8 @@ namespace Doji.AI.Diffusers {
                 throw new ArgumentException($"Invalid prompt argument {nameof(prompt)}");
             }
 
-            if (latents == null) {
-                _seed = seed != null ? seed : unchecked((uint)new System.Random().Next());
+            if (latents == null && _seed == null) {
+                _seed = unchecked((uint)new System.Random().Next());
             }
 
             bool doClassifierFreeGuidance = guidanceScale > 1.0f;
