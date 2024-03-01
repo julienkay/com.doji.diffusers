@@ -68,30 +68,50 @@ namespace Doji.AI.Diffusers {
         /// <summary>
         /// Arguments passed into <see cref="Scheduler.Step(TensorFloat, float, TensorFloat)"/> method.
         /// </summary>
-        public class StepArgs {
+        public struct StepArgs {
+            
             public TensorFloat modelOutput;
             public float timestep;
             public TensorFloat sample;
-            public float eta = 0.0f;
+            public float eta;
             public bool useClippedModelOutput;
             public System.Random generator;
             public TensorFloat varianceNoise;
-            public float s_churn = 0.0f;
-            public float s_tmin = 0.0f;
-            public float s_tmax = float.PositiveInfinity;
-            public float s_noise = 1.0f;
+            public float s_churn;
+            public float s_tmin;
+            public float s_tmax;
+            public float s_noise;
 
-            public void Set(TensorFloat modelOutput, float timestep, TensorFloat sample, float eta = 0.0f) {
+            public StepArgs(TensorFloat modelOutput,
+                            float timestep,
+                            TensorFloat sample,
+                            float eta = 0.0f,
+                            bool useClippedModelOutput = false,
+                            System.Random generator = null,
+                            TensorFloat varianceNoise = null,
+                            float s_churn = 0.0f,
+                            float s_tmin = 0.0f,
+                            float s_tmax = float.PositiveInfinity,
+                            float s_noise = 1.0f)
+            {
                 this.modelOutput = modelOutput;
                 this.timestep = timestep;
                 this.sample = sample;
                 this.eta = eta;
+                this.useClippedModelOutput = useClippedModelOutput;
+                this.generator = generator;
+                this.varianceNoise = varianceNoise;
+                this.s_churn = s_churn;
+                this.s_tmin = s_tmin;
+                this.s_tmax = s_tmax;
+                this.s_noise = s_noise;
             }
         }
 
         private StepArgs _args;
 
 #pragma warning disable IDE1006 // Naming Styles
+        /* StepArgs accessors for convenience */
         protected TensorFloat   modelOutput           { get => _args.modelOutput; }
         protected float         timestep              { get => _args.timestep; }
         protected TensorFloat   sample                { get => _args.sample;        set => _args.sample = value; }

@@ -37,7 +37,6 @@ namespace Doji.AI.Diffusers.Editor.Tests {
             }
         }
 
-        private StepArgs _stepArgs = new StepArgs();
         private Ops _ops;
 
         [SetUp]
@@ -108,8 +107,8 @@ namespace Doji.AI.Diffusers.Editor.Tests {
             foreach (int t in _scheduler.Timesteps) {
                 var residual = Model(sample, t);
                 residual = _scheduler.ScaleModelInput(residual, t);
-                _stepArgs.Set(residual, t, sample);
-                sample = _scheduler.Step(_stepArgs).PrevSample;
+                var stepArgs = new StepArgs(residual, t, sample);
+                sample = _scheduler.Step(stepArgs).PrevSample;
             }
 
             sample.MakeReadable();
