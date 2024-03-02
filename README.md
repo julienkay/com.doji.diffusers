@@ -26,11 +26,11 @@ Some things that might be worked on next are:
   - [x] PNDM
   - [x] DDIM
   - [x] EulerDiscrete
-  - [ ] EulerAncestralDiscreteScheduler
-  - [ ] LCMScheduler 
-  - [ ] DDPMSchedulerOutput
-  - [ ] KDPM2DiscreteScheduler
-  - [ ] KDPM2AncestralDiscreteScheduler
+  - [ ] EulerAncestralDiscrete
+  - [ ] LCM
+  - [ ] DDPM
+  - [ ] KDPM2Discrete
+  - [ ] KDPM2AncestralDiscrete
 - [ ] async pipeline methods (sliced inference)
 - [ ] pipelines for img2img, inpaint, upscale, depth2img
 - [ ] support multiple images per prompt
