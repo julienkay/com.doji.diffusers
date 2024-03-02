@@ -133,7 +133,6 @@ namespace Doji.AI.Diffusers {
         );
 
         public virtual void Dispose() {
-            TextEncoder?.Dispose();
             VaeDecoder?.Dispose();
             TextEncoder?.Dispose();
             Scheduler?.Dispose();
