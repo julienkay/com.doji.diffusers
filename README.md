@@ -19,7 +19,7 @@ Some things that might be worked on next are:
 - [ ] support more models
   - [x] SD 1.5
   - [x] SD 2.1
-  - [ ] SDXL
+  - [x] SDXL
   - [ ] sdxl-turbo
   - [ ] LoRA models
 - [ ] more scheduler implementations
@@ -37,10 +37,12 @@ Some things that might be worked on next are:
 - [ ] write some documentation
 
 ### Dependencies
-Depends on [com.doji.transformers]
+- [com.doji.transformers]
+- [com.doji.pngcs]
 
 [OpenUPM]: https://openupm.com/packages/com.doji.diffusers
 [Documentation (coming soon)]: https://github.com/julienkay/com.doji.diffusers
 [Feedback/Questions]: https://discussions.unity.com/t/stable-diffusion-diffusers-transformers-package/332701
 [diffusers]: https://github.com/huggingface/diffusers
 [com.doji.transformers]: https://github.com/julienkay/com.doji.transformers
+[com.doji.pngcs]: https://github.com/julienkay/com.doji.pngcs
