@@ -324,5 +324,14 @@ namespace Doji.AI.Diffusers {
         public static Scheduler FromPretrained(string modelName, string subFolder, BackendType backend) {
             return IConfigurable<SchedulerConfig>.FromPretrained<Scheduler>(modelName, subFolder, SchedulerConfig.ConfigName, backend);
         }
+
+        /// <summary>
+        /// Creates a scheduler of type <typeparamref name="T"/> with the given <paramref name="config"/>.
+        /// This can be used to get a scheduler with the configuration of another one
+        /// (in a way casting a certain type of scheduler to another one).
+        /// </summary>
+        public static T FromConfig<T>(SchedulerConfig config, BackendType backend) where T : Scheduler {
+            return (T)Activator.CreateInstance(typeof(T), config, backend);
+        }
     }
 }
