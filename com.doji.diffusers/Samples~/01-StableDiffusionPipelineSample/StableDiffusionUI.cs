@@ -61,13 +61,14 @@ namespace Doji.AI.Diffusers.Samples {
     /// <summary>
     /// Enum whose values map to certain known diffusion models (<see cref="DiffusionModel.ValidatedModels"/>)
     /// </summary>
-    public enum Model { SD_1_5, SD_2_1 }
+    public enum Model { SD_1_5, SD_2_1, SD_XL }
 
     public static class ValidatedModelExtensions {
         public static DiffusionModel GetModelInfo(this Model model) {
             return model switch {
                 Model.SD_1_5 => DiffusionModel.SD_1_5,
                 Model.SD_2_1 => DiffusionModel.SD_2_1,
+                Model.SD_XL => DiffusionModel.SD_XL_BASE,
                 _ => throw new System.ArgumentException($"Unknown model '{model}'"),
             };
         }
