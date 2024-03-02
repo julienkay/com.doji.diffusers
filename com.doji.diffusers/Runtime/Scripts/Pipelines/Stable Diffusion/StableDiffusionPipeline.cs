@@ -73,8 +73,10 @@ namespace Doji.AI.Diffusers {
                 throw new ArgumentException($"Invalid prompt argument {nameof(prompt)}");
             }
 
+            System.Random generator = null;
             if (latents == null && _seed == null) {
-                _seed = unchecked((uint)new System.Random().Next());
+                generator = new System.Random();
+                _seed = unchecked((uint)generator.Next());
             }
 
             bool doClassifierFreeGuidance = guidanceScale > 1.0f;
@@ -132,7 +134,7 @@ namespace Doji.AI.Diffusers {
 
                 // compute the previous noisy sample x_t -> x_t-1
                 Profiler.BeginSample($"{Scheduler.GetType().Name}.Step");
-                var stepArgs = new Scheduler.StepArgs(noisePred, t, latents, eta);
+                var stepArgs = new Scheduler.StepArgs(noisePred, t, latents, eta, generator: generator);
                 var schedulerOutput = Scheduler.Step(stepArgs);
                 latents = schedulerOutput.PrevSample;
                 Profiler.EndSample();
