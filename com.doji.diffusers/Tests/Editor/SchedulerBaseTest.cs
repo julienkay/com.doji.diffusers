@@ -11,6 +11,7 @@ namespace Doji.AI.Diffusers.Editor.Tests {
                 yield return new TestCaseData(typeof(DDIMScheduler)).Returns(Spacing.Leading);
                 yield return new TestCaseData(typeof(PNDMScheduler)).Returns(Spacing.Leading);
                 yield return new TestCaseData(typeof(EulerDiscreteScheduler)).Returns(Spacing.Linspace);
+                yield return new TestCaseData(typeof(EulerAncestralDiscreteScheduler)).Returns(Spacing.Linspace);
             }
         }
 
