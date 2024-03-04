@@ -49,8 +49,6 @@ namespace Doji.AI.Diffusers {
             var sigma = Sigmas[StepIndex.Value];
 
             // 1. compute predicted original sample (x_0) from sigma-scaled predicted noise
-            // NOTE: "original_sample" should not be an expected prediction_type but is left in for
-            // backwards compatibility
             TensorFloat predOriginalSample;
             if (PredictionType == Prediction.Epsilon) {
                 predOriginalSample = _ops.Sub(sample, _ops.Mul(modelOutput, sigma));
