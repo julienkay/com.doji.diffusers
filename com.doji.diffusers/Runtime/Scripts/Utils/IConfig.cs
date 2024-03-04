@@ -2,6 +2,7 @@ using Newtonsoft.Json.Linq;
 using Newtonsoft.Json.Serialization;
 using Newtonsoft.Json;
 using System;
+using System.Collections.Generic;
 
 namespace Doji.AI.Diffusers {
 
@@ -40,9 +41,24 @@ namespace Doji.AI.Diffusers {
 
         public override object ReadJson(JsonReader reader, Type objectType, object existingValue, JsonSerializer serializer) {
             JObject jo = JObject.Load(reader);
-            string configType = jo["_class_name"].Value<string>();
+            JToken className = jo["_class_name"];
+            string configType;
+            if (className == null) {
+                // hacky... TextEncoder should be in transformers package and is a different kind of config
+                configType = jo["architectures"].Value<JArray>().First.Value<string>();
+            } else {
+                configType = className.Value<string>();
+            }
             if (configType.Contains("Scheduler")) {
                 return JsonConvert.DeserializeObject<SchedulerConfig>(jo.ToString(), SpecifiedSubclassConversion);
+            } else if (configType == "CLIPTextModel") {
+                return JsonConvert.DeserializeObject<TextEncoderConfig>(jo.ToString(), SpecifiedSubclassConversion);
+            } else if (configType == "CLIPTextModelWithProjection") {
+                return JsonConvert.DeserializeObject<TextEncoderConfig>(jo.ToString(), SpecifiedSubclassConversion);
+            } else if (configType == "UNet2DConditionModel") {
+                return JsonConvert.DeserializeObject<UnetConfig>(jo.ToString(), SpecifiedSubclassConversion);
+            } else if (configType == "AutoencoderKL") {
+                return JsonConvert.DeserializeObject<VaeConfig>(jo.ToString(), SpecifiedSubclassConversion);
             } else {
                 throw new Exception($"Unknown class type in config: {configType}");
             }

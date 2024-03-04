@@ -41,8 +41,7 @@ namespace Doji.AI.Diffusers {
             Tensor timestep,
             TensorFloat encoderHiddenStates,
             Tensor textEmbeds = null,
-            Tensor timeIds = null
-            )
+            Tensor timeIds = null)
         {
             if (sample is null) {
                 throw new ArgumentNullException(nameof(sample));

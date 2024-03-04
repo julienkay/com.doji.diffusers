@@ -12,8 +12,10 @@ namespace Doji.AI.Diffusers {
         /// </summary>
         /// <param name="path">The path to the model file in the Resources folder</param>
         private static Model LoadFromModelAsset(string path) {
-            ModelAsset modelAsset = Resources.Load<ModelAsset>(path)
-                ?? throw new FileNotFoundException($"The ModelAsset file was not found at: '{path}'");
+            ModelAsset modelAsset = Resources.Load<ModelAsset>(path);
+            if (modelAsset == null) {
+                throw new FileNotFoundException($"The ModelAsset file was not found at: '{path}'");
+            }
             Model model = ModelLoader.Load(modelAsset);
             Resources.UnloadAsset(modelAsset);
             return model;
@@ -29,7 +31,7 @@ namespace Doji.AI.Diffusers {
             }
         }
 
-        protected new  static C FromPretrained<C>(string modelDir, string subFolder, string configName, BackendType backend) where C : IModel<T> {
+        protected new static C FromPretrained<C>(string modelDir, string subFolder, string configName, BackendType backend) where C : IModel<T> {
             var config = LoadConfig(Path.Combine(modelDir, subFolder), configName);
             var model = LoadFromModelAsset(Path.Combine(modelDir, subFolder, "model"));
             return FromConfig<C>(config, model, backend);

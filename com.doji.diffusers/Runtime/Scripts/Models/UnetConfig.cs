@@ -4,7 +4,6 @@ namespace Doji.AI.Diffusers {
 
     public class UnetConfig : Config {
 
-
         [JsonProperty("act_fn")]
         public string ActFn { get; set; }
 
