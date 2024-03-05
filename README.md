@@ -20,13 +20,14 @@ Some things that might be worked on next are:
   - [x] SD 1.5
   - [x] SD 2.1
   - [x] SDXL
-  - [ ] sdxl-turbo
+  - [x] SD-Turbo
+  - [x] SDXL-Turbo
   - [ ] LoRA models
 - [ ] more scheduler implementations
   - [x] PNDM
   - [x] DDIM
   - [x] EulerDiscrete
-  - [ ] EulerAncestralDiscrete
+  - [x] EulerAncestralDiscrete
   - [ ] LCM
   - [ ] DDPM
   - [ ] KDPM2Discrete
