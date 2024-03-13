@@ -78,7 +78,7 @@ namespace Doji.AI.Diffusers.Editor.Tests {
             using TensorFloat promptEmbeds = new TensorFloat(new TensorShape(1, 77, 768), PromptEmbeds_1_5);
             using Tensor timestep = unet.CreateTimestep(new TensorShape(1), t);
 
-            TensorFloat noisePred = unet.ExecuteModel(latentInputTensor, timestep, promptEmbeds);
+            TensorFloat noisePred = unet.Execute(latentInputTensor, timestep, promptEmbeds);
             noisePred.MakeReadable();
             float[] unetOutput = noisePred.ToReadOnlyArray();
 
@@ -94,7 +94,7 @@ namespace Doji.AI.Diffusers.Editor.Tests {
             using TensorFloat promptEmbeds = new TensorFloat(new TensorShape(1, 77, 768), PromptEmbeds_1_5);
             using Tensor timestep = unet.CreateTimestep(new TensorShape(1), t);
 
-            TensorFloat noisePred = unet.ExecuteModel(latentInputTensor, timestep, promptEmbeds);
+            TensorFloat noisePred = unet.Execute(latentInputTensor, timestep, promptEmbeds);
             noisePred.MakeReadable();
             float[] unetOutput = noisePred.ToReadOnlyArray();
 
@@ -110,7 +110,7 @@ namespace Doji.AI.Diffusers.Editor.Tests {
             using TensorFloat promptEmbeds = new TensorFloat(new TensorShape(1, 77, 1024), PromptEmbeds_2_1);
             using Tensor timestep = unet.CreateTimestep(new TensorShape(1), t);
 
-            TensorFloat noisePred = unet.ExecuteModel(latentInputTensor, timestep, promptEmbeds);
+            TensorFloat noisePred = unet.Execute(latentInputTensor, timestep, promptEmbeds);
             noisePred.MakeReadable();
             float[] unetOutput = noisePred.ToReadOnlyArray();
 

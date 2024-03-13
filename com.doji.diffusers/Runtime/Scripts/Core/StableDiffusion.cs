@@ -71,9 +71,9 @@ namespace Doji.AI.Diffusers {
             return _sdPipeline.GetParameters();
         }
 
-        public async Task ImagineAsync(string prompt, int width, int height, int numInferenceSteps = 50, float guidanceScale = 7.5f, string negativePrompt = null) {
+        public async Task<Parameters> ImagineAsync(string prompt, int width, int height, int numInferenceSteps = 50, float guidanceScale = 7.5f, string negativePrompt = null) {
             RenderTexture.name = prompt;
-            var image = _sdPipeline.Generate(
+            var image = await _sdPipeline.GenerateAsync(
                 prompt,
                 width: width,
                 height: height,
@@ -81,10 +81,8 @@ namespace Doji.AI.Diffusers {
                 guidanceScale: guidanceScale,
                 negativePrompt: negativePrompt
             );
-            await image.ReadbackRequestAsync();
-            Profiler.BeginSample("Convert to rendertexture");
             TextureConverter.RenderToTexture(image, RenderTexture);
-            Profiler.EndSample();
+            return _sdPipeline.GetParameters();
         }
 
         public void Dispose() {

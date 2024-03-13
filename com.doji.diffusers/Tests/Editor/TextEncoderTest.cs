@@ -55,7 +55,7 @@ namespace Doji.AI.Diffusers.Editor.Tests {
 
             using TensorInt tokens = new TensorInt(new TensorShape(1, inputIds.Count()), inputIds.ToArray());
             using TextEncoder textEncoder = new TextEncoder(model, null);
-            TensorFloat output = textEncoder.ExecuteModel(tokens)[0] as TensorFloat;
+            TensorFloat output = textEncoder.Execute(tokens)[0] as TensorFloat;
             output.MakeReadable();
             float[] promptEmbeds = output.ToReadOnlyArray();
 
@@ -78,7 +78,7 @@ namespace Doji.AI.Diffusers.Editor.Tests {
 
             using TensorInt tokens = new TensorInt(new TensorShape(1, inputIds.Count()), inputIds.ToArray());
             using TextEncoder textEncoder = new TextEncoder(model, null);
-            TensorFloat output = textEncoder.ExecuteModel(tokens)[0] as TensorFloat;
+            TensorFloat output = textEncoder.Execute(tokens)[0] as TensorFloat;
             output.MakeReadable();
             float[] promptEmbeds = output.ToReadOnlyArray();
 
@@ -101,7 +101,7 @@ namespace Doji.AI.Diffusers.Editor.Tests {
 
             using TensorInt tokens = new TensorInt(new TensorShape(1, inputIds.Count()), inputIds.ToArray());
             using TextEncoder textEncoder = new TextEncoder(model, null);
-            TensorFloat output = textEncoder.ExecuteModel(tokens)[0] as TensorFloat;
+            TensorFloat output = textEncoder.Execute(tokens)[0] as TensorFloat;
             output.MakeReadable();
             float[] promptEmbeds = output.ToReadOnlyArray();
 

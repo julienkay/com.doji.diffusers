@@ -167,7 +167,7 @@ namespace Doji.AI.Diffusers {
 
                 var unetInput = _ops.Concatenate(rgbLatent, depthLatents, 1); // this order is important
                 // predict the noise residual
-                var noisePred = Unet.ExecuteModel(unetInput, timestep, batchEmptyTextEmbed);
+                var noisePred = Unet.Execute(unetInput, timestep, batchEmptyTextEmbed);
 
                 // compute the previous noisy sample x_t -> x_t-1
                 var stepArgs = new Scheduler.StepArgs(noisePred, t, depthLatents, generator: _generator);
@@ -198,11 +198,11 @@ namespace Doji.AI.Diffusers {
             );
             int[] inputIds = textInputs.InputIds.ToArray();
             using var textIdTensor = new TensorInt(new TensorShape(_batchSize, inputIds.Length), inputIds);
-            _emptyTextEmbed = TextEncoder.ExecuteModel(textIdTensor)[0] as TensorFloat;
+            _emptyTextEmbed = TextEncoder.Execute(textIdTensor)[0] as TensorFloat;
         }
 
         private TensorFloat EncodeRGB(TensorFloat rgb) {
-            var h = VaeEncoder.Encode(rgb);
+            var h = VaeEncoder.Execute(rgb);
             throw new NotImplementedException();
             /*
             moments = self.vae.quant_conv(h)

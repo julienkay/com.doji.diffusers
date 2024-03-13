@@ -1,4 +1,5 @@
 using System;
+using System.Threading.Tasks;
 using Unity.Sentis;
 
 namespace Doji.AI.Diffusers {
@@ -36,7 +37,7 @@ namespace Doji.AI.Diffusers {
             _ops = WorkerFactory.CreateOps(Backend, null);
         }
 
-        public TensorFloat ExecuteModel(TensorFloat latentSample) {
+        public TensorFloat Execute(TensorFloat latentSample) {
             if (latentSample is null) {
                 throw new ArgumentNullException(nameof(latentSample));
             }
@@ -48,6 +49,31 @@ namespace Doji.AI.Diffusers {
             }
 
             _worker.Execute(latentSample);
+            TensorFloat sample = _worker.PeekOutput("sample") as TensorFloat;
+            TensorFloat normalized = _ops.Mad(sample, 0.5f, 0.5f);
+            TensorFloat image = _ops.Clip(normalized, 0.0f, 1.0f);
+            return image;
+        }
+
+        public async Task<TensorFloat> ExecuteAsync(TensorFloat latentSample) {
+            if (latentSample is null) {
+                throw new ArgumentNullException(nameof(latentSample));
+            }
+            if (_model == null) {
+                throw new NullReferenceException($"{nameof(_model)} was null");
+            }
+            if (_worker == null) {
+                throw new NullReferenceException($"{nameof(_worker)} was null");
+            }
+
+            var schedule = _worker.StartManualSchedule(latentSample);
+            int i = 0;
+            while (schedule.MoveNext()) {
+                if (++i % 50 == 0) {
+                    await Task.Yield();
+                }
+            }
+
             TensorFloat sample = _worker.PeekOutput("sample") as TensorFloat;
             TensorFloat normalized = _ops.Mad(sample, 0.5f, 0.5f);
             TensorFloat image = _ops.Clip(normalized, 0.0f, 1.0f);

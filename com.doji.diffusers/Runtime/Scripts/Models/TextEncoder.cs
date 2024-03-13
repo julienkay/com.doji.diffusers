@@ -1,4 +1,5 @@
 using System;
+using System.Threading.Tasks;
 using Unity.Sentis;
 
 namespace Doji.AI.Diffusers {
@@ -39,7 +40,7 @@ namespace Doji.AI.Diffusers {
             _worker = WorkerFactory.CreateWorker(Backend, _model);
         }
 
-        public ModelOutput ExecuteModel(TensorInt inputIds) {
+        public ModelOutput Execute(TensorInt inputIds) {
             if (inputIds is null) {
                 throw new ArgumentNullException(nameof(inputIds));
             }
@@ -51,6 +52,29 @@ namespace Doji.AI.Diffusers {
             }
 
             _worker.Execute(inputIds);
+            _output.GetOutputs(_model, _worker);
+            return _output;
+        }
+
+        public async Task<ModelOutput> ExecuteAsync(TensorInt inputIds) {
+            if (inputIds is null) {
+                throw new ArgumentNullException(nameof(inputIds));
+            }
+            if (_model == null) {
+                throw new NullReferenceException($"{nameof(_model)} was null");
+            }
+            if (_worker == null) {
+                throw new NullReferenceException($"{nameof(_worker)} was null");
+            }
+
+            var schedule = _worker.StartManualSchedule(inputIds);
+            int i = 0;
+            while (schedule.MoveNext()) {
+                if (++i % 100 == 0) {
+                    await Task.Yield();
+                }
+            }
+
             _output.GetOutputs(_model, _worker);
             return _output;
         }

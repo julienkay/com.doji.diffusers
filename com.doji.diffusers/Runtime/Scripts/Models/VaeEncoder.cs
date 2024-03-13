@@ -40,7 +40,7 @@ namespace Doji.AI.Diffusers {
         /// Encodes the image.
         /// TODO: Who's responsible for normalizing input?
         /// </summary>
-        public TensorFloat Encode(TensorFloat sample) {
+        public TensorFloat Execute(TensorFloat sample) {
             if (sample is null) {
                 throw new ArgumentNullException(nameof(sample));
             }

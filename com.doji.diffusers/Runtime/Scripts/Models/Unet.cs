@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using Unity.Sentis;
 
 namespace Doji.AI.Diffusers {
@@ -36,7 +37,7 @@ namespace Doji.AI.Diffusers {
             _worker = WorkerFactory.CreateWorker(Backend, _model);
         }
 
-        public TensorFloat ExecuteModel(
+        public TensorFloat Execute(
             TensorFloat sample,
             Tensor timestep,
             TensorFloat encoderHiddenStates,
@@ -75,6 +76,55 @@ namespace Doji.AI.Diffusers {
             }
 
             _worker.Execute(_inputs);
+            return _worker.PeekOutput("out_sample") as TensorFloat;
+        }
+
+        public async Task<TensorFloat> ExecuteAsync(
+            TensorFloat sample,
+            Tensor timestep,
+            TensorFloat encoderHiddenStates,
+            Tensor textEmbeds = null,
+            Tensor timeIds = null)
+        {
+            if (sample is null) {
+                throw new ArgumentNullException(nameof(sample));
+            }
+            if (timestep is null) {
+                throw new ArgumentNullException(nameof(timestep));
+            }
+            if (encoderHiddenStates is null) {
+                throw new ArgumentNullException(nameof(encoderHiddenStates));
+            }
+            if (_model == null) {
+                throw new NullReferenceException($"{nameof(_model)} was null");
+            }
+            if (_worker == null) {
+                throw new NullReferenceException($"{nameof(_worker)} was null");
+            }
+            if (timestep.dataType != _model.inputs[1].dataType) {
+                throw new ArgumentException($"This unet models expects timesteps with data type '{_model.inputs[1].dataType}'. " +
+                    $"The timesteps your scheduler provided were of type '{timestep.dataType}'. " +
+                    $"Make sure to use a scheduler that is supported for this model.");
+            }
+
+            _inputs["sample"] = sample;
+            _inputs["timestep"] = timestep;
+            _inputs["encoder_hidden_states"] = encoderHiddenStates;
+            if (textEmbeds != null) {
+                _inputs["text_embeds"] = textEmbeds;
+            }
+            if (timeIds != null) {
+                _inputs["time_ids"] = timeIds;
+            }
+
+            var schedule = _worker.StartManualSchedule(_inputs);
+            int i = 0;
+            while (schedule.MoveNext()) {
+                if (++i % 300 == 0) {
+                    await Task.Yield();
+                }
+            }
+
             return _worker.PeekOutput("out_sample") as TensorFloat;
         }
 

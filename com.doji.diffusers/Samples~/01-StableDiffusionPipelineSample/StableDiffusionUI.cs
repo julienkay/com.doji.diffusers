@@ -28,7 +28,12 @@ namespace Doji.AI.Diffusers.Samples {
         }
 
         private void OnGenerateClicked() {
-            ExecuteSD();
+            //ExecuteSD();
+            try {
+                ExecuteSDAsync();
+            } catch (Exception ex) {
+                throw ex;
+            }
         }
 
         private void OnPromptChanged(string value) {
@@ -39,6 +44,14 @@ namespace Doji.AI.Diffusers.Samples {
             Prompt = PromptField.text;
             Result = _stableDiffusion.RenderTexture;
             Parameters p = _stableDiffusion.Imagine(Prompt, Resolution, Resolution, Steps, GuidanceScale, _negativePrompts);
+            Image.texture = Result;
+            PNGUtils.SaveToDisk(Result, ".", p);
+        }
+
+        private async Task ExecuteSDAsync() {
+            Prompt = PromptField.text;
+            Result = _stableDiffusion.RenderTexture;
+            Parameters p = await _stableDiffusion.ImagineAsync(Prompt, Resolution, Resolution, Steps, GuidanceScale, _negativePrompts);
             Image.texture = Result;
             PNGUtils.SaveToDisk(Result, ".", p);
         }
