@@ -20,11 +20,11 @@ namespace Doji.AI.Diffusers.Editor {
             AssetDatabase.StartAssetEditing();
 
             try {
-                foreach ((string url, string filePath, bool optional) in model) {
-                    if (File.Exists(filePath)) {
+                foreach (var file in model) {
+                    if (File.Exists(file.ResourcesFilePath)) {
                         continue;
                     }
-                    Task t = DownloadModelAsync(url, model.Name, filePath, optional);
+                    Task t = DownloadModelAsync(file, model.ModelId);
                     tasks.Add(t);
                 }
                 await Task.WhenAll(tasks);
@@ -52,7 +52,9 @@ namespace Doji.AI.Diffusers.Editor {
         /// <param name="filePath">the path to save the downloaded file to</param>
         /// <param name="optional">if this is set to true, no error will be logged in case the file can not be found</param>
         /// <returns></returns>
-        private async static Task DownloadModelAsync(string url, string name, string filePath, bool optional) {
+        private async static Task DownloadModelAsync(ModelFile file, string name) {
+            string filePath = file.ResourcesFilePath;
+            string url = file.Url;
             string fileName = Path.GetFileName(filePath);
             Directory.CreateDirectory(Path.GetDirectoryName(filePath));
 
@@ -81,7 +83,7 @@ namespace Doji.AI.Diffusers.Editor {
                 return;
             }
 
-            if (wr.responseCode == 404 && optional) {
+            if (wr.responseCode == 404 && !file.Required) {
                 File.Delete(filePath);
                 return;
             } else if (wr.error != null || wr.result != UnityWebRequest.Result.Success) {
@@ -101,7 +103,7 @@ namespace Doji.AI.Diffusers.Editor {
                "com.doji.diffusers | Downloaded Model",
                "You are trying to use a diffusion model that is not yet downloaded to your machine.\n\n" +
                "Would you like to exit Play Mode and download the following model?\n\n" +
-               $"{model.Name}\n\n" +
+               $"{model.ModelId}\n\n" +
                "The download will happen in the background and might take a while.",
                "Download", "Cancel");
         }

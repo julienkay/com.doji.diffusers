@@ -60,12 +60,12 @@ namespace Doji.AI.Diffusers.Editor.Tests {
         }
 
         private static Unet LoadUnet_1_5() {
-            var model = DiffusionPipeline.LoadUnet(DiffusionModel.SD_1_5.Name);
+            var model = DiffusionPipeline.LoadUnet(DiffusionModel.SD_1_5.ModelId);
             return new Unet(model, null);
         }
         
         private static Unet LoadUnet_2_1() {
-            var model = DiffusionPipeline.LoadUnet(DiffusionModel.SD_2_1.Name);
+            var model = DiffusionPipeline.LoadUnet(DiffusionModel.SD_2_1.ModelId);
             return new Unet(model, null);
         }
 

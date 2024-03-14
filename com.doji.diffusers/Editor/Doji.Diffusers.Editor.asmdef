@@ -2,7 +2,8 @@
     "name": "Doji.Diffusers.Editor",
     "rootNamespace": "",
     "references": [
-        "GUID:c699e6efead55c6409492ab97b7bcb54"
+        "GUID:c699e6efead55c6409492ab97b7bcb54",
+        "GUID:c98377141161c7746a178fb5cb1af075"
     ],
     "includePlatforms": [
         "Editor"

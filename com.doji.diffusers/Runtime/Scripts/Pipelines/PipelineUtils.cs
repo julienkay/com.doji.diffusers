@@ -2,6 +2,7 @@ using Doji.AI.Transformers;
 using Newtonsoft.Json;
 using System;
 using System.IO;
+using System.Linq;
 using Unity.Sentis;
 using UnityEngine;
 
@@ -10,7 +11,7 @@ namespace Doji.AI.Diffusers {
     public partial class DiffusionPipeline {
 
         internal static PipelineConfig LoadPipelineConfig(DiffusionModel model) {
-            return LoadJsonFromTextAsset<PipelineConfig>(Path.Combine(model.Name, "model_index"));
+            return LoadJsonFromTextAsset<PipelineConfig>(Path.Combine(model.ModelId, "model_index"));
         }
 
         internal static VaeConfig LoadVaeConfig(string modelName) {
@@ -121,24 +122,19 @@ namespace Doji.AI.Diffusers {
             return false;
         }
 
-        private static bool ExistsInResources(DiffusionModel model) {
-            string dir = Path.GetDirectoryName(model.Name);
-            string subDir = Path.GetFileName(model.Name);
-            string path = Path.Combine(dir, subDir, "model_index");
-            var modelIndex = Resources.Load<TextAsset>(path);
-            bool exists = modelIndex != null;
-            Resources.UnloadAsset(modelIndex);
-            return exists;
+        public static bool ExistsInResources(DiffusionModel model) {
+            // check if at least all required files are present in Resources
+            return model.All(file => !file.Required || File.Exists(file.ResourcesFilePath));
         }
 
-        private static bool ExistsInStreamingAssets(DiffusionModel model) {
-            string path = Path.Combine(Application.streamingAssetsPath, Path.GetDirectoryName(model.Name));
+        public static bool ExistsInStreamingAssets(DiffusionModel model) {
+            foreach (var f in model) {
+                bool r = f.Required;
+                bool d = File.Exists(f.StreamingAssetsPath);
 
-            if (Directory.Exists(path)) {
-                return true;
-            } else {
-                return false;
             }
+            // check if at least all required files are present in StreamingAssets
+            return model.All(file => !file.Required || File.Exists(file.StreamingAssetsPath));
         }
     }
 
@@ -147,18 +143,18 @@ namespace Doji.AI.Diffusers {
         internal static new StableDiffusionPipeline FromPretrained(DiffusionModel model, BackendType backend = BackendType.GPUCompute) {
             PipelineConfig config = LoadPipelineConfig(model);
 
-            var vocab = LoadVocab(model.Name, "tokenizer");
-            var merges = LoadMerges(model.Name, "tokenizer");
-            var tokenizerConfig = LoadTokenizerConfig(model.Name, "tokenizer");
+            var vocab = LoadVocab(model.ModelId, "tokenizer");
+            var merges = LoadMerges(model.ModelId, "tokenizer");
+            var tokenizerConfig = LoadTokenizerConfig(model.ModelId, "tokenizer");
             var clipTokenizer = new ClipTokenizer(
                 vocab,
                 merges,
                 tokenizerConfig
             );
-            var scheduler = Scheduler.FromPretrained(model.Name, "scheduler", backend);
-            var vaeDecoder = VaeDecoder.FromPretrained(model.Name, "vae_decoder", backend);
-            var textEncoder = TextEncoder.FromPretrained(model.Name, "text_encoder", backend);
-            var unet = Unet.FromPretrained(model.Name, "unet", backend);
+            var scheduler = Scheduler.FromPretrained(model.ModelId, "scheduler", backend);
+            var vaeDecoder = VaeDecoder.FromPretrained(model.ModelId, "vae_decoder", backend);
+            var textEncoder = TextEncoder.FromPretrained(model.ModelId, "text_encoder", backend);
+            var unet = Unet.FromPretrained(model.ModelId, "unet", backend);
 
             StableDiffusionPipeline sdPipeline = new StableDiffusionPipeline(
                 vaeDecoder,
@@ -168,7 +164,7 @@ namespace Doji.AI.Diffusers {
                 unet,
                 backend
             );
-            sdPipeline.NameOrPath = model.Name;
+            sdPipeline.NameOrPath = model.ModelId;
             sdPipeline.Config = config;
             return sdPipeline;
         }
@@ -179,27 +175,27 @@ namespace Doji.AI.Diffusers {
         internal static new StableDiffusionXLPipeline FromPretrained(DiffusionModel model, BackendType backend = BackendType.GPUCompute) {
             PipelineConfig config = LoadPipelineConfig(model);
 
-            var vocab = LoadVocab(model.Name, "tokenizer");
-            var merges = LoadMerges(model.Name, "tokenizer");
-            var tokenizerConfig = LoadTokenizerConfig(model.Name, "tokenizer");
+            var vocab = LoadVocab(model.ModelId, "tokenizer");
+            var merges = LoadMerges(model.ModelId, "tokenizer");
+            var tokenizerConfig = LoadTokenizerConfig(model.ModelId, "tokenizer");
             var tokenizer = new ClipTokenizer(
                 vocab,
                 merges,
                 tokenizerConfig
             );
-            vocab = LoadVocab(model.Name, "tokenizer_2");
-            merges = LoadMerges(model.Name, "tokenizer_2");
-            tokenizerConfig = LoadTokenizerConfig(model.Name, "tokenizer_2");
+            vocab = LoadVocab(model.ModelId, "tokenizer_2");
+            merges = LoadMerges(model.ModelId, "tokenizer_2");
+            tokenizerConfig = LoadTokenizerConfig(model.ModelId, "tokenizer_2");
             var tokenizer2 = new ClipTokenizer(
                 vocab,
                 merges,
                 tokenizerConfig
             );
-            var scheduler = Scheduler.FromPretrained(model.Name, "scheduler", backend);
-            var vaeDecoder = VaeDecoder.FromPretrained(model.Name, "vae_decoder", backend);
-            var textEncoder = TextEncoder.FromPretrained(model.Name, "text_encoder", backend);
-            var textEncoder2 = TextEncoder.FromPretrained(model.Name, "text_encoder_2", backend);
-            var unet = Unet.FromPretrained(model.Name, "unet", backend);
+            var scheduler = Scheduler.FromPretrained(model.ModelId, "scheduler", backend);
+            var vaeDecoder = VaeDecoder.FromPretrained(model.ModelId, "vae_decoder", backend);
+            var textEncoder = TextEncoder.FromPretrained(model.ModelId, "text_encoder", backend);
+            var textEncoder2 = TextEncoder.FromPretrained(model.ModelId, "text_encoder_2", backend);
+            var unet = Unet.FromPretrained(model.ModelId, "unet", backend);
 
             StableDiffusionXLPipeline sdPipeline = new StableDiffusionXLPipeline(
                 vaeDecoder,
@@ -211,7 +207,7 @@ namespace Doji.AI.Diffusers {
                 tokenizer2,
                 backend
             );
-            sdPipeline.NameOrPath = model.Name;
+            sdPipeline.NameOrPath = model.ModelId;
             sdPipeline.Config = config;
             return sdPipeline;
         }
