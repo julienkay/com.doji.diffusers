@@ -80,6 +80,8 @@ namespace Doji.AI.Diffusers.Editor {
             Progress.Remove(dlID);
 
             if (canceled) {
+                // remove partially downloaded file
+                File.Delete(filePath);
                 return;
             }
 
