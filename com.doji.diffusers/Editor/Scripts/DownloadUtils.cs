@@ -17,9 +17,9 @@ namespace Doji.AI.Diffusers.Editor {
 
             _downloads.Add(model);
             List<Task> tasks = new List<Task>();
-            AssetDatabase.StartAssetEditing();
 
             try {
+                AssetDatabase.StartAssetEditing();
                 foreach (var file in model) {
                     if (File.Exists(file.ResourcesFilePath)) {
                         continue;
@@ -31,6 +31,7 @@ namespace Doji.AI.Diffusers.Editor {
             } finally {
                 _downloads.Remove(model);
                 AssetDatabase.StopAssetEditing();
+                AssetDatabase.Refresh();
             }
         }
 
@@ -56,6 +57,17 @@ namespace Doji.AI.Diffusers.Editor {
             string filePath = file.ResourcesFilePath;
             string url = file.Url;
             string fileName = Path.GetFileName(filePath);
+
+            // first check if the file is available (some are optional)
+            UnityWebRequest headRequest = UnityWebRequest.Head(url);
+            var hr = headRequest.SendWebRequest();
+            while (!hr.isDone) {
+                await Task.Yield();
+            }
+            if (headRequest.responseCode == 404 && !file.Required) {
+                return;
+            }
+
             Directory.CreateDirectory(Path.GetDirectoryName(filePath));
 
             UnityWebRequest wr = UnityWebRequest.Get(url);
