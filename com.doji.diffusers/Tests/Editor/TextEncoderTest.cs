@@ -41,7 +41,7 @@ namespace Doji.AI.Diffusers.Editor.Tests {
 
         [Test]
         public void TestEncode_1_5() {
-            var model = DiffusionPipeline.LoadTextEncoder(DiffusionModel.SD_1_5.ModelId);
+            var model = DiffusionPipeline.LoadTextEncoder(DiffusionModel.SD_1_5);
 
             ClipTokenizer tokenizer = GetSDCLIPTokenizer_1_5();
 
@@ -64,7 +64,7 @@ namespace Doji.AI.Diffusers.Editor.Tests {
 
         [Test]
         public void TestEncode_2_1() {
-            var model = DiffusionPipeline.LoadTextEncoder(DiffusionModel.SD_2_1.ModelId);
+            var model = DiffusionPipeline.LoadTextEncoder(DiffusionModel.SD_2_1);
 
             ClipTokenizer tokenizer = GetSDCLIPTokenizer_2_1();
 
@@ -87,7 +87,7 @@ namespace Doji.AI.Diffusers.Editor.Tests {
 
         [Test]
         public void TestEncodeUnconditional() {
-            var model = DiffusionPipeline.LoadTextEncoder(DiffusionModel.SD_1_5.ModelId);
+            var model = DiffusionPipeline.LoadTextEncoder(DiffusionModel.SD_1_5);
 
             ClipTokenizer tokenizer = GetSDCLIPTokenizer_1_5();
 

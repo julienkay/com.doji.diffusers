@@ -1,3 +1,5 @@
+using System;
+using System.Threading.Tasks;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -28,12 +30,12 @@ namespace Doji.AI.Diffusers.Samples {
         }
 
         private void OnGenerateClicked() {
-            //ExecuteSD();
-            try {
+            ExecuteSD();
+            /*try {
                 ExecuteSDAsync();
             } catch (Exception ex) {
                 throw ex;
-            }
+            }*/
         }
 
         private void OnPromptChanged(string value) {

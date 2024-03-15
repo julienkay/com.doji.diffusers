@@ -14,11 +14,22 @@ namespace Doji.AI.Diffusers {
         private static Model LoadFromModelAsset(string path) {
             ModelAsset modelAsset = Resources.Load<ModelAsset>(path);
             if (modelAsset == null) {
-                throw new FileNotFoundException($"The ModelAsset file was not found at: '{path}'");
+                return null;
             }
             Model model = ModelLoader.Load(modelAsset);
             Resources.UnloadAsset(modelAsset);
             return model;
+        }
+
+        /// <summary>
+        /// Load a Model from either StreamingAssets or Resources.
+        /// If no config is found null is returned
+        /// </summary>
+        protected static Model LoadModel(ModelFile file) {
+            if (File.Exists(file.StreamingAssetsPath)) {
+                return ModelLoader.Load(file.StreamingAssetsPath);
+            }
+            return LoadFromModelAsset(file.ResourcePath);
         }
 
         private static C FromConfig<C>(Config config, Model model, BackendType backend) where C : IModel<T> {
@@ -31,10 +42,13 @@ namespace Doji.AI.Diffusers {
             }
         }
 
-        protected new static C FromPretrained<C>(string modelDir, string subFolder, string configName, BackendType backend) where C : IModel<T> {
-            var config = LoadConfig(Path.Combine(modelDir, subFolder), configName);
-            var model = LoadFromModelAsset(Path.Combine(modelDir, subFolder, "model"));
-            return FromConfig<C>(config, model, backend);
+        protected new static C FromPretrained<C>(ModelFile modelConfig, BackendType backend) where C : IModel<T> {
+            var config = LoadConfig(modelConfig);
+            var modelFile = modelConfig.New("model.onnx");
+            var model = LoadModel(modelFile);
+            return model == null
+                ? throw new FileNotFoundException($"File '{modelConfig.FileName}' not found for: '{typeof(T).Name}'")
+                : FromConfig<C>(config, model, backend);
         }
     }
 }

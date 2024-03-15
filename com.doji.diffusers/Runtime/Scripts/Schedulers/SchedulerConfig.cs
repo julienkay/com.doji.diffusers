@@ -73,7 +73,7 @@ namespace Doji.AI.Diffusers {
 
     public partial class SchedulerConfig : Config {
 
-        public new static string ConfigName => "scheduler_config";
+        public new static string ConfigName => "scheduler_config.json";
 
 
         [JsonProperty("beta_end")]

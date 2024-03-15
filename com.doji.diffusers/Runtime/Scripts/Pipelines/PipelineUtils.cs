@@ -10,46 +10,46 @@ namespace Doji.AI.Diffusers {
 
     public partial class DiffusionPipeline {
 
+        /** first try to load from StreamingAssets fall back to Resources **/
+
         internal static PipelineConfig LoadPipelineConfig(DiffusionModel model) {
-            return LoadJsonFromTextAsset<PipelineConfig>(Path.Combine(model.ModelId, "model_index"));
+            if (File.Exists(model.ModelIndex.StreamingAssetsPath)) {
+                return LoadJsonFromFile<PipelineConfig>(model.ModelIndex.StreamingAssetsPath);
+            }
+            return LoadJsonFromTextAsset<PipelineConfig>(model.ModelIndex.ResourcePath);
         }
 
-        internal static VaeConfig LoadVaeConfig(string modelName) {
-            string path = Path.Combine(modelName, "vae_decoder", "config");
-            return LoadJsonFromTextAsset<VaeConfig>(path);
+        internal static VaeConfig LoadVaeConfig(DiffusionModel model) {
+            if (File.Exists(model.VaeDecoderConfig.StreamingAssetsPath)) {
+                return LoadJsonFromFile<VaeConfig>(model.VaeDecoderConfig.StreamingAssetsPath);
+            }
+            return LoadJsonFromTextAsset<VaeConfig>(model.VaeDecoderConfig.ResourcePath);
         }
 
-        internal static Model LoadVaeDecoder(string modelName) {
-            string path = Path.Combine(modelName, "vae_decoder", "model");
-            return LoadFromModelAsset(path);
+        internal static Model LoadVaeDecoder(DiffusionModel model) {
+            if (File.Exists(model.VaeDecoder.StreamingAssetsPath)) {
+                return LoadModel(model.VaeDecoder.StreamingAssetsPath);
+            }
+            return LoadFromModelAsset(model.VaeDecoder.ResourcePath);
         }
 
-        internal static Model LoadTextEncoder(string modelName) {
-            string path = Path.Combine(modelName, "text_encoder", "model");
-            return LoadFromModelAsset(path);
+        internal static Model LoadTextEncoder(DiffusionModel model) {
+            if (File.Exists(model.TextEncoder.StreamingAssetsPath)) {
+                return LoadModel(model.TextEncoder.StreamingAssetsPath);
+            }
+            return LoadFromModelAsset(model.TextEncoder.ResourcePath);
         }
 
-        internal static Vocab LoadVocab(string modelName, string subFolder) {
-            string path = Path.Combine(modelName, subFolder, "vocab");
-            TextAsset vocabFile = Resources.Load<TextAsset>(path);
-            var vocab = Vocab.Deserialize(vocabFile.text);
-            Resources.UnloadAsset(vocabFile);
-            return vocab;
+        internal static Vocab LoadVocab(DiffusionModel model) {
+            return LoadFromJson<Vocab>(model.Vocab);
         }
 
-        internal static string LoadMerges(string modelName, string subFolder) {
-            string path = Path.Combine(modelName, subFolder, "merges");
-            return LoadFromTextAsset(path);
+        internal static string LoadMerges(DiffusionModel model) {
+            return LoadText(model.Merges);
         }
 
-        internal static TokenizerConfig LoadTokenizerConfig(string modelName, string subFolder) {
-            string path = Path.Combine(modelName, subFolder, "tokenizer_config");
-            return LoadJsonFromTextAsset<TokenizerConfig>(path);
-        }
-
-        internal static SchedulerConfig LoadSchedulerConfig(string modelName) {
-            string path = Path.Combine(modelName, "scheduler", "scheduler_config");
-            return LoadJsonFromTextAsset<SchedulerConfig>(path);
+        internal static TokenizerConfig LoadTokenizerConfig(DiffusionModel model) {
+            return LoadFromJson<TokenizerConfig>(model.TokenizerConfig);
         }
 
         internal static Model LoadUnet(string modelName) {
@@ -58,15 +58,52 @@ namespace Doji.AI.Diffusers {
         }
 
         /// <summary>
+        /// Loads a string from a text file either in StreamingAssets or Resources.
+        /// </summary>
+        internal static string LoadText(ModelFile file) {
+            if (File.Exists(file.StreamingAssetsPath)) {
+                return LoadTextFile(file.StreamingAssetsPath);
+            }
+            return LoadFromTextAsset(file.ResourcePath);
+        }
+
+        /// <summary>
         /// Loads a string from a <see cref="TextAsset"/> in Resources.
         /// </summary>
         /// <param name="path">The path to the text file in the Resources folder</param>
         private static string LoadFromTextAsset(string path) {
-            TextAsset textAsset = Resources.Load<TextAsset>(path)
-                ?? throw new FileNotFoundException($"The TextAsset file was not found at: '{path}'");
+            TextAsset textAsset = Resources.Load<TextAsset>(path);
+            if (textAsset == null) {
+                throw new FileNotFoundException($"The TextAsset file was not found at: '{path}'");
+            }
             string text = textAsset.text;
             Resources.UnloadAsset(textAsset);
             return text;
+        }
+
+        /// <summary>
+        /// Loads a string from from a json file in StreamingAssets
+        /// </summary>
+        /// <param name="path">The path to the text file in the Resources folder</param>
+        private static string LoadTextFile(string path) {
+#if !UNITY_STANDALONE
+            throw new NotImplementedException();
+#endif
+            if (!File.Exists(path)) {
+                throw new FileNotFoundException($"The text file was not found at: '{path}'");
+            }
+            return File.ReadAllText(path);
+        }
+
+        /// <summary>
+        /// Loads an object of type <typeparamref name="T"/> from a json file
+        /// either in StreamingAssets or Resources.
+        /// </summary>
+        internal static T LoadFromJson<T>(ModelFile file) {
+            if (File.Exists(file.StreamingAssetsPath)) {
+                return LoadJsonFromFile<T>(file.StreamingAssetsPath);
+            }
+            return LoadJsonFromTextAsset<T>(file.ResourcePath);
         }
 
         /// <summary>
@@ -75,10 +112,28 @@ namespace Doji.AI.Diffusers {
         /// </summary>
         /// <param name="path">The path to the text file in the Resources folder</param>
         private static T LoadJsonFromTextAsset<T>(string path) {
-            TextAsset textAsset = Resources.Load<TextAsset>(path)
-                ?? throw new FileNotFoundException($"The TextAsset file was not found at: '{path}'");
+            TextAsset textAsset = Resources.Load<TextAsset>(path);
+            if (textAsset == null) {
+                throw new FileNotFoundException($"The TextAsset file was not found at: '{path}'");
+            }
             T deserializedObject = JsonConvert.DeserializeObject<T>(textAsset.text);
             Resources.UnloadAsset(textAsset);
+            return deserializedObject;
+        }
+
+        /// <summary>
+        /// Loads an object of type <typeparamref name="T"/> from a json file
+        /// by deserializing using <see cref="Newtonsoft.Json.JsonConvert"/>.
+        /// </summary>
+        private static T LoadJsonFromFile<T>(string path) {
+#if !UNITY_STANDALONE
+            throw new NotImplementedException();
+#endif
+            if (!File.Exists(path)) {
+                throw new FileNotFoundException($"The .json file was not found at: '{path}'");
+            }
+            string json = File.ReadAllText(path);
+            T deserializedObject = JsonConvert.DeserializeObject<T>(json);
             return deserializedObject;
         }
 
@@ -92,6 +147,20 @@ namespace Doji.AI.Diffusers {
             Model model = ModelLoader.Load(modelAsset);
             Resources.UnloadAsset(modelAsset);
             return model;
+        }
+
+        /// <summary>
+        /// Loads a Sentis <see cref="Model"/> from StreamingAssets.
+        /// </summary>
+        /// <param name="path">The path to the .sentis model file</param>
+        private static Model LoadModel(string path) {
+#if !UNITY_STANDALONE
+            throw new NotImplementedException();
+#endif
+            if (!File.Exists(path)) {
+                throw new FileNotFoundException($"The .sentis model file was not found at: '{path}'");
+            }
+            return ModelLoader.Load(path);
         }
 
 #if UNITY_EDITOR
@@ -112,6 +181,9 @@ namespace Doji.AI.Diffusers {
             };
         }
 
+        /// <summary>
+        /// Returns true when this model is found in either StreamingAssets or Resources
+        /// </summary>
         public static bool IsModelAvailable(DiffusionModel model) {
             if (ExistsInStreamingAssets(model)) {
                 return true;
@@ -122,11 +194,15 @@ namespace Doji.AI.Diffusers {
             return false;
         }
 
+#if UNITY_EDITOR
+        /// <summary>
+        /// Editor-only check whether a model is in the Resources folder
+        /// </summary>
         public static bool ExistsInResources(DiffusionModel model) {
             // check if at least all required files are present in Resources
             return model.All(file => !file.Required || File.Exists(file.ResourcesFilePath));
         }
-
+#endif
         public static bool ExistsInStreamingAssets(DiffusionModel model) {
             foreach (var f in model) {
                 bool r = f.Required;
@@ -143,18 +219,18 @@ namespace Doji.AI.Diffusers {
         internal static new StableDiffusionPipeline FromPretrained(DiffusionModel model, BackendType backend = BackendType.GPUCompute) {
             PipelineConfig config = LoadPipelineConfig(model);
 
-            var vocab = LoadVocab(model.ModelId, "tokenizer");
-            var merges = LoadMerges(model.ModelId, "tokenizer");
-            var tokenizerConfig = LoadTokenizerConfig(model.ModelId, "tokenizer");
+            var vocab = LoadVocab(model);
+            var merges = LoadMerges(model);
+            var tokenizerConfig = LoadTokenizerConfig(model);
             var clipTokenizer = new ClipTokenizer(
                 vocab,
                 merges,
                 tokenizerConfig
             );
-            var scheduler = Scheduler.FromPretrained(model.ModelId, "scheduler", backend);
-            var vaeDecoder = VaeDecoder.FromPretrained(model.ModelId, "vae_decoder", backend);
-            var textEncoder = TextEncoder.FromPretrained(model.ModelId, "text_encoder", backend);
-            var unet = Unet.FromPretrained(model.ModelId, "unet", backend);
+            var scheduler = Scheduler.FromPretrained(model.File(Path.Combine("scheduler", SchedulerConfig.ConfigName)), backend);
+            var vaeDecoder = VaeDecoder.FromPretrained(model.File(Path.Combine("vae_decoder", VaeConfig.ConfigName)), backend);
+            var textEncoder = TextEncoder.FromPretrained(model.File(Path.Combine("text_encoder", TextEncoderConfig.ConfigName)), backend);
+            var unet = Unet.FromPretrained(model.File(Path.Combine("unet", UnetConfig.ConfigName)), backend);
 
             StableDiffusionPipeline sdPipeline = new StableDiffusionPipeline(
                 vaeDecoder,
@@ -175,28 +251,29 @@ namespace Doji.AI.Diffusers {
         internal static new StableDiffusionXLPipeline FromPretrained(DiffusionModel model, BackendType backend = BackendType.GPUCompute) {
             PipelineConfig config = LoadPipelineConfig(model);
 
-            var vocab = LoadVocab(model.ModelId, "tokenizer");
-            var merges = LoadMerges(model.ModelId, "tokenizer");
-            var tokenizerConfig = LoadTokenizerConfig(model.ModelId, "tokenizer");
+            var vocab = LoadVocab(model);
+            var merges = LoadMerges(model);
+            var tokenizerConfig = LoadTokenizerConfig(model);
             var tokenizer = new ClipTokenizer(
                 vocab,
                 merges,
                 tokenizerConfig
             );
-            vocab = LoadVocab(model.ModelId, "tokenizer_2");
-            merges = LoadMerges(model.ModelId, "tokenizer_2");
-            tokenizerConfig = LoadTokenizerConfig(model.ModelId, "tokenizer_2");
+            vocab = LoadFromJson<Vocab>(model.Vocab2);
+            merges = LoadText(model.Merges2);
+            tokenizerConfig = LoadFromJson<TokenizerConfig>(model.TokenizerConfig2);
             var tokenizer2 = new ClipTokenizer(
                 vocab,
                 merges,
                 tokenizerConfig
             );
-            var scheduler = Scheduler.FromPretrained(model.ModelId, "scheduler", backend);
-            var vaeDecoder = VaeDecoder.FromPretrained(model.ModelId, "vae_decoder", backend);
-            var textEncoder = TextEncoder.FromPretrained(model.ModelId, "text_encoder", backend);
-            var textEncoder2 = TextEncoder.FromPretrained(model.ModelId, "text_encoder_2", backend);
-            var unet = Unet.FromPretrained(model.ModelId, "unet", backend);
-
+            var scheduler = Scheduler.FromPretrained(model.File(Path.Combine("scheduler", SchedulerConfig.ConfigName)), backend);
+            //scheduler = Scheduler.FromConfig<PNDMScheduler>(scheduler.Config, backend);
+            var vaeDecoder = VaeDecoder.FromPretrained(model.File(Path.Combine("vae_decoder", VaeConfig.ConfigName)), backend);
+            var textEncoder = TextEncoder.FromPretrained(model.File(Path.Combine("text_encoder", TextEncoderConfig.ConfigName)), backend);
+            var textEncoder2 = TextEncoder.FromPretrained(model.File(Path.Combine("text_encoder_2", TextEncoderConfig.ConfigName)), backend);
+            var unet = Unet.FromPretrained(model.File(Path.Combine("unet", UnetConfig.ConfigName)), backend);
+ 
             StableDiffusionXLPipeline sdPipeline = new StableDiffusionXLPipeline(
                 vaeDecoder,
                 textEncoder,

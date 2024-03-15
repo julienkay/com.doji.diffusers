@@ -9,14 +9,17 @@ namespace Doji.AI.Diffusers {
     /// <summary>
     /// All configuration parameters are stored under <see cref="IConfigurable.IConfig"/>.
     /// Also provides a <see cref="IConfigurable.FromConfig{C}(Config, BackendType)"/>
-    /// method for loading classes that inherit from <see cref="IConfigurable"/>.
+    /// method for loading classes that inherit from <see cref="IConfigurable{T}"/>.
     /// </summary>
     public interface IConfigurable<T> where T : Config {
 
         public T Config { get; }
 
-        private static Config LoadConfigFromTextAsset(string modelDir) {
-            TextAsset textAsset = Resources.Load<TextAsset>(modelDir);
+        /// <summary>
+        /// Load a config file from a Resources folder.
+        /// </summary>
+        private static Config LoadConfigFromTextAsset(string resourcePath) {
+            TextAsset textAsset = Resources.Load<TextAsset>(resourcePath);
             if (textAsset == null) {
                 //Debug.LogError($"The TextAsset file was not found at: '{path}'");
                 return null;
@@ -27,8 +30,15 @@ namespace Doji.AI.Diffusers {
             return deserializedObject;
         }
 
-        protected static Config LoadConfig(string modelDir, string configName) {
-            return LoadConfigFromTextAsset(Path.Combine(modelDir, configName));
+        /// <summary>
+        /// Load a config file from either StreamingAssets or Resources.
+        /// If no config is found null is returned
+        /// </summary>
+        protected static Config LoadConfig(ModelFile file) {
+            if (File.Exists(file.StreamingAssetsPath)) {
+                return JsonConvert.DeserializeObject<Config>(File.ReadAllText(file.StreamingAssetsPath));
+            }
+            return LoadConfigFromTextAsset(file.ResourcePath);
         }
 
         private static C FromConfig<C>(Config config, BackendType backend) where C : IConfigurable<T> {
@@ -41,10 +51,10 @@ namespace Doji.AI.Diffusers {
             }
         }
 
-        protected static C FromPretrained<C>(string modelDir, string subFolder, string configName, BackendType backend) where C : IConfigurable<T> {
-            var config = LoadConfig(Path.Combine(modelDir, subFolder), configName);
+        protected static C FromPretrained<C>(ModelFile file, BackendType backend) where C : IConfigurable<T> {
+            var config = LoadConfig(file);
             return config == null
-                ? throw new FileNotFoundException($"No {configName}.json file was not found for: '{modelDir}'")
+                ? throw new FileNotFoundException($"File '{file.FileName}' not found for: '{typeof(T).Name}'")
                 : FromConfig<C>(config, backend);
         }
     }

@@ -145,10 +145,10 @@ namespace Doji.AI.Diffusers {
         }
 
         /// <summary>
-        /// Instantiate a Unet from a pre-defined JSON configuration file in a local directory.
+        /// Instantiate a Unet from a JSON configuration file.
         /// </summary>
-        public static Unet FromPretrained(string modelName, string subFolder, BackendType backend) {
-            return IModel<UnetConfig>.FromPretrained<Unet>(modelName, subFolder, UnetConfig.ConfigName, backend);
+        public static Unet FromPretrained(ModelFile unetConfig, BackendType backend) {
+            return IModel<UnetConfig>.FromPretrained<Unet>(unetConfig, backend);
         }
 
         public void Dispose() {

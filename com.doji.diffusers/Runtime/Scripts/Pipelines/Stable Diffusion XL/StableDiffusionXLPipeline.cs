@@ -659,6 +659,7 @@ namespace Doji.AI.Diffusers {
 
         public override void Dispose() {
             base.Dispose();
+            _ops?.Dispose();
             TextEncoder2?.Dispose();
         }
 

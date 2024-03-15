@@ -2,7 +2,6 @@ using Newtonsoft.Json.Linq;
 using Newtonsoft.Json.Serialization;
 using Newtonsoft.Json;
 using System;
-using System.Collections.Generic;
 
 namespace Doji.AI.Diffusers {
 
@@ -13,9 +12,9 @@ namespace Doji.AI.Diffusers {
     public abstract class Config {
 
         /// <summary>
-        /// The file name of the config file (without extension, .json implicitly assumed)
+        /// The file name of the config file
         /// </summary>
-        public static string ConfigName => "config";
+        public static string ConfigName => "config.json";
 
         [JsonProperty("_class_name")]
         public string ClassName { get; set; }

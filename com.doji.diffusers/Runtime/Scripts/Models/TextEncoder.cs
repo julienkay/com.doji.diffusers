@@ -80,10 +80,10 @@ namespace Doji.AI.Diffusers {
         }
 
         /// <summary>
-        /// Instantiate a TextEncoder from a pre-defined JSON configuration file in a local directory.
+        /// Instantiate a TextEncoder from a JSON configuration file.
         /// </summary>
-        public static TextEncoder FromPretrained(string modelName, string subFolder, BackendType backend) {
-            return IModel<TextEncoderConfig>.FromPretrained<TextEncoder>(modelName, subFolder, TextEncoderConfig.ConfigName, backend);
+        public static TextEncoder FromPretrained(ModelFile textEncoderConfig, BackendType backend) {
+            return IModel<TextEncoderConfig>.FromPretrained<TextEncoder>(textEncoderConfig, backend);
         }
 
         public void Dispose() {

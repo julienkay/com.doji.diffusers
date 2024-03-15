@@ -15,8 +15,7 @@ namespace Doji.AI.Diffusers.Editor {
         }
 
         private static void Validate(DiffusionModel model) {
-
-            if (ExistsInResources(model)) {
+            if (IsModelAvailable(model)) {
                 return;
             }
             if (InProgress(model)) {
