@@ -4,17 +4,13 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Unity.Sentis;
-using UnityEngine.Profiling;
 
 namespace Doji.AI.Diffusers {
 
     /// <summary>
-    /// Stable Diffusion XL Pipeline 
+    /// Async Stable Diffusion XL Pipeline 
     /// </summary>
-    /// <remarks>
-    /// pipeline_stable_diffusion_xl.py from huggingface/optimum
-    /// </remarks>
-    public partial class StableDiffusionXLPipeline : DiffusionPipeline, IDisposable {
+    public partial class StableDiffusionXLPipelineAsync : DiffusionPipelineAsync, IDisposable {
 
         public ClipTokenizer Tokenizer2 { get; private set; }
         public TextEncoder TextEncoder2 { get; private set; }
@@ -29,9 +25,9 @@ namespace Doji.AI.Diffusers {
         private List<TensorFloat> _negativePromptEmbedsList = new List<TensorFloat>();
 
         /// <summary>
-        /// Initializes a new Stable Diffusion XL pipeline.
+        /// Initializes a new async Stable Diffusion XL pipeline.
         /// </summary>
-        public StableDiffusionXLPipeline(
+        public StableDiffusionXLPipelineAsync(
             VaeDecoder vaeDecoder,
             TextEncoder textEncoder,
             ClipTokenizer tokenizer,
@@ -63,7 +59,7 @@ namespace Doji.AI.Diffusers {
             }
         }
 
-        public override TensorFloat Generate(
+        public override async Task<TensorFloat> GenerateAsync(
             Input prompt,
             int height = 512,
             int width = 512,
@@ -76,10 +72,10 @@ namespace Doji.AI.Diffusers {
             TensorFloat latents = null,
             Action<int, float, TensorFloat> callback = null)
         {
-            return Generate(prompt, height, width, numInferenceSteps, guidanceScale, negativePrompt, numImagesPerPrompt, eta, seed, latents, callback);
+            return await GenerateAsync(prompt, height, width, numInferenceSteps, guidanceScale, negativePrompt, numImagesPerPrompt, eta, seed, latents, callback);
         }
 
-        public TensorFloat Generate(
+        public async Task<TensorFloat> GenerateAsync(
             Input prompt,
             int? height = 512,
             int? width = 512,
@@ -96,8 +92,6 @@ namespace Doji.AI.Diffusers {
             (int x, int y) cropsCoordsTopLeft = default((int, int)),
             (int width, int height)? targetSize = null)
         {
-            Profiler.BeginSample($"{GetType().Name}.Generate");
-
             // 0. Default height and width to unet
             _height = height ?? (Unet.Config.SampleSize * VaeScaleFactor);
             _width = width ?? (Unet.Config.SampleSize * VaeScaleFactor);
@@ -134,14 +128,10 @@ namespace Doji.AI.Diffusers {
             bool doClassifierFreeGuidance = guidanceScale > 1.0f;
 
             // 3. Encode input prompt
-            Profiler.BeginSample("Encode Prompt(s)");
-            Embeddings promptEmbeds = EncodePrompt(prompt, numImagesPerPrompt, doClassifierFreeGuidance, negativePrompt);
-            Profiler.EndSample();
+            Embeddings promptEmbeds = await EncodePromptAsync(prompt, numImagesPerPrompt, doClassifierFreeGuidance, negativePrompt);
 
             // 4. Prepare timesteps
-            Profiler.BeginSample($"{Scheduler.GetType().Name}.SetTimesteps");
             Scheduler.SetTimesteps(numInferenceSteps);
-            Profiler.EndSample();
 
             // 5. Prepare latent variables
             PrepareLatents();
@@ -158,7 +148,6 @@ namespace Doji.AI.Diffusers {
             addTimeIds = _ops.Repeat(addTimeIds, _batchSize * _numImagesPerPrompt, axis: 0);
 
             // 8. Denoising loop
-            Profiler.BeginSample($"Denoising Loop");
             int num_warmup_steps = Scheduler.TimestepsLength - numInferenceSteps * Scheduler.Order;
             int i = 0;
             foreach (float t in Scheduler) {
@@ -167,23 +156,18 @@ namespace Doji.AI.Diffusers {
                 latentModelInput = Scheduler.ScaleModelInput(latentModelInput, t);
 
                 // predict the noise residual
-                Profiler.BeginSample("Prepare Timestep Tensor");
                 using Tensor timestep = Unet.CreateTimestep(new TensorShape(_batchSize), t);
-                Profiler.EndSample();
 
-                Profiler.BeginSample("Execute Unet");
-                TensorFloat noisePred = Unet.Execute(
+                TensorFloat noisePred = await Unet.ExecuteAsync(
                     latentModelInput,
                     timestep,
                     promptEmbeds.PromptEmbeds,
                     addTextEmbeds,
                     addTimeIds
                 );
-                Profiler.EndSample();
 
                 // perform guidance
                 if (doClassifierFreeGuidance) {
-                    Profiler.BeginSample("Extend Predicted Noise For Classifier-Free Guidance");
                     (var noisePredUncond, var noisePredText) = _ops.SplitHalf(noisePred, axis: 0);
                     var tmp = _ops.Sub(noisePredText, noisePredUncond);
                     var tmp2 = _ops.Mul(guidanceScale, tmp);
@@ -192,47 +176,36 @@ namespace Doji.AI.Diffusers {
                         // Based on 3.4. in https://arxiv.org/pdf/2305.08891.pdf
                         noisePred = RescaleNoiseCfg(noisePred, noisePredText, guidanceRescale);
                     }
-                    Profiler.EndSample();
                 }
 
                 // compute the previous noisy sample x_t -> x_t-1
-                Profiler.BeginSample($"{Scheduler.GetType().Name}.Step");
                 var stepArgs = new Scheduler.StepArgs(noisePred, t, _latents, eta, generator: generator);
                 var schedulerOutput = Scheduler.Step(stepArgs);
                 _latents = schedulerOutput.PrevSample;
-                Profiler.EndSample();
 
                 if (i == Scheduler.TimestepsLength - 1 || ((i + 1) > num_warmup_steps && (i + 1) % Scheduler.Order == 0)) {
                     int stepIdx = i / Scheduler.Order;
                     if (callback != null) {
-                        Profiler.BeginSample($"{GetType()} Callback");
                         callback.Invoke(i / Scheduler.Order, t, _latents);
-                        Profiler.EndSample();
                     }
                 }
 
                 i++;
             }
-            Profiler.EndSample();
 
-            Profiler.BeginSample($"Scale Latents");
             TensorFloat result = _ops.Div(_latents, VaeDecoder.Config.ScalingFactor ?? 0.18215f);
-            Profiler.EndSample();
 
             // batch decode
             if (_batchSize > 1) {
                 throw new NotImplementedException();
             }
 
-            Profiler.BeginSample($"VaeDecoder Decode Image");
-            TensorFloat image = VaeDecoder.Execute(result);
-            Profiler.EndSample();
+            TensorFloat image = await VaeDecoder.ExecuteAsync(result);
 
-            Profiler.EndSample();
             return image;
         }
 
-        private Embeddings EncodePrompt(
+        private async Task<Embeddings> EncodePromptAsync(
             Input prompt,
             int numImagesPerPrompt,
             bool doClassifierFreeGuidance,
@@ -243,10 +216,9 @@ namespace Doji.AI.Diffusers {
             TensorFloat negativePooledPromptEmbeds = null)
         {
             if (promptEmbeds == null) {
-                _promptEmbedsList.Clear(); 
+                _promptEmbedsList.Clear();
 
                 foreach (var (tokenizer, textEncoder) in Encoders) {
-                    Profiler.BeginSample("CLIPTokenizer Encode Input");
                     var textInputs = tokenizer.Encode(
                         text: prompt,
                         padding: Padding.MaxLength,
@@ -261,25 +233,17 @@ namespace Doji.AI.Diffusers {
                         UnityEngine.Debug.LogWarning("A part of your input was truncated because CLIP can only handle sequences up to " +
                         $"{tokenizer.ModelMaxLength} tokens.");
                     }
-                    Profiler.EndSample();
 
-                    Profiler.BeginSample("Prepare Text ID Tensor");
                     using TensorInt textIdTensor = new TensorInt(new TensorShape(_batchSize, textInputIds.Length), textInputIds);
-                    Profiler.EndSample();
 
-                    Profiler.BeginSample("Execute TextEncoder");
-                    var _promptEmbeds = textEncoder.Execute(textIdTensor);
-                    Profiler.EndSample();
+                    var _promptEmbeds = await textEncoder.ExecuteAsync(textIdTensor);
 
                     pooledPromptEmbeds = _promptEmbeds[0] as TensorFloat;
                     promptEmbeds = _promptEmbeds[-2] as TensorFloat;
 
                     // copy prompt embeds to avoid having to call TakeOwnership and track tensor to Dispose()
                     promptEmbeds = _ops.Copy(promptEmbeds);
-
-                    Profiler.BeginSample($"Process Input for {numImagesPerPrompt} images per prompt.");
                     promptEmbeds = _ops.Repeat(promptEmbeds, numImagesPerPrompt, axis: 0);
-                    Profiler.EndSample();
 
                     _promptEmbedsList.Add(promptEmbeds);
                 }
@@ -310,7 +274,6 @@ namespace Doji.AI.Diffusers {
 
                 _negativePromptEmbedsList.Clear();
                 foreach (var (tokenizer, textEncoder) in Encoders) {
-                    Profiler.BeginSample("CLIPTokenizer Encode Unconditioned Input");
                     int maxLength = promptEmbeds.shape[1];
                     var uncondInput = tokenizer.Encode<BatchInput>(
                         text: uncondTokens,
@@ -319,24 +282,17 @@ namespace Doji.AI.Diffusers {
                         truncation: Truncation.LongestFirst
                     ) as BatchEncoding;
                     int[] uncondInputIds = uncondInput.InputIds as int[];
-                    Profiler.EndSample();
 
-                    Profiler.BeginSample("Prepare Unconditioned Text ID Tensor");
                     using TensorInt uncondIdTensor = new TensorInt(new TensorShape(_batchSize, uncondInputIds.Length), uncondInputIds);
-                    Profiler.EndSample();
 
-                    Profiler.BeginSample("Execute TextEncoder For Unconditioned Input");
                     var _negativePromptEmbeds = textEncoder.Execute(uncondIdTensor);
-                    Profiler.EndSample();
 
                     negativePooledPromptEmbeds = _negativePromptEmbeds[0] as TensorFloat;
                     negativePromptEmbeds = _negativePromptEmbeds[-2] as TensorFloat;
                     negativePromptEmbeds = _ops.Copy(negativePromptEmbeds);
 
                     // duplicate unconditional embeddings for each generation per prompt
-                    Profiler.BeginSample($"Process Unconditional Input for {numImagesPerPrompt} images per prompt.");
                     negativePromptEmbeds = _ops.Repeat(negativePromptEmbeds, numImagesPerPrompt, axis: 0);
-                    Profiler.EndSample();
 
                     // For classifier free guidance, we need to do two forward passes.
                     // Here we concatenate the unconditional and text embeddings into a single batch

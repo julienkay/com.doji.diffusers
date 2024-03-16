@@ -50,13 +50,13 @@ namespace Doji.AI.Diffusers.Samples {
             PNGUtils.SaveToDisk(Result, ".", p);
         }
 
-        private async Task ExecuteSDAsync() {
+        /*private async Task ExecuteSDAsync() {
             Prompt = PromptField.text;
             Result = _stableDiffusion.RenderTexture;
             Parameters p = await _stableDiffusion.ImagineAsync(Prompt, Resolution, Resolution, Steps, GuidanceScale, _negativePrompts);
             Image.texture = Result;
             PNGUtils.SaveToDisk(Result, ".", p);
-        }
+        }*/
 
         private void OnDestroy() {
             _stableDiffusion?.Dispose();

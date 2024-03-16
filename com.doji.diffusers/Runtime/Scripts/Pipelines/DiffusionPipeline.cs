@@ -1,7 +1,6 @@
 using Doji.AI.Transformers;
 using System;
 using System.Collections.Generic;
-using System.Threading.Tasks;
 using Unity.Sentis;
 
 namespace Doji.AI.Diffusers {
@@ -103,8 +102,8 @@ namespace Doji.AI.Diffusers {
         /// </summary>
         /// <param name="prompt">The prompt or prompts to guide the image generation.
         /// If not defined, one has to pass `prompt_embeds` instead.</param>
-        /// <param name="height"></param>
-        /// <param name="width"></param>
+        /// <param name="height">The height in pixels of the generated image.</param>
+        /// <param name="width">The width in pixels of the generated image.</param>
         /// <param name="numInferenceSteps"> The number of denoising steps.
         /// More denoising steps usually lead to a higher quality image
         /// at the expense of slower inference.</param>
@@ -124,61 +123,6 @@ namespace Doji.AI.Diffusers {
         /// The function will be called with the following arguments:
         /// `callback(step: int, timestep: float, latents: TensorFloat)`.</param>
         public abstract TensorFloat Generate(
-            Input prompt,
-            int height = 512,
-            int width = 512,
-            int numInferenceSteps = 50,
-            float guidanceScale = 7.5f,
-            Input negativePrompt = null,
-            int numImagesPerPrompt = 1,
-            float eta = 0.0f,
-            uint? seed = null,
-            TensorFloat latents = null,
-            Action<int, float, TensorFloat> callback = null
-        );
-
-        /// <inheritdoc cref="GenerateAsync(Input, int, int, int, float, Input, int, float, uint?, TensorFloat, Action{int, float, TensorFloat})"/>
-        public async Task<TensorFloat> GenerateAsync(
-            string prompt,
-            int height = 512,
-            int width = 512,
-            int numInferenceSteps = 50,
-            float guidanceScale = 7.5f,
-            string negativePrompt = null,
-            int numImagesPerPrompt = 1,
-            float eta = 0.0f,
-            uint? seed = null,
-            TensorFloat latents = null,
-            Action<int, float, TensorFloat> callback = null)
-        {
-            return await GenerateAsync((TextInput)prompt, height, width, numInferenceSteps, guidanceScale,
-               (TextInput)negativePrompt, numImagesPerPrompt, eta, seed, latents, callback);
-        }
-
-        /// <param name="prompt">The prompts used to generate the batch of images for.</param>
-        /// <inheritdoc cref="GenerateAsync(Input, int, int, int, float, Input, int, float, uint?, TensorFloat, Action{int, float, TensorFloat})"/>
-        public async Task<TensorFloat> GenerateAsync(
-            List<string> prompt,
-            int height = 512,
-            int width = 512,
-            int numInferenceSteps = 50,
-            float guidanceScale = 7.5f,
-            List<string> negativePrompt = null,
-            int numImagesPerPrompt = 1,
-            float eta = 0.0f,
-            uint? seed = null,
-            TensorFloat latents = null,
-            Action<int, float, TensorFloat> callback = null)
-        {
-            return await GenerateAsync((BatchInput)prompt, height, width, numInferenceSteps, guidanceScale,
-                (BatchInput)negativePrompt, numImagesPerPrompt, eta, seed, latents, callback);
-        }
-
-        /// <summary>
-        /// Execute the pipeline asynchronously.
-        /// </summary>
-        /// <inheritdoc cref="Generate(Input, int, int, int, float, Input, int, float, uint?, TensorFloat, Action{int, float, TensorFloat})"/>
-        public abstract Task<TensorFloat> GenerateAsync(
             Input prompt,
             int height = 512,
             int width = 512,
