@@ -24,6 +24,22 @@ namespace Doji.AI.Diffusers {
         private List<TensorFloat> _promptEmbedsList = new List<TensorFloat>();
         private List<TensorFloat> _negativePromptEmbedsList = new List<TensorFloat>();
 
+        public static implicit operator StableDiffusionXLPipeline(StableDiffusionXLPipelineAsync pipe) {
+            if (pipe == null) {
+                throw new ArgumentNullException(nameof(pipe));
+            }
+            return new StableDiffusionXLPipeline(
+                pipe.VaeDecoder,
+                pipe.TextEncoder,
+                pipe.Tokenizer,
+                pipe.Scheduler,
+                pipe.Unet,
+                pipe.TextEncoder2,
+                pipe.Tokenizer2,
+                pipe._ops.backendType
+            );
+        }
+
         /// <summary>
         /// Initializes a new async Stable Diffusion XL pipeline.
         /// </summary>

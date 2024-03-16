@@ -36,6 +36,7 @@ namespace Doji.AI.Diffusers {
         private BackendType _backend = BackendType.GPUCompute;
 
         private DiffusionPipeline _sdPipeline;
+        private DiffusionPipelineAsync _asyncPipeline;
         public RenderTexture RenderTexture;
 
         public StableDiffusion(DiffusionModel model) {
@@ -45,6 +46,7 @@ namespace Doji.AI.Diffusers {
 
         private void Initialize() {
             _sdPipeline = DiffusionPipeline.FromPretrained(Model, Backend);
+            _asyncPipeline = (DiffusionPipelineAsync)_sdPipeline;
             if (RenderTexture == null) {
                 RenderTexture = new RenderTexture(512, 512, 0, RenderTextureFormat.ARGB32);
             }
@@ -71,9 +73,9 @@ namespace Doji.AI.Diffusers {
             return _sdPipeline.GetParameters();
         }
 
-        /*public async Task<Parameters> ImagineAsync(string prompt, int width, int height, int numInferenceSteps = 50, float guidanceScale = 7.5f, string negativePrompt = null) {
+        public async Task<Parameters> ImagineAsync(string prompt, int width, int height, int numInferenceSteps = 50, float guidanceScale = 7.5f, string negativePrompt = null) {
             RenderTexture.name = prompt;
-            var image = await _sdPipeline.GenerateAsync(
+            var image = await _asyncPipeline.GenerateAsync(
                 prompt,
                 width: width,
                 height: height,
@@ -83,10 +85,11 @@ namespace Doji.AI.Diffusers {
             );
             TextureConverter.RenderToTexture(image, RenderTexture);
             return _sdPipeline.GetParameters();
-        }*/
+        }
 
         public void Dispose() {
             _sdPipeline?.Dispose();
+            _asyncPipeline?.Dispose();
             if (RenderTexture != null) {
                 RenderTexture.Release();
             }

@@ -14,6 +14,20 @@ namespace Doji.AI.Diffusers {
 
         private Ops _ops;
 
+        public static implicit operator StableDiffusionPipeline(StableDiffusionPipelineAsync pipe) {
+            if (pipe == null) {
+                throw new ArgumentNullException(nameof(pipe));
+            }
+            return new StableDiffusionPipeline(
+                pipe.VaeDecoder,
+                pipe.TextEncoder,
+                pipe.Tokenizer,
+                pipe.Scheduler,
+                pipe.Unet,
+                pipe._ops.backendType
+            );
+        }
+
         /// <summary>
         /// Initializes a new async stable diffusion pipeline.
         /// </summary>
