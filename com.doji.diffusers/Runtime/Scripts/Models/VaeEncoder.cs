@@ -26,19 +26,18 @@ namespace Doji.AI.Diffusers {
             InitializeNetwork(model);
         }
 
-        private void InitializeNetwork(Model vaeDecoder) {
-            if (vaeDecoder == null) {
-                throw new ArgumentException("VaeDecoder Model was null", nameof(vaeDecoder));
+        private void InitializeNetwork(Model vaeEncoder) {
+            if (vaeEncoder == null) {
+                throw new ArgumentException("VaeEncoder Model was null", nameof(vaeEncoder));
             }
 
-            _model = vaeDecoder;
+            _model = vaeEncoder;
             _worker = WorkerFactory.CreateWorker(Backend, _model);
             _ops = WorkerFactory.CreateOps(Backend, null);
         }
 
         /// <summary>
         /// Encodes the image.
-        /// TODO: Who's responsible for normalizing input?
         /// </summary>
         public TensorFloat Execute(TensorFloat sample) {
             if (sample is null) {
@@ -53,8 +52,6 @@ namespace Doji.AI.Diffusers {
 
             _worker.Execute(sample);
             TensorFloat latentSample = _worker.PeekOutput("latent_sample") as TensorFloat;
-            TensorFloat normalized = _ops.Mad(latentSample, 0.5f, 0.5f);
-            TensorFloat image = _ops.Clip(normalized, 0.0f, 1.0f);
             return latentSample;
         }
 

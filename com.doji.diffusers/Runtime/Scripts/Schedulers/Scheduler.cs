@@ -16,6 +16,12 @@ namespace Doji.AI.Diffusers {
                 yield return item;
             }
         }
+        public override float[] GetTimestepsFromEnd(int n) {
+            return Timesteps.Skip(TimestepsLength - n).ToArray();
+        }
+        public override float[] GetTimesteps() {
+            return Timesteps;
+        }
     }
 
     public abstract class SchedulerInt : Scheduler {
@@ -26,6 +32,16 @@ namespace Doji.AI.Diffusers {
             foreach (float item in Timesteps) {
                 yield return item;
             }
+        }
+        public override float[] GetTimestepsFromEnd(int n) {
+            return Timesteps.Skip(TimestepsLength - n).Select(x => (float)x).ToArray();
+        }
+        public override float[] GetTimesteps() {
+            float[] result = new float[Timesteps.Length];
+            for (int i = 0; i < Timesteps.Length; i++) {
+                result[i] = Timesteps[i];
+            }
+            return result;
         }
     }
 
@@ -147,6 +163,14 @@ namespace Doji.AI.Diffusers {
             _args = args;
             return default;
         }
+
+        public virtual TensorFloat AddNoise(TensorFloat originalSamples, TensorFloat noise, TensorFloat timesteps) {
+            throw new NotImplementedException();
+        }
+
+        // TODO: just use '[^initTimestep..]' once all schedulers use float
+        public abstract float[] GetTimestepsFromEnd(int n);
+        public abstract float[] GetTimesteps();
 
         protected float[] GetBetas() {
             if (TrainedBetas != null) {

@@ -112,6 +112,8 @@ namespace Doji.AI.Diffusers {
         /// `guidance_scale` is defined as `w` of equation 2. of[Imagen Paper] (https://arxiv.org/pdf/2205.11487.pdf).
         /// Guidance scale is enabled by setting `guidance_scale > 1`. Higher guidance scale encourages to generate images
         /// that are closely linked to the text `prompt`, usually at the expense of lower image quality.</param>
+        /// <param name="negativePrompt">The prompt or prompts not to guide the image generation.
+        /// Ignored when not using guidance (i.e., ignored if <paramref name="guidanceScale"/> is less than `1`).</param>
         /// <param name="numImagesPerPrompt">The number of images to generate per prompt.</param>
         /// <param name="eta">Corresponds to parameter eta in the DDIM paper: https://arxiv.org/abs/2010.02502. Only applies to
         /// <see cref="DDIMScheduler"/>, will be ignored for others.</param>
@@ -120,7 +122,7 @@ namespace Doji.AI.Diffusers {
         /// generation. If not provided, a latents tensor will be generated for you using the supplied <paramref name="seed"/>.</param>
         /// <param name="callback">A function that will be called at every step during inference.
         /// The function will be called with the following arguments:
-        /// `callback(step: int, timestep: int, latents: torch.FloatTensor)`.</param>
+        /// `callback(step: int, timestep: float, latents: TensorFloat)`.</param>
         public abstract TensorFloat Generate(
             Input prompt,
             int height = 512,
