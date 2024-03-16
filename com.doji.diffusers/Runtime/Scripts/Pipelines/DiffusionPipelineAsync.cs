@@ -20,7 +20,8 @@ namespace Doji.AI.Diffusers {
             float eta = 0.0f,
             uint? seed = null,
             TensorFloat latents = null,
-            Action<int, float, TensorFloat> callback = null) {
+            Action<int, float, TensorFloat> callback = null)
+        {
             return await GenerateAsync((TextInput)prompt, height, width, numInferenceSteps, guidanceScale,
                (TextInput)negativePrompt, numImagesPerPrompt, eta, seed, latents, callback);
         }
@@ -38,7 +39,8 @@ namespace Doji.AI.Diffusers {
             float eta = 0.0f,
             uint? seed = null,
             TensorFloat latents = null,
-            Action<int, float, TensorFloat> callback = null) {
+            Action<int, float, TensorFloat> callback = null)
+        {
             return await GenerateAsync((BatchInput)prompt, height, width, numInferenceSteps, guidanceScale,
                 (BatchInput)negativePrompt, numImagesPerPrompt, eta, seed, latents, callback);
         }

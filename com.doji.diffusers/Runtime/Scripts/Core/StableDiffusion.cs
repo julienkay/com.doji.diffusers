@@ -84,7 +84,7 @@ namespace Doji.AI.Diffusers {
                 negativePrompt: negativePrompt
             );
             TextureConverter.RenderToTexture(image, RenderTexture);
-            return _sdPipeline.GetParameters();
+            return _asyncPipeline.GetParameters();
         }
 
         public void Dispose() {

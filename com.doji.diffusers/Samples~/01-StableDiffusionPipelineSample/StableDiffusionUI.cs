@@ -29,10 +29,10 @@ namespace Doji.AI.Diffusers.Samples {
             GenerateButton.onClick.AddListener(OnGenerateClicked);
         }
 
-        private void OnGenerateClicked() {
+        private async void OnGenerateClicked() {
             ExecuteSD();
             /*try {
-                ExecuteSDAsync();
+                await ExecuteSDAsync();
             } catch (Exception ex) {
                 throw ex;
             }*/
