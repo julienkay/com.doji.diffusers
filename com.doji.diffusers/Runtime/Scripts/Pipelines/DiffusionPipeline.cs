@@ -16,6 +16,8 @@ namespace Doji.AI.Diffusers {
                 return (StableDiffusionPipelineAsync)(pipe as StableDiffusionPipeline);
             } else if (pipe is StableDiffusionImg2ImgPipeline) {
                 return (StableDiffusionImg2ImgPipelineAsync)(pipe as StableDiffusionImg2ImgPipeline);
+            } else if (pipe is StableDiffusionXLPipeline) {
+                return (StableDiffusionXLPipelineAsync)(pipe as StableDiffusionXLPipeline);
             } else {
                 throw new InvalidCastException($"Cannot convert {pipe.GetType()} to DiffusionPipelineAsync");
             }
