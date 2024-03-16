@@ -8,6 +8,23 @@ namespace Doji.AI.Diffusers {
 
     public abstract class DiffusionPipelineAsync : DiffusionPipelineBase {
 
+        /// <summary>
+        /// Conversion to async pipelines
+        /// </summary>
+        public static implicit operator DiffusionPipeline(DiffusionPipelineAsync pipe) {
+            if (pipe == null)
+                throw new ArgumentNullException(nameof(pipe));
+            if (pipe is StableDiffusionPipelineAsync) {
+                return (StableDiffusionPipeline)(pipe as StableDiffusionPipelineAsync);
+            } else if (pipe is StableDiffusionImg2ImgPipelineAsync) {
+                return (StableDiffusionImg2ImgPipeline)(pipe as StableDiffusionImg2ImgPipelineAsync);
+            } else if (pipe is StableDiffusionXLPipelineAsync) {
+                return (StableDiffusionXLPipeline)(pipe as StableDiffusionXLPipelineAsync);
+            } else {
+                throw new InvalidCastException($"Cannot convert {pipe.GetType()} to DiffusionPipeline");
+            }
+        }
+
         /// <inheritdoc cref="GenerateAsync(Input, int, int, int, float, Input, int, float, uint?, TensorFloat, Action{int, float, TensorFloat})"/>
         public async Task<TensorFloat> GenerateAsync(
             string prompt,
