@@ -6,7 +6,7 @@ namespace Doji.AI.Diffusers {
 
     public abstract class DiffusionPipelineBase : IDisposable {
 
-        public string NameOrPath { get; protected set; }
+        public DiffusionModel ModelInfo { get; protected set; }
         public PipelineConfig Config { get; protected set; }
 
         public VaeDecoder VaeDecoder { get; protected set; }
@@ -26,6 +26,12 @@ namespace Doji.AI.Diffusers {
         protected float? _eta;
         protected uint? _seed;
         protected TensorFloat _latents;
+
+        internal Ops _ops;
+
+        public DiffusionPipelineBase(BackendType backendType) {
+            _ops = WorkerFactory.CreateOps(backendType, null);
+        }
 
         protected void CheckInputs() {
             if (_height % 8 != 0 || _width % 8 != 0) {
@@ -47,7 +53,8 @@ namespace Doji.AI.Diffusers {
             return new Parameters() {
                 PackageVersion = System.Diagnostics.FileVersionInfo.GetVersionInfo(System.Reflection.Assembly.GetExecutingAssembly().Location).ProductVersion,
                 Prompt = (_prompt as SingleInput).Text,
-                Model = NameOrPath,
+                Model = ModelInfo.ModelId,
+                Pipeline = GetType().Name,
                 NegativePrompt = _negativePrompt != null ? (_negativePrompt as SingleInput).Text : null,
                 Steps = _steps,
                 Sampler = Scheduler.GetType().Name,
@@ -64,6 +71,7 @@ namespace Doji.AI.Diffusers {
             TextEncoder?.Dispose();
             Scheduler?.Dispose();
             Unet?.Dispose();
+            _ops?.Dispose();
         }
     }
 }

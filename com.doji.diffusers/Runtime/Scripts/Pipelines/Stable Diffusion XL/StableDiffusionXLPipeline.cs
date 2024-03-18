@@ -23,16 +23,14 @@ namespace Doji.AI.Diffusers {
         
         private int VaeScaleFactor { get; set; }
 
-        private Ops _ops;
-
         private List<TensorFloat> _promptEmbedsList = new List<TensorFloat>();
         private List<TensorFloat> _negativePromptEmbedsList = new List<TensorFloat>();
 
-        public static implicit operator StableDiffusionXLPipelineAsync(StableDiffusionXLPipeline pipe) {
+        public static explicit operator StableDiffusionXLPipeline(StableDiffusionXLPipelineAsync pipe) {
             if (pipe == null) {
                 throw new ArgumentNullException(nameof(pipe));
             }
-            return new StableDiffusionXLPipelineAsync(
+            return new StableDiffusionXLPipeline(
                 pipe.VaeDecoder,
                 pipe.TextEncoder,
                 pipe.Tokenizer,
@@ -55,7 +53,7 @@ namespace Doji.AI.Diffusers {
             Unet unet,
             TextEncoder textEncoder2,
             ClipTokenizer tokenizer2,
-            BackendType backend)
+            BackendType backend) : base(backend)
         {
             VaeDecoder = vaeDecoder;
             Tokenizer = tokenizer;
@@ -67,8 +65,6 @@ namespace Doji.AI.Diffusers {
             Encoders = Tokenizer != null && TextEncoder != null
                 ? new() { (Tokenizer, TextEncoder), (Tokenizer2, TextEncoder2) }
                 : new() { (Tokenizer2, TextEncoder2) };
-
-            _ops = WorkerFactory.CreateOps(backend, null);
 
             //TODO: move this into a base class, but need to consolidate 
             //diffusers-based onnx pipelines with optimum-based pipelines
@@ -421,7 +417,6 @@ namespace Doji.AI.Diffusers {
 
         public override void Dispose() {
             base.Dispose();
-            _ops?.Dispose();
             TextEncoder2?.Dispose();
         }
 

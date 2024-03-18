@@ -19,16 +19,14 @@ namespace Doji.AI.Diffusers {
         
         private int VaeScaleFactor { get; set; }
 
-        private Ops _ops;
-
         private List<TensorFloat> _promptEmbedsList = new List<TensorFloat>();
         private List<TensorFloat> _negativePromptEmbedsList = new List<TensorFloat>();
 
-        public static implicit operator StableDiffusionXLPipeline(StableDiffusionXLPipelineAsync pipe) {
+        public static explicit operator StableDiffusionXLPipelineAsync(StableDiffusionXLPipeline pipe) {
             if (pipe == null) {
                 throw new ArgumentNullException(nameof(pipe));
             }
-            return new StableDiffusionXLPipeline(
+            return new StableDiffusionXLPipelineAsync(
                 pipe.VaeDecoder,
                 pipe.TextEncoder,
                 pipe.Tokenizer,
@@ -51,7 +49,7 @@ namespace Doji.AI.Diffusers {
             Unet unet,
             TextEncoder textEncoder2,
             ClipTokenizer tokenizer2,
-            BackendType backend)
+            BackendType backend) : base(backend)
         {
             VaeDecoder = vaeDecoder;
             Tokenizer = tokenizer;

@@ -240,7 +240,41 @@ namespace Doji.AI.Diffusers {
                 unet,
                 backend
             );
-            sdPipeline.NameOrPath = model.ModelId;
+            sdPipeline.ModelInfo = model;
+            sdPipeline.Config = config;
+            return sdPipeline;
+        }
+    }
+
+    public partial class StableDiffusionImg2ImgPipeline {
+
+        internal static new StableDiffusionImg2ImgPipeline FromPretrained(DiffusionModel model, BackendType backend = BackendType.GPUCompute) {
+            PipelineConfig config = LoadPipelineConfig(model);
+
+            var vocab = LoadVocab(model);
+            var merges = LoadMerges(model);
+            var tokenizerConfig = LoadTokenizerConfig(model);
+            var clipTokenizer = new ClipTokenizer(
+                vocab,
+                merges,
+                tokenizerConfig
+            );
+            var scheduler = Scheduler.FromPretrained(model.File(Path.Combine("scheduler", SchedulerConfig.ConfigName)), backend);
+            var vaeEncoder = VaeEncoder.FromPretrained(model.File(Path.Combine("vae_encoder", VaeConfig.ConfigName)), backend);
+            var vaeDecoder = VaeDecoder.FromPretrained(model.File(Path.Combine("vae_decoder", VaeConfig.ConfigName)), backend);
+            var textEncoder = TextEncoder.FromPretrained(model.File(Path.Combine("text_encoder", TextEncoderConfig.ConfigName)), backend);
+            var unet = Unet.FromPretrained(model.File(Path.Combine("unet", UnetConfig.ConfigName)), backend);
+
+            StableDiffusionImg2ImgPipeline sdPipeline = new StableDiffusionImg2ImgPipeline(
+                vaeEncoder,
+                vaeDecoder,
+                textEncoder,
+                clipTokenizer,
+                scheduler,
+                unet,
+                backend
+            );
+            sdPipeline.ModelInfo = model;
             sdPipeline.Config = config;
             return sdPipeline;
         }
@@ -284,7 +318,7 @@ namespace Doji.AI.Diffusers {
                 tokenizer2,
                 backend
             );
-            sdPipeline.NameOrPath = model.ModelId;
+            sdPipeline.ModelInfo = model;
             sdPipeline.Config = config;
             return sdPipeline;
         }

@@ -2,7 +2,6 @@ using Doji.AI.Transformers;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading.Tasks;
 using Unity.Sentis;
 using UnityEngine.Profiling;
 
@@ -16,7 +15,31 @@ namespace Doji.AI.Diffusers {
         public VaeEncoder VaeEncoder { get; protected set; }
         public VaeImageProcessor ImageProcessor { get; protected set; }
 
-        private Ops _ops;
+        /// <summary>
+        /// Convert from async
+        /// </summary>
+        public static explicit operator StableDiffusionImg2ImgPipeline(StableDiffusionImg2ImgPipelineAsync pipe) {
+            return new StableDiffusionImg2ImgPipeline(pipe);
+        }
+
+        public StableDiffusionImg2ImgPipeline(DiffusionPipelineBase pipe) : base(pipe._ops.backendType) {
+            if (pipe is StableDiffusionImg2ImgPipeline) {
+                VaeEncoder = (pipe as StableDiffusionImg2ImgPipeline).VaeEncoder;
+            } else if (pipe is StableDiffusionImg2ImgPipelineAsync) {
+                VaeEncoder = (pipe as StableDiffusionImg2ImgPipelineAsync).VaeEncoder;
+            } else if (pipe is StableDiffusionPipeline || pipe is StableDiffusionPipelineAsync) {
+                VaeEncoder = VaeEncoder.FromPretrained(pipe.ModelInfo.VaeEncoderConfig, pipe._ops.backendType);
+            } else {
+                throw new InvalidCastException($"Cannot create StableDiffusionImg2ImgPipeline from a {pipe.GetType()}.");
+            }
+
+            ImageProcessor = new VaeImageProcessor(/*vaeScaleFactor: self.vae_scale_factor*/);
+            VaeDecoder = pipe.VaeDecoder;
+            TextEncoder = pipe.TextEncoder;
+            Tokenizer = pipe.Tokenizer;
+            Scheduler = pipe.Scheduler;
+            Unet = pipe.Unet;
+        }
 
         /// <summary>
         /// Initializes a new stable diffusion img2img pipeline.
@@ -28,13 +51,13 @@ namespace Doji.AI.Diffusers {
             ClipTokenizer tokenizer,
             Scheduler scheduler,
             Unet unet,
-            BackendType backend)
+            BackendType backend) : base(backend)
         {
             VaeEncoder = vaeEncoder;
             ImageProcessor = new VaeImageProcessor(/*vaeScaleFactor: self.vae_scale_factor*/);
             VaeDecoder = vaeDecoder;
-            Tokenizer = tokenizer;
             TextEncoder = textEncoder;
+            Tokenizer = tokenizer;
             Scheduler = scheduler;
             Unet = unet;
             _ops = WorkerFactory.CreateOps(backend, null);
@@ -311,7 +334,6 @@ namespace Doji.AI.Diffusers {
 
         public override void Dispose() {
             base.Dispose();
-            _ops?.Dispose();
             VaeEncoder?.Dispose();
         }
     }

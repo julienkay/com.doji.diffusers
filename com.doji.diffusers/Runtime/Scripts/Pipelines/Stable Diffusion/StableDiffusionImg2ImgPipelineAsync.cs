@@ -15,7 +15,23 @@ namespace Doji.AI.Diffusers {
         public VaeEncoder VaeEncoder { get; protected set; }
         public VaeImageProcessor ImageProcessor { get; protected set; }
 
-        private Ops _ops;
+        /// <summary>
+        /// Convert to async
+        /// </summary>
+        public static explicit operator StableDiffusionImg2ImgPipelineAsync(StableDiffusionImg2ImgPipeline pipe) {
+            if (pipe == null) {
+                throw new ArgumentNullException(nameof(pipe));
+            }
+            return new StableDiffusionImg2ImgPipelineAsync(
+                pipe.VaeEncoder,
+                pipe.VaeDecoder,
+                pipe.TextEncoder,
+                pipe.Tokenizer,
+                pipe.Scheduler,
+                pipe.Unet,
+                pipe._ops.backendType
+            );
+        }
 
         /// <summary>
         /// Initializes a new async stable diffusion img2img pipeline.
@@ -27,7 +43,7 @@ namespace Doji.AI.Diffusers {
             ClipTokenizer tokenizer,
             Scheduler scheduler,
             Unet unet,
-            BackendType backend)
+            BackendType backend) : base(backend)
         {
             VaeEncoder = vaeEncoder;
             ImageProcessor = new VaeImageProcessor(/*vaeScaleFactor: self.vae_scale_factor*/);
@@ -262,7 +278,6 @@ namespace Doji.AI.Diffusers {
 
         public override void Dispose() {
             base.Dispose();
-            _ops?.Dispose();
             VaeEncoder?.Dispose();
         }
     }

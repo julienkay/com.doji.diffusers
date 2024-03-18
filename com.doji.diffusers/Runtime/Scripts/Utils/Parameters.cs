@@ -17,6 +17,9 @@ namespace Doji.AI.Diffusers {
         [JsonProperty("model")]
         public string Model { get; set; }
 
+        [JsonProperty("pipeline")]
+        public string Pipeline { get; set; }
+
         [JsonProperty("prompt")]
         public string Prompt { get; set; }
 

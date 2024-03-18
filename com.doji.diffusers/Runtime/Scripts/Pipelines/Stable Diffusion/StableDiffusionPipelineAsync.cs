@@ -12,13 +12,14 @@ namespace Doji.AI.Diffusers {
     /// </summary>
     public partial class StableDiffusionPipelineAsync : DiffusionPipelineAsync, IDisposable {
 
-        private Ops _ops;
-
-        public static implicit operator StableDiffusionPipeline(StableDiffusionPipelineAsync pipe) {
+        /// <summary>
+        /// Convert to async
+        /// </summary>
+        public static explicit operator StableDiffusionPipelineAsync(StableDiffusionPipeline pipe) {
             if (pipe == null) {
                 throw new ArgumentNullException(nameof(pipe));
             }
-            return new StableDiffusionPipeline(
+            return new StableDiffusionPipelineAsync(
                 pipe.VaeDecoder,
                 pipe.TextEncoder,
                 pipe.Tokenizer,
@@ -37,7 +38,7 @@ namespace Doji.AI.Diffusers {
             ClipTokenizer tokenizer,
             Scheduler scheduler,
             Unet unet,
-            BackendType backend)
+            BackendType backend) : base(backend)
         {
             VaeDecoder = vaeDecoder;
             Tokenizer = tokenizer;

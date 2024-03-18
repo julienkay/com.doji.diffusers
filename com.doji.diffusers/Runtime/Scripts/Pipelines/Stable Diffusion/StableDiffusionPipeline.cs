@@ -15,13 +15,14 @@ namespace Doji.AI.Diffusers {
     /// </remarks>
     public partial class StableDiffusionPipeline : DiffusionPipeline, IDisposable {
 
-        private Ops _ops;
-
-        public static implicit operator StableDiffusionPipelineAsync(StableDiffusionPipeline pipe) {
+        /// <summary>
+        /// Convert from async
+        /// </summary>
+        public static explicit operator StableDiffusionPipeline(StableDiffusionPipelineAsync pipe) {
             if (pipe == null) {
                 throw new ArgumentNullException(nameof(pipe));
             }
-            return new StableDiffusionPipelineAsync(
+            return new StableDiffusionPipeline(
                 pipe.VaeDecoder,
                 pipe.TextEncoder,
                 pipe.Tokenizer,
@@ -40,14 +41,13 @@ namespace Doji.AI.Diffusers {
             ClipTokenizer tokenizer,
             Scheduler scheduler,
             Unet unet,
-            BackendType backend)
+            BackendType backend) : base(backend)
         {
             VaeDecoder = vaeDecoder;
             Tokenizer = tokenizer;
             TextEncoder = textEncoder;
             Scheduler = scheduler;
             Unet = unet;
-            _ops = WorkerFactory.CreateOps(backend, null);
         }
 
         public override TensorFloat Generate(
@@ -288,7 +288,6 @@ namespace Doji.AI.Diffusers {
 
         public override void Dispose() {
             base.Dispose();
-            _ops?.Dispose();
         }
     }
 }

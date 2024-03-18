@@ -10,18 +10,21 @@ namespace Doji.AI.Diffusers {
         /// <summary>
         /// Conversion to async pipelines
         /// </summary>
-        public static implicit operator DiffusionPipelineAsync(DiffusionPipeline pipe) {
-            if (pipe == null) throw new ArgumentNullException(nameof(pipe));
-            if (pipe is StableDiffusionPipeline) {
-                return (StableDiffusionPipelineAsync)(pipe as StableDiffusionPipeline);
-            } else if (pipe is StableDiffusionImg2ImgPipeline) {
-                return (StableDiffusionImg2ImgPipelineAsync)(pipe as StableDiffusionImg2ImgPipeline);
-            } else if (pipe is StableDiffusionXLPipeline) {
-                return (StableDiffusionXLPipelineAsync)(pipe as StableDiffusionXLPipeline);
+        public static implicit operator DiffusionPipeline(DiffusionPipelineAsync pipe) {
+            if (pipe == null)
+                throw new ArgumentNullException(nameof(pipe));
+            if (pipe is StableDiffusionPipelineAsync) {
+                return (StableDiffusionPipeline)(pipe as StableDiffusionPipelineAsync);
+            } else if (pipe is StableDiffusionImg2ImgPipelineAsync) {
+                return (StableDiffusionImg2ImgPipeline)(pipe as StableDiffusionImg2ImgPipelineAsync);
+            } else if (pipe is StableDiffusionXLPipelineAsync) {
+                return (StableDiffusionXLPipeline)(pipe as StableDiffusionXLPipelineAsync);
             } else {
-                throw new InvalidCastException($"Cannot convert {pipe.GetType()} to DiffusionPipelineAsync");
+                throw new InvalidCastException($"Cannot convert {pipe.GetType()} to DiffusionPipeline");
             }
         }
+
+        public DiffusionPipeline(BackendType backendType) : base(backendType) { }
 
         /// <inheritdoc cref="Generate(Input, int, int, int, float, Input, int, float, uint?, TensorFloat, Action{int, float, TensorFloat})"/>
         public TensorFloat Generate(
