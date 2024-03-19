@@ -8,52 +8,9 @@ using Unity.Sentis;
 namespace Doji.AI.Diffusers {
 
     /// <summary>
-    /// Async Stable Diffusion Image to Image pipeline 
+    /// Async Stable Diffusion Image to Image pipeline methods.
     /// </summary>
-    public partial class StableDiffusionImg2ImgPipelineAsync : DiffusionPipelineAsync, IDisposable {
-
-        public VaeEncoder VaeEncoder { get; protected set; }
-        public VaeImageProcessor ImageProcessor { get; protected set; }
-
-        /// <summary>
-        /// Convert to async
-        /// </summary>
-        public static explicit operator StableDiffusionImg2ImgPipelineAsync(StableDiffusionImg2ImgPipeline pipe) {
-            if (pipe == null) {
-                throw new ArgumentNullException(nameof(pipe));
-            }
-            return new StableDiffusionImg2ImgPipelineAsync(
-                pipe.VaeEncoder,
-                pipe.VaeDecoder,
-                pipe.TextEncoder,
-                pipe.Tokenizer,
-                pipe.Scheduler,
-                pipe.Unet,
-                pipe._ops.backendType
-            );
-        }
-
-        /// <summary>
-        /// Initializes a new async stable diffusion img2img pipeline.
-        /// </summary>
-        public StableDiffusionImg2ImgPipelineAsync(
-            VaeEncoder vaeEncoder,
-            VaeDecoder vaeDecoder,
-            TextEncoder textEncoder,
-            ClipTokenizer tokenizer,
-            Scheduler scheduler,
-            Unet unet,
-            BackendType backend) : base(backend)
-        {
-            VaeEncoder = vaeEncoder;
-            ImageProcessor = new VaeImageProcessor(/*vaeScaleFactor: self.vae_scale_factor*/);
-            VaeDecoder = vaeDecoder;
-            Tokenizer = tokenizer;
-            TextEncoder = textEncoder;
-            Scheduler = scheduler;
-            Unet = unet;
-            _ops = WorkerFactory.CreateOps(backend, null);
-        }
+    public partial class StableDiffusionImg2ImgPipeline {
 
         public override Task<TensorFloat> GenerateAsync(
             Input prompt,
@@ -274,11 +231,6 @@ namespace Doji.AI.Diffusers {
             }
 
             return promptEmbeds;
-        }
-
-        public override void Dispose() {
-            base.Dispose();
-            VaeEncoder?.Dispose();
         }
     }
 }

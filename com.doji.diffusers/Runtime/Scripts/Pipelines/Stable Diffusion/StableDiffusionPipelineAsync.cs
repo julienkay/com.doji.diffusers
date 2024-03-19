@@ -8,45 +8,9 @@ using Unity.Sentis;
 namespace Doji.AI.Diffusers {
 
     /// <summary>
-    /// Async Stable Diffusion pipeline 
+    /// Async Stable Diffusion pipeline methods.
     /// </summary>
-    public partial class StableDiffusionPipelineAsync : DiffusionPipelineAsync, IDisposable {
-
-        /// <summary>
-        /// Convert to async
-        /// </summary>
-        public static explicit operator StableDiffusionPipelineAsync(StableDiffusionPipeline pipe) {
-            if (pipe == null) {
-                throw new ArgumentNullException(nameof(pipe));
-            }
-            return new StableDiffusionPipelineAsync(
-                pipe.VaeDecoder,
-                pipe.TextEncoder,
-                pipe.Tokenizer,
-                pipe.Scheduler,
-                pipe.Unet,
-                pipe._ops.backendType
-            );
-        }
-
-        /// <summary>
-        /// Initializes a new async stable diffusion pipeline.
-        /// </summary>
-        public StableDiffusionPipelineAsync(
-            VaeDecoder vaeDecoder,
-            TextEncoder textEncoder,
-            ClipTokenizer tokenizer,
-            Scheduler scheduler,
-            Unet unet,
-            BackendType backend) : base(backend)
-        {
-            VaeDecoder = vaeDecoder;
-            Tokenizer = tokenizer;
-            TextEncoder = textEncoder;
-            Scheduler = scheduler;
-            Unet = unet;
-            _ops = WorkerFactory.CreateOps(backend, null);
-        }
+    public partial class StableDiffusionPipeline {
 
         public override async Task<TensorFloat> GenerateAsync(
             Input prompt,
@@ -232,20 +196,6 @@ namespace Doji.AI.Diffusers {
             }
 
             return promptEmbeds;
-        }
-
-        private TensorShape GetLatentsShape() {
-            return new TensorShape(
-                _batchSize * _numImagesPerPrompt,
-                4, // unet.in_channels
-                _height / 8,
-                _width / 8
-            );
-        }
-
-        public override void Dispose() {
-            base.Dispose();
-            _ops?.Dispose();
         }
     }
 }

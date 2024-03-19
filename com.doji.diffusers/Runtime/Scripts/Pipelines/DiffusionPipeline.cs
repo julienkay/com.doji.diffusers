@@ -1,30 +1,72 @@
 using Doji.AI.Transformers;
 using System;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using Unity.Sentis;
 
 namespace Doji.AI.Diffusers {
 
-    public abstract partial class DiffusionPipeline : DiffusionPipelineBase {
+    public abstract partial class DiffusionPipeline : IDisposable {
 
-        /// <summary>
-        /// Conversion to async pipelines
-        /// </summary>
-        public static implicit operator DiffusionPipeline(DiffusionPipelineAsync pipe) {
-            if (pipe == null)
-                throw new ArgumentNullException(nameof(pipe));
-            if (pipe is StableDiffusionPipelineAsync) {
-                return (StableDiffusionPipeline)(pipe as StableDiffusionPipelineAsync);
-            } else if (pipe is StableDiffusionImg2ImgPipelineAsync) {
-                return (StableDiffusionImg2ImgPipeline)(pipe as StableDiffusionImg2ImgPipelineAsync);
-            } else if (pipe is StableDiffusionXLPipelineAsync) {
-                return (StableDiffusionXLPipeline)(pipe as StableDiffusionXLPipelineAsync);
-            } else {
-                throw new InvalidCastException($"Cannot convert {pipe.GetType()} to DiffusionPipeline");
+        public DiffusionModel ModelInfo { get; protected set; }
+        public PipelineConfig Config { get; protected set; }
+
+        public VaeDecoder VaeDecoder { get; protected set; }
+        public ClipTokenizer Tokenizer { get; protected set; }
+        public TextEncoder TextEncoder { get; protected set; }
+        public Scheduler Scheduler { get; protected set; }
+        public Unet Unet { get; protected set; }
+
+        protected Input _prompt;
+        protected Input _negativePrompt;
+        protected int _steps;
+        protected int _height;
+        protected int _width;
+        protected int _batchSize;
+        protected int _numImagesPerPrompt;
+        protected float _guidanceScale;
+        protected float? _eta;
+        protected uint? _seed;
+        protected TensorFloat _latents;
+
+        internal Ops _ops;
+
+        public DiffusionPipeline(BackendType backendType) {
+            _ops = WorkerFactory.CreateOps(backendType, null);
+        }
+
+        protected void CheckInputs() {
+            if (_height % 8 != 0 || _width % 8 != 0) {
+                throw new ArgumentException($"`height` and `width` have to be divisible by 8 but are {_height} and {_width}.");
+            }
+            if (_numImagesPerPrompt > 1) {
+                throw new ArgumentException($"More than one image per prompt not supported yet. `numImagesPerPrompt` was {_numImagesPerPrompt}.");
+            }
+            if (_latents != null && _seed != null) {
+                throw new ArgumentException($"Both a seed and pre-generated noise has been passed. Please use either one or the other.");
             }
         }
 
-        public DiffusionPipeline(BackendType backendType) : base(backendType) { }
+        public Parameters GetParameters() {
+            if (_prompt is not SingleInput) {
+                throw new NotImplementedException("GetParameters not yet implemented for batch inputs.");
+            }
+
+            return new Parameters() {
+                PackageVersion = System.Diagnostics.FileVersionInfo.GetVersionInfo(System.Reflection.Assembly.GetExecutingAssembly().Location).ProductVersion,
+                Prompt = (_prompt as SingleInput).Text,
+                Model = ModelInfo.ModelId,
+                Pipeline = GetType().Name,
+                NegativePrompt = _negativePrompt != null ? (_negativePrompt as SingleInput).Text : null,
+                Steps = _steps,
+                Sampler = Scheduler.GetType().Name,
+                CfgScale = _guidanceScale,
+                Seed = _seed,
+                Width = _width,
+                Height = _height,
+                Eta = _eta
+            };
+        }
 
         /// <inheritdoc cref="Generate(Input, int, int, int, float, Input, int, float, uint?, TensorFloat, Action{int, float, TensorFloat})"/>
         public TensorFloat Generate(
@@ -88,7 +130,7 @@ namespace Doji.AI.Diffusers {
         /// <param name="callback">A function that will be called at every step during inference.
         /// The function will be called with the following arguments:
         /// `callback(step: int, timestep: float, latents: TensorFloat)`.</param>
-        public abstract TensorFloat Generate(
+        public virtual TensorFloat Generate(
             Input prompt,
             int height = 512,
             int width = 512,
@@ -99,7 +141,74 @@ namespace Doji.AI.Diffusers {
             float eta = 0.0f,
             uint? seed = null,
             TensorFloat latents = null,
-            Action<int, float, TensorFloat> callback = null
-        );
+            Action<int, float, TensorFloat> callback = null)
+        {
+            throw new NotImplementedException($"This overload of the '{nameof(Generate)}' method not implemented for {GetType().Name}.");
+        }
+
+        /// <inheritdoc cref="GenerateAsync(Input, int, int, int, float, Input, int, float, uint?, TensorFloat, Action{int, float, TensorFloat})"/>
+        public async Task<TensorFloat> GenerateAsync(
+            string prompt,
+            int height = 512,
+            int width = 512,
+            int numInferenceSteps = 50,
+            float guidanceScale = 7.5f,
+            string negativePrompt = null,
+            int numImagesPerPrompt = 1,
+            float eta = 0.0f,
+            uint? seed = null,
+            TensorFloat latents = null,
+            Action<int, float, TensorFloat> callback = null)
+        {
+            return await GenerateAsync((TextInput)prompt, height, width, numInferenceSteps, guidanceScale,
+               (TextInput)negativePrompt, numImagesPerPrompt, eta, seed, latents, callback);
+        }
+
+        /// <param name="prompt">The prompts used to generate the batch of images for.</param>
+        /// <inheritdoc cref="GenerateAsync(Input, int, int, int, float, Input, int, float, uint?, TensorFloat, Action{int, float, TensorFloat})"/>
+        public async Task<TensorFloat> GenerateAsync(
+            List<string> prompt,
+            int height = 512,
+            int width = 512,
+            int numInferenceSteps = 50,
+            float guidanceScale = 7.5f,
+            List<string> negativePrompt = null,
+            int numImagesPerPrompt = 1,
+            float eta = 0.0f,
+            uint? seed = null,
+            TensorFloat latents = null,
+            Action<int, float, TensorFloat> callback = null)
+        {
+            return await GenerateAsync((BatchInput)prompt, height, width, numInferenceSteps, guidanceScale,
+                (BatchInput)negativePrompt, numImagesPerPrompt, eta, seed, latents, callback);
+        }
+
+        /// <summary>
+        /// Execute the pipeline asynchronously.
+        /// </summary>
+        /// <inheritdoc cref="DiffusionPipeline.Generate(Input, int, int, int, float, Input, int, float, uint?, TensorFloat, Action{int, float, TensorFloat})"/>
+        public virtual Task<TensorFloat> GenerateAsync(
+            Input prompt,
+            int height = 512,
+            int width = 512,
+            int numInferenceSteps = 50,
+            float guidanceScale = 7.5f,
+            Input negativePrompt = null,
+            int numImagesPerPrompt = 1,
+            float eta = 0.0f,
+            uint? seed = null,
+            TensorFloat latents = null,
+            Action<int, float, TensorFloat> callback = null)
+        {
+            throw new NotImplementedException($"{nameof(GenerateAsync)} not implemented for {GetType().Name}.");
+        }
+
+        public virtual void Dispose() {
+            VaeDecoder?.Dispose();
+            TextEncoder?.Dispose();
+            Scheduler?.Dispose();
+            Unet?.Dispose();
+            _ops?.Dispose();
+        }
     }
 }

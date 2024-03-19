@@ -16,23 +16,6 @@ namespace Doji.AI.Diffusers {
     public partial class StableDiffusionPipeline : DiffusionPipeline, IDisposable {
 
         /// <summary>
-        /// Convert from async
-        /// </summary>
-        public static explicit operator StableDiffusionPipeline(StableDiffusionPipelineAsync pipe) {
-            if (pipe == null) {
-                throw new ArgumentNullException(nameof(pipe));
-            }
-            return new StableDiffusionPipeline(
-                pipe.VaeDecoder,
-                pipe.TextEncoder,
-                pipe.Tokenizer,
-                pipe.Scheduler,
-                pipe.Unet,
-                pipe._ops.backendType
-            );
-        }
-
-        /// <summary>
         /// Initializes a new stable diffusion pipeline.
         /// </summary>
         public StableDiffusionPipeline(

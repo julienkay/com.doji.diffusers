@@ -15,19 +15,10 @@ namespace Doji.AI.Diffusers {
         public VaeEncoder VaeEncoder { get; protected set; }
         public VaeImageProcessor ImageProcessor { get; protected set; }
 
-        /// <summary>
-        /// Convert from async
-        /// </summary>
-        public static explicit operator StableDiffusionImg2ImgPipeline(StableDiffusionImg2ImgPipelineAsync pipe) {
-            return new StableDiffusionImg2ImgPipeline(pipe);
-        }
-
-        public StableDiffusionImg2ImgPipeline(DiffusionPipelineBase pipe) : base(pipe._ops.backendType) {
+        public StableDiffusionImg2ImgPipeline(DiffusionPipeline pipe) : base(pipe._ops.backendType) {
             if (pipe is StableDiffusionImg2ImgPipeline) {
                 VaeEncoder = (pipe as StableDiffusionImg2ImgPipeline).VaeEncoder;
-            } else if (pipe is StableDiffusionImg2ImgPipelineAsync) {
-                VaeEncoder = (pipe as StableDiffusionImg2ImgPipelineAsync).VaeEncoder;
-            } else if (pipe is StableDiffusionPipeline || pipe is StableDiffusionPipelineAsync) {
+            } else if (pipe is StableDiffusionPipeline) {
                 VaeEncoder = VaeEncoder.FromPretrained(pipe.ModelInfo.VaeEncoderConfig, pipe._ops.backendType);
             } else {
                 throw new InvalidCastException($"Cannot create StableDiffusionImg2ImgPipeline from a {pipe.GetType()}.");

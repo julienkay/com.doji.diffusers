@@ -8,70 +8,9 @@ using Unity.Sentis;
 namespace Doji.AI.Diffusers {
 
     /// <summary>
-    /// Async Stable Diffusion XL Pipeline 
+    /// Async Stable Diffusion XL Pipeline methods.
     /// </summary>
-    public partial class StableDiffusionXLPipelineAsync : DiffusionPipelineAsync, IDisposable {
-
-        public ClipTokenizer Tokenizer2 { get; private set; }
-        public TextEncoder TextEncoder2 { get; private set; }
-
-        private List<(ClipTokenizer Tokenizer, TextEncoder TextEncoder)> Encoders { get; set; }
-        
-        private int VaeScaleFactor { get; set; }
-
-        private List<TensorFloat> _promptEmbedsList = new List<TensorFloat>();
-        private List<TensorFloat> _negativePromptEmbedsList = new List<TensorFloat>();
-
-        public static explicit operator StableDiffusionXLPipelineAsync(StableDiffusionXLPipeline pipe) {
-            if (pipe == null) {
-                throw new ArgumentNullException(nameof(pipe));
-            }
-            return new StableDiffusionXLPipelineAsync(
-                pipe.VaeDecoder,
-                pipe.TextEncoder,
-                pipe.Tokenizer,
-                pipe.Scheduler,
-                pipe.Unet,
-                pipe.TextEncoder2,
-                pipe.Tokenizer2,
-                pipe._ops.backendType
-            );
-        }
-
-        /// <summary>
-        /// Initializes a new async Stable Diffusion XL pipeline.
-        /// </summary>
-        public StableDiffusionXLPipelineAsync(
-            VaeDecoder vaeDecoder,
-            TextEncoder textEncoder,
-            ClipTokenizer tokenizer,
-            Scheduler scheduler,
-            Unet unet,
-            TextEncoder textEncoder2,
-            ClipTokenizer tokenizer2,
-            BackendType backend) : base(backend)
-        {
-            VaeDecoder = vaeDecoder;
-            Tokenizer = tokenizer;
-            Tokenizer2 = tokenizer2;
-            TextEncoder = textEncoder;
-            TextEncoder2 = textEncoder2;
-            Scheduler = scheduler;
-            Unet = unet;
-            Encoders = Tokenizer != null && TextEncoder != null
-                ? new() { (Tokenizer, TextEncoder), (Tokenizer2, TextEncoder2) }
-                : new() { (Tokenizer2, TextEncoder2) };
-
-            _ops = WorkerFactory.CreateOps(backend, null);
-
-            //TODO: move this into a base class, but need to consolidate 
-            //diffusers-based onnx pipelines with optimum-based pipelines
-            if (VaeDecoder.Config.BlockOutChannels != null) {
-                VaeScaleFactor = 1 << (VaeDecoder.Config.BlockOutChannels.Length - 1);
-            } else {
-                VaeScaleFactor = 8;
-            }
-        }
+    public partial class StableDiffusionXLPipeline {
 
         public override async Task<TensorFloat> GenerateAsync(
             Input prompt,
@@ -325,65 +264,6 @@ namespace Doji.AI.Diffusers {
                 PooledPromptEmbeds = pooledPromptEmbeds,
                 NegativePooledPromptEmbeds = negativePooledPromptEmbeds
             };
-        }
-
-        private void PrepareLatents() {
-            var shape = new TensorShape(
-                _batchSize * _numImagesPerPrompt,
-                Unet.Config.InChannels ?? 4,
-                _height / 8,
-                _width / 8
-            );
-
-            if (_latents == null) {
-                _latents = _ops.RandomNormal(shape, 0, 1, _seed);
-            } else if (_latents.shape != shape) {
-                throw new ArgumentException($"Unexpected latents shape, got {_latents.shape}, expected {shape}");
-            }
-            
-            // scale the initial noise by the standard deviation required by the scheduler
-            if (Math.Abs(Scheduler.InitNoiseSigma - 1.0f) > 0.00001f) {
-                _latents = _ops.Mul(Scheduler.InitNoiseSigma, _latents);
-            }
-        }
-
-        private float[] GetTimeIds((int, int) a, (int, int) b, (int, int) c) {
-            return new float[] {
-                a.Item1,
-                a.Item2,
-                b.Item1,
-                b.Item2,
-                c.Item1,
-                c.Item2
-            };
-        }
-
-        /// <summary>
-        /// Rescale `noise_cfg` according to `guidance_rescale`. Based on findings of [Common Diffusion Noise Schedules and
-        /// Sample Steps are Flawed](https://arxiv.org/pdf/2305.08891.pdf). See Section 3.4
-        /// </summary>
-        private TensorFloat RescaleNoiseCfg(TensorFloat noiseCfg, TensorFloat noise_pred_text, float guidanceRescale = 0.0f) {
-            throw new NotImplementedException("guidanceRescale > 0.0f not supported yet.");
-            /*TensorFloat std_text = np.std(noise_pred_text, axis = tuple(range(1, noise_pred_text.ndim)), keepdims = True);
-            TensorFloat std_cfg = np.std(noiseCfg, axis = tuple(range(1, noiseCfg.ndim)), keepdims = True);
-            // rescale the results from guidance (fixes overexposure)
-            TensorFloat noisePredRescaled = noiseCfg * (std_text / std_cfg);
-            // mix with the original results from guidance by factor guidance_rescale to avoid "plain looking" images
-            noiseCfg = guidanceRescale * noisePredRescaled + (1f - guidanceRescale) * noiseCfg;
-            return noiseCfg;*/
-        }
-
-        public override void Dispose() {
-            base.Dispose();
-            _ops?.Dispose();
-            TextEncoder2?.Dispose();
-        }
-
-        private struct Embeddings {
-            public TensorFloat PromptEmbeds { get; set; }
-            public TensorFloat NegativePromptEmbeds { get; set; }
-            public TensorFloat PooledPromptEmbeds { get; set; }
-            public TensorFloat NegativePooledPromptEmbeds { get; set; }
         }
     }
 }
