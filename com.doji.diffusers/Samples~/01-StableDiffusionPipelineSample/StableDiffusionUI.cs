@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using TMPro;
 using UnityEngine;
@@ -8,16 +9,16 @@ namespace Doji.AI.Diffusers.Samples {
 
     public class StableDiffusionUI : MonoBehaviour {
 
+        public TMP_Dropdown ModelDropdown;
         public RawImage Image;
-        public TMP_InputField PromptField;
-        public Button GenerateButton;
 
         public Model Model = Model.SD_1_5;
         public string Prompt = "a cat";
         public int Resolution = 512;
         public int Steps = 20;
         public float GuidanceScale = 7.5f;
-        
+        public Texture2D InputImage;
+
         public RenderTexture Result;
         private StableDiffusion _stableDiffusion;
 
@@ -25,35 +26,42 @@ namespace Doji.AI.Diffusers.Samples {
 
         private void Start() {
             _stableDiffusion = new StableDiffusion(Model.GetModelInfo());
-            PromptField.onValueChanged.AddListener(OnPromptChanged);
-            GenerateButton.onClick.AddListener(OnGenerateClicked);
+
+            List<TMP_Dropdown.OptionData> options = new List<TMP_Dropdown.OptionData>();
+            for (int i = 0; i < Enum.GetNames(typeof(Model)).Length; i++) {
+                options.Add(new TMP_Dropdown.OptionData(Enum.GetName(typeof(Model), i)));
+            }
+            ModelDropdown.options = options;
+            ModelDropdown.onValueChanged.AddListener(OnModelChanged);
+            ModelDropdown.value = (int)Model; 
         }
 
-        private async void OnGenerateClicked() {
-            ExecuteSD();
-            /*try {
-                await ExecuteSDAsync();
-            } catch (Exception ex) {
-                throw ex;
-            }*/
+        private void OnModelChanged(int modelIndex) {
+            Debug.Log((Model)modelIndex);
+            var model = ((Model)modelIndex).GetModelInfo();
+            if (_stableDiffusion.Model != model) {
+                Debug.Log("Change model");
+                _stableDiffusion.Model = model;
+            }
         }
 
-        private void OnPromptChanged(string value) {
-            Prompt = value;
-        }
-
-        private void ExecuteSD() {
-            Prompt = PromptField.text;
-            Result = _stableDiffusion.RenderTexture;
+        public void Txt2Img() {
+            Result = _stableDiffusion.Result;
             Parameters p = _stableDiffusion.Imagine(Prompt, Resolution, Resolution, Steps, GuidanceScale, _negativePrompts);
             Image.texture = Result;
             PNGUtils.SaveToDisk(Result, ".", p);
         }
 
-        private async Task ExecuteSDAsync() {
-            Prompt = PromptField.text;
-            Result = _stableDiffusion.RenderTexture;
+        public async Task Txt2ImgAsync() {
+            Result = _stableDiffusion.Result;
             Parameters p = await _stableDiffusion.ImagineAsync(Prompt, Resolution, Resolution, Steps, GuidanceScale, _negativePrompts);
+            Image.texture = Result;
+            PNGUtils.SaveToDisk(Result, ".", p);
+        }
+
+        public void Img2Img() {
+            Result = _stableDiffusion.Result;
+            Parameters p = _stableDiffusion.Imagine(Prompt, InputImage, Steps, GuidanceScale, _negativePrompts);
             Image.texture = Result;
             PNGUtils.SaveToDisk(Result, ".", p);
         }
@@ -62,15 +70,17 @@ namespace Doji.AI.Diffusers.Samples {
             _stableDiffusion?.Dispose();
         }
 
+#if UNITY_EDITOR
         private void OnValidate() {
             if (_stableDiffusion == null)
                 return;
 
             DiffusionModel model = Model.GetModelInfo();
             if (_stableDiffusion.Model != model) {
-                _stableDiffusion.Model = model;
+                ModelDropdown.value = (int)Model;
             }
         }
+#endif
     }
 
     /// <summary>
@@ -86,7 +96,7 @@ namespace Doji.AI.Diffusers.Samples {
                 Model.SD_XL => DiffusionModel.SD_XL_BASE,
                 Model.SD_TURBO => DiffusionModel.SD_TURBO,
                 Model.SD_XL_TURBO => DiffusionModel.SD_XL_TURBO,
-                _ => throw new System.ArgumentException($"Unknown model '{model}'"),
+                _ => throw new ArgumentException($"Unknown model '{model}'"),
             };
         }
     }

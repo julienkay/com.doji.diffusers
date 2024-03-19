@@ -13,7 +13,7 @@ namespace Doji.AI.Diffusers {
     /// <remarks>
     /// pipeline_stable_diffusion_xl.py from huggingface/optimum
     /// </remarks>
-    public partial class StableDiffusionXLPipeline : DiffusionPipeline, IDisposable {
+    public partial class StableDiffusionXLPipeline : DiffusionPipeline, ITxt2ImgPipeline, IDisposable {
 
         public ClipTokenizer Tokenizer2 { get; private set; }
         public TextEncoder TextEncoder2 { get; private set; }

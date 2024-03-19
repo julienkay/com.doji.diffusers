@@ -182,6 +182,17 @@ namespace Doji.AI.Diffusers {
         }
 
         /// <summary>
+        /// Turns this pipeline into an img2img pipeline, reusing its components where applicable. 
+        /// </summary>
+        public IImg2ImgPipeline CreateImg2Img() {
+            return this switch {
+                StableDiffusionPipeline => (new StableDiffusionImg2ImgPipeline(this) as IImg2ImgPipeline),
+                StableDiffusionXLPipeline => throw new NotImplementedException("Img2Img pipeline not yet implemented for SDXL"),
+                _ => throw new NotImplementedException($"Img2Img pipeline not yet implemented for {GetType().Name}"),
+            };
+        }
+
+        /// <summary>
         /// Returns true when this model is found in either StreamingAssets or Resources
         /// </summary>
         public static bool IsModelAvailable(DiffusionModel model) {

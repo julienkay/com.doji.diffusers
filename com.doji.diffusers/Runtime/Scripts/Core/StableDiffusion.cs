@@ -7,7 +7,14 @@ using UnityEngine.Profiling;
 namespace Doji.AI.Diffusers {
 
     /// <summary>
-    /// This class provides access to <see cref="StableDiffusionPipeline"/> objects.
+    /// This class wraps <see cref="DiffusionPipeline"/> objects.
+    /// It provides a higher level API than the pipeline classes, making it more convenient
+    /// to use especially for getting started with doing simple generations.
+    /// - you don't have to deal with Tensors, the API uses RenderTexture/Texture2D objects
+    /// to return results and sometimes to take image inputs
+    /// - You can use txt2img, img2img, etc. and don't need to handle individual pipelines
+    /// For more control you can still use a pipeline directly
+    /// (use <see cref="DiffusionPipeline.FromPretrained(DiffusionModel, BackendType)"/>)
     /// </summary>
     public class StableDiffusion : IDisposable {
 
@@ -15,7 +22,6 @@ namespace Doji.AI.Diffusers {
             get => _model;
             set {
                 if (_model != value) {
-                    _sdPipeline.Dispose();
                     _model = value;
                     Initialize();
                 }
@@ -27,7 +33,6 @@ namespace Doji.AI.Diffusers {
             get => _backend;
             set {
                 if (_backend != value) {
-                    _sdPipeline.Dispose();
                     _backend = value;
                     Initialize();
                 }
@@ -35,27 +40,40 @@ namespace Doji.AI.Diffusers {
         }
         private BackendType _backend = BackendType.GPUCompute;
 
-        private DiffusionPipeline _sdPipeline;
-        public RenderTexture RenderTexture;
+        private DiffusionPipeline _txt2img;
+        private IImg2ImgPipeline _img2img;
+        public RenderTexture Result;
+
+        private const int WIDTH = 512;
+        private const int HEIGHT = 512;
 
         public StableDiffusion(DiffusionModel model) {
             _model = model;
             Initialize();
         }
 
+        /// <summary>
+        /// Initialise a Stable diffusion pipeline for the current <see cref="Model"/>
+        /// and the current <see cref="Backend"/>.
+        /// </summary>
         private void Initialize() {
-            _sdPipeline?.Dispose();
-            _sdPipeline = DiffusionPipeline.FromPretrained(Model, Backend);
-            if (RenderTexture == null) {
-                RenderTexture = new RenderTexture(512, 512, 0, RenderTextureFormat.ARGB32);
+            _txt2img?.Dispose();
+            _img2img?.Dispose();
+            _txt2img = DiffusionPipeline.FromPretrained(Model, Backend);
+            _img2img = _txt2img.CreateImg2Img();
+            if (Result == null) {
+                Result = new RenderTexture(WIDTH, HEIGHT, 0, RenderTextureFormat.ARGB32);
             }
         }
 
+        /// <summary>
+        /// txt2img generation
+        /// </summary>
         public Parameters Imagine(string prompt, int width, int height, int numInferenceSteps = 50, float guidanceScale = 7.5f, string negativePrompt = null) {
-            RenderTexture.name = prompt;
+            Result.name = prompt;
 
             Profiler.BeginSample("StableDiffusion.Imagine");
-            var image = _sdPipeline.Generate(
+            var image = _txt2img.Generate(
                 prompt,
                 width: width,
                 height: height,
@@ -66,15 +84,15 @@ namespace Doji.AI.Diffusers {
             Profiler.EndSample();
 
             Profiler.BeginSample("Convert to RenderTexture");
-            TextureConverter.RenderToTexture(image, RenderTexture);
+            TextureConverter.RenderToTexture(image, Result);
             Profiler.EndSample();
 
-            return _sdPipeline.GetParameters();
+            return _txt2img.GetParameters();
         }
 
         public async Task<Parameters> ImagineAsync(string prompt, int width, int height, int numInferenceSteps = 50, float guidanceScale = 7.5f, string negativePrompt = null) {
-            RenderTexture.name = prompt;
-            var image = await _sdPipeline.GenerateAsync(
+            Result.name = prompt;
+            var image = await _txt2img.GenerateAsync(
                 prompt,
                 width: width,
                 height: height,
@@ -82,14 +100,39 @@ namespace Doji.AI.Diffusers {
                 guidanceScale: guidanceScale,
                 negativePrompt: negativePrompt
             );
-            TextureConverter.RenderToTexture(image, RenderTexture);
-            return _sdPipeline.GetParameters();
+            TextureConverter.RenderToTexture(image, Result);
+            return _txt2img.GetParameters();
+        }
+
+        /// <summary>
+        /// img2img generation
+        /// </summary>
+        public Parameters Imagine(string prompt, Texture2D inputTexture, int numInferenceSteps = 50, float guidanceScale = 7.5f, string negativePrompt = null) {
+            Result.name = prompt;
+            using var input = TextureConverter.ToTensor(inputTexture);
+
+            Profiler.BeginSample("StableDiffusion.Imagine");
+            var image = _img2img.Generate(
+                prompt,
+                input,
+                numInferenceSteps: numInferenceSteps,
+                guidanceScale: guidanceScale,
+                negativePrompt: negativePrompt
+            );
+            Profiler.EndSample();
+
+            Profiler.BeginSample("Convert to RenderTexture");
+            TextureConverter.RenderToTexture(image, Result);
+            Profiler.EndSample();
+
+            return _img2img.GetParameters();
         }
 
         public void Dispose() {
-            _sdPipeline?.Dispose();
-            if (RenderTexture != null) {
-                RenderTexture.Release();
+            _txt2img?.Dispose();
+            _img2img?.Dispose();
+            if (Result != null) {
+                Result.Release();
             }
         }
     }

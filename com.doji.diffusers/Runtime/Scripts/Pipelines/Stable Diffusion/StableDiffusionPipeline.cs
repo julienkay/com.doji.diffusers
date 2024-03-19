@@ -13,7 +13,7 @@ namespace Doji.AI.Diffusers {
     /// <remarks>
     /// stable_diffusion/pipeline_onnx_stable_diffusion.py from huggingface/diffusers
     /// </remarks>
-    public partial class StableDiffusionPipeline : DiffusionPipeline, IDisposable {
+    public partial class StableDiffusionPipeline : DiffusionPipeline, ITxt2ImgPipeline, IDisposable {
 
         /// <summary>
         /// Initializes a new stable diffusion pipeline.
