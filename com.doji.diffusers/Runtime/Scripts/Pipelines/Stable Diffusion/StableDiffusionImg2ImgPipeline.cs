@@ -16,6 +16,9 @@ namespace Doji.AI.Diffusers {
         public VaeImageProcessor ImageProcessor { get; protected set; }
 
         public StableDiffusionImg2ImgPipeline(DiffusionPipeline pipe) : base(pipe._ops.backendType) {
+            ModelInfo = pipe.ModelInfo;
+            Config = pipe.Config;
+
             if (pipe is StableDiffusionImg2ImgPipeline) {
                 VaeEncoder = (pipe as StableDiffusionImg2ImgPipeline).VaeEncoder;
             } else if (pipe is StableDiffusionPipeline) {

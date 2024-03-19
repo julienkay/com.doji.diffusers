@@ -8,9 +8,7 @@ namespace Doji.AI.Diffusers {
     public abstract class EulerScheduler : SchedulerFloat {
 
         public float[] Betas { get; private set; }
-        private float[] AlphasCumprod { get; set; }
         internal float[] Sigmas { get; set; }
-
         public bool IsScaleInputCalled { get; private set; }
 
         public override float InitNoiseSigma {
@@ -44,7 +42,8 @@ namespace Doji.AI.Diffusers {
             }
 
             float[] alphas = Sub(1f, Betas);
-            AlphasCumprod = alphas.CumProd();
+            AlphasCumprodF = alphas.CumProd();
+            AlphasCumprod = new TensorFloat(new TensorShape(alphas.Length), AlphasCumprodF);
 
             if (RescaleBetasZeroSnr) {
                 // Close to 0 without being 0 so first sigma is not inf
@@ -53,8 +52,8 @@ namespace Doji.AI.Diffusers {
                 throw new NotImplementedException();
             }
 
-            float[] tmp1 = Sub(1f, AlphasCumprod);
-            float[] tmp2 = tmp1.Div(AlphasCumprod);
+            float[] tmp1 = Sub(1f, AlphasCumprodF);
+            float[] tmp2 = tmp1.Div(AlphasCumprodF);
             Sigmas = tmp2.Pow(0.5f).Reverse();
             Timesteps = Linspace(0f, NumTrainTimesteps - 1, NumTrainTimesteps).Reverse();
 
@@ -99,8 +98,8 @@ namespace Doji.AI.Diffusers {
                 throw new ArgumentException($"{TimestepSpacing} is not supported. Please choose one of {string.Join(", ", Enum.GetNames(typeof(Spacing)))}.");
             }
 
-            float[] tmp1 = Sub(1f, AlphasCumprod);
-            float[] tmp2 = tmp1.Div(AlphasCumprod);
+            float[] tmp1 = Sub(1f, AlphasCumprodF);
+            float[] tmp2 = tmp1.Div(AlphasCumprodF);
             Sigmas = tmp2.Pow(0.5f);
             //var tmp1 = _ops.Sub(1f, AlphasCumprod);
             //var tmp2 = _ops.Div(tmp1, AlphasCumprod);

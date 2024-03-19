@@ -4,6 +4,7 @@ using Unity.Sentis;
 using System.Linq;
 using System.Collections.Generic;
 using System.Collections;
+using Unity.Sentis.Layers;
 
 namespace Doji.AI.Diffusers {
 
@@ -50,6 +51,8 @@ namespace Doji.AI.Diffusers {
         public SchedulerConfig Config { get; protected set; }
 
         public abstract int TimestepsLength { get; }
+        protected TensorFloat AlphasCumprod { get; set; }
+        protected float[] AlphasCumprodF { get; set; }
 
         /// <summary>
         /// standard deviation of the initial noise distribution
@@ -165,7 +168,22 @@ namespace Doji.AI.Diffusers {
         }
 
         public virtual TensorFloat AddNoise(TensorFloat originalSamples, TensorFloat noise, TensorFloat timesteps) {
-            throw new NotImplementedException();
+            var alphasCumprod = _ops.GatherElements(AlphasCumprod, _ops.Cast(timesteps, DataType.Int) as TensorInt, 0);
+            var sqrtAlphaProd = _ops.Sqrt(alphasCumprod);
+            while (sqrtAlphaProd.shape.rank < originalSamples.shape.rank) {
+                sqrtAlphaProd = sqrtAlphaProd.ShallowReshape(sqrtAlphaProd.shape.Unsqueeze(-1)) as TensorFloat; // unsqueeze
+            }
+
+            var sqrtOneMinusAlphaProd = _ops.Sqrt(_ops.Sub(1.0f, alphasCumprod));
+            while (sqrtOneMinusAlphaProd.shape.rank < originalSamples.shape.rank) {
+                sqrtOneMinusAlphaProd = sqrtOneMinusAlphaProd.ShallowReshape(sqrtOneMinusAlphaProd.shape.Unsqueeze(-1)) as TensorFloat; // unsqueeze
+            }
+
+            var tmp1 = _ops.Mul(sqrtAlphaProd, originalSamples);
+            var tmp2 = _ops.Mul(sqrtOneMinusAlphaProd, noise);
+            var noisySamples = _ops.Add(tmp1, tmp2);
+
+            return noisySamples;
         }
 
         // TODO: just use '[^initTimestep..]' once all schedulers use float

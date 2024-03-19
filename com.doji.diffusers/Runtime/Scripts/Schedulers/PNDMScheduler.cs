@@ -12,7 +12,6 @@ namespace Doji.AI.Diffusers {
 
         public TensorFloat Betas { get; private set; }
         public TensorFloat Alphas { get; private set; }
-        public TensorFloat AlphasCumprod { get; private set; }
         public float FinalAlphaCumprod { get; private set; }
 
         public int PndmOrder { get; private set; }
@@ -42,9 +41,9 @@ namespace Doji.AI.Diffusers {
             Betas = new TensorFloat(new TensorShape(betas.Length), betas);
             Alphas = _ops.Sub(1.0f, Betas);
             float[] alphas = betas.Select(beta => 1.0f - beta).ToArray();
-            float[] alphasCumprod = alphas.CumProd();
-            AlphasCumprod = new TensorFloat(new TensorShape(alphas.Length), alphasCumprod);
-            FinalAlphaCumprod = SetAlphaToOne ? 1.0f : alphasCumprod[0];
+            AlphasCumprodF = alphas.CumProd();
+            AlphasCumprod = new TensorFloat(new TensorShape(alphas.Length), AlphasCumprodF);
+            FinalAlphaCumprod = SetAlphaToOne ? 1.0f : AlphasCumprodF[0];
 
             // For now we only support F-PNDM, i.e. the runge-kutta method
             // For more information on the algorithm please take a look at the paper: https://arxiv.org/pdf/2202.09778.pdf
@@ -102,6 +101,7 @@ namespace Doji.AI.Diffusers {
         /// </remarks>
         public override SchedulerOutput Step(StepArgs args) {
             base.Step(args);
+            UnityEngine.Debug.Log(AlphasCumprod.tensorOnDevice.GetType().Name);
             if (Counter < PrkTimesteps.Length && !SkipPrkSteps) {
                 return StepPrk(modelOutput, (int)timestep, sample);
             } else {
@@ -237,8 +237,8 @@ namespace Doji.AI.Diffusers {
             // model_output -> e_θ(x_t, t)
             // prev_sample -> x_(t−δ)
 
-            double alphaProdT = AlphasCumprod[timestep];
-            double alphaProdTPrev = (prevTimestep >= 0) ? AlphasCumprod[prevTimestep] : FinalAlphaCumprod;
+            double alphaProdT = AlphasCumprodF[timestep];
+            double alphaProdTPrev = (prevTimestep >= 0) ? AlphasCumprodF[prevTimestep] : FinalAlphaCumprod;
             double betaProdT = 1.0 - alphaProdT;
             double betaProdTPrev = 1.0 - alphaProdTPrev;
 

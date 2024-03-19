@@ -7,7 +7,6 @@ namespace Doji.AI.Diffusers {
     public class DDIMScheduler : SchedulerInt {
 
         public float[] Betas { get; private set; }
-        public TensorFloat AlphasCumprod { get; private set; }
         public float FinalAlphaCumprod { get; private set; }
 
         public DDIMScheduler(SchedulerConfig config = null, BackendType backend = BackendType.GPUCompute) : base(config, backend) {
@@ -127,8 +126,8 @@ namespace Doji.AI.Diffusers {
             int prevTimestep = (int)timestep - NumTrainTimesteps / NumInferenceSteps;
 
             // 2. compute alphas, betas
-            float alphaProdT = AlphasCumprod[(int)timestep];
-            float alphaProdTPrev = prevTimestep >= 0 ? AlphasCumprod[prevTimestep] : FinalAlphaCumprod;
+            float alphaProdT = AlphasCumprodF[(int)timestep];
+            float alphaProdTPrev = prevTimestep >= 0 ? AlphasCumprodF[prevTimestep] : FinalAlphaCumprod;
 
             float betaProdT = 1.0f - alphaProdT;
 
@@ -233,8 +232,8 @@ namespace Doji.AI.Diffusers {
         }
 
         private float GetVariance(int timestep, int prevTimestep) {
-            float alphaProdT = AlphasCumprod[timestep];
-            float alphaProdTPrev = prevTimestep >= 0 ? AlphasCumprod[prevTimestep] : FinalAlphaCumprod;
+            float alphaProdT = AlphasCumprodF[timestep];
+            float alphaProdTPrev = prevTimestep >= 0 ? AlphasCumprodF[prevTimestep] : FinalAlphaCumprod;
             float betaProdT = 1.0f - alphaProdT;
             float betaProdTPrev = 1.0f - alphaProdTPrev;
 
