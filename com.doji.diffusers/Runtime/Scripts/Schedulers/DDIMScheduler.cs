@@ -34,14 +34,14 @@ namespace Doji.AI.Diffusers {
             }
 
             float[] alphas = Sub(1f, Betas);
-            float[] alphasCumprod = alphas.CumProd();
-            AlphasCumprod = new TensorFloat(new TensorShape(alphas.Length), alphasCumprod);
+            AlphasCumprodF = alphas.CumProd();
+            AlphasCumprod = new TensorFloat(new TensorShape(alphas.Length), AlphasCumprodF);
 
             // At every step in ddim, we are looking into the previous alphas_cumprod
             // For the final step, there is no previous alphas_cumprod because we are already at 0
             // `set_alpha_to_one` decides whether we set this parameter simply to one or
             // whether we use the final alpha of the "non-previous" one.
-            FinalAlphaCumprod = SetAlphaToOne ? 1.0f : alphasCumprod[0];
+            FinalAlphaCumprod = SetAlphaToOne ? 1.0f : AlphasCumprodF[0];
 
             NumInferenceSteps = 0;
             Timesteps = Arange(0, NumTrainTimesteps).Reverse();
