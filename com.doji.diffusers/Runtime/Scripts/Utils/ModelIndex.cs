@@ -20,6 +20,9 @@ namespace Doji.AI.Diffusers {
         [JsonProperty("add_watermarker")]
         public virtual object AddWatermarker { get; set; }
 
+        [JsonProperty("requires_aesthetics_score")]
+        public virtual bool RequiresAestheticsScore { get; set; }
+
         public virtual IDictionary<string, string[]> Components { get; set; }
     }
 
@@ -35,7 +38,8 @@ namespace Doji.AI.Diffusers {
 
             foreach (var property in obj.Properties()) {
                 if (property.Name != "_class_name" && property.Name != "_diffusers_version" &&
-                    property.Name != "force_zeros_for_empty_prompt" && property.Name != "add_watermarker") {
+                    property.Name != "force_zeros_for_empty_prompt" && property.Name != "add_watermarker" &&
+                    property.Name != "requires_aesthetics_score") {
                     var value = property.Value as JArray;
                     config.Components[property.Name] = value?.ToObject<string[]>();
                 }

@@ -53,7 +53,7 @@ namespace Doji.AI.Diffusers {
 
             _prompt = prompt;
             _negativePrompt = negativePrompt;
-            _steps = numInferenceSteps;
+            _numInferenceSteps = numInferenceSteps;
             _guidanceScale = guidanceScale;
             _numImagesPerPrompt = numImagesPerPrompt;
             _eta = eta;

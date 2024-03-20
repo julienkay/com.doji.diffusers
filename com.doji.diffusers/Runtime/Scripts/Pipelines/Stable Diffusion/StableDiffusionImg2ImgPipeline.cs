@@ -15,13 +15,13 @@ namespace Doji.AI.Diffusers {
         public VaeEncoder VaeEncoder { get; protected set; }
         public VaeImageProcessor ImageProcessor { get; protected set; }
 
+        private float _strength;
+
         public StableDiffusionImg2ImgPipeline(DiffusionPipeline pipe) : base(pipe._ops.backendType) {
             ModelInfo = pipe.ModelInfo;
             Config = pipe.Config;
 
-            if (pipe is StableDiffusionImg2ImgPipeline) {
-                VaeEncoder = (pipe as StableDiffusionImg2ImgPipeline).VaeEncoder;
-            } else if (pipe is StableDiffusionPipeline) {
+            if (pipe is StableDiffusionPipeline) {
                 VaeEncoder = VaeEncoder.FromPretrained(pipe.ModelInfo.VaeEncoderConfig, pipe._ops.backendType);
             } else {
                 throw new InvalidCastException($"Cannot create StableDiffusionImg2ImgPipeline from a {pipe.GetType()}.");
@@ -72,8 +72,9 @@ namespace Doji.AI.Diffusers {
             Profiler.BeginSample($"{GetType().Name}.Generate");
 
             _prompt = prompt;
+            _strength = strength;
             _negativePrompt = negativePrompt;
-            _steps = numInferenceSteps;
+            _numInferenceSteps = numInferenceSteps;
             _guidanceScale = guidanceScale;
             _numImagesPerPrompt = numImagesPerPrompt;
             _eta = eta;
@@ -90,8 +91,8 @@ namespace Doji.AI.Diffusers {
                 throw new ArgumentException($"Invalid prompt argument {nameof(prompt)}");
             }
 
-            if (strength < 0.0f || strength > 1.0f) {
-                throw new ArgumentException($"The value of strength should be in [0.0, 1.0] but is {strength}");
+            if (_strength < 0.0f || _strength > 1.0f) {
+                throw new ArgumentException($"The value of strength should be in [0.0, 1.0] but is {_strength}");
             }
 
             System.Random generator = null;
@@ -100,19 +101,20 @@ namespace Doji.AI.Diffusers {
                 _seed = unchecked((uint)generator.Next());
             }
 
-            // set timesteps
+            // Prepare timesteps
             Profiler.BeginSample($"{Scheduler.GetType().Name}.SetTimesteps");
             Scheduler.SetTimesteps(numInferenceSteps);
             Profiler.EndSample();
 
-            //Profiler.BeginSample($"Preprocess image");
-            //ImageProcessor.PreProcess(image);
-            //Profiler.EndSample();
+            // Preprocess image
+            Profiler.BeginSample($"Preprocess image");
+            image = ImageProcessor.PreProcess(image);
+            Profiler.EndSample();
 
             bool doClassifierFreeGuidance = guidanceScale > 1.0f;
 
             Profiler.BeginSample("Encode Prompt(s)");
-            TensorFloat promptEmbeds = EncodePrompt(prompt, numImagesPerPrompt, doClassifierFreeGuidance, negativePrompt);
+            TensorFloat promptEmbeds = EncodePrompt(prompt, _numImagesPerPrompt, doClassifierFreeGuidance, negativePrompt);
             Profiler.EndSample();
 
             // encode the init image into latents and scale the latents
@@ -122,20 +124,20 @@ namespace Doji.AI.Diffusers {
             if (_batchSize != initLatents.shape[0]) {
                 throw new ArgumentException($"Mismatch between batch size ({_batchSize}) and latents dim 0 ({initLatents.shape[0]}");
             } else {
-                initLatents = _ops.Repeat(initLatents, numImagesPerPrompt, axis: 0);
+                initLatents = _ops.Repeat(initLatents, _numImagesPerPrompt, axis: 0);
             }
 
             // get the original timestep using initTimestep
             int offset = Scheduler.Config.StepsOffset ?? 0;
-            int initTimestep = (int)MathF.Floor(numInferenceSteps * strength) + offset;
+            int initTimestep = (int)MathF.Floor(numInferenceSteps * _strength) + offset;
             initTimestep = Math.Min(initTimestep, numInferenceSteps);
 
             float[] timesteps = Scheduler.GetTimestepsFromEnd(initTimestep);
-            timesteps = timesteps.Repeat(_batchSize * numImagesPerPrompt);
-            using TensorFloat timestepsT = new TensorFloat(new TensorShape(_batchSize * numImagesPerPrompt), timesteps);
+            timesteps = timesteps.Repeat(_batchSize * _numImagesPerPrompt);
+            using TensorFloat timestepsT = new TensorFloat(new TensorShape(_batchSize * _numImagesPerPrompt), timesteps);
 
             // add noise to latents using the timesteps
-            Profiler.BeginSample("Generate Latents");
+            Profiler.BeginSample("Generate Noise");
             var noise = _ops.RandomNormal(initLatents.shape, 0, 1, _seed);
             initLatents = Scheduler.AddNoise(initLatents, noise, timestepsT);
             Profiler.EndSample();

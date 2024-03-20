@@ -29,7 +29,7 @@ namespace Doji.AI.Diffusers {
             _negativePrompt = negativePrompt;
             _height = height;
             _width = width;
-            _steps = numInferenceSteps;
+            _numInferenceSteps = numInferenceSteps;
             _guidanceScale = guidanceScale;
             _numImagesPerPrompt = numImagesPerPrompt;
             _eta = eta;

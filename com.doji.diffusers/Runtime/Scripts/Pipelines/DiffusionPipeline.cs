@@ -19,7 +19,7 @@ namespace Doji.AI.Diffusers {
 
         protected Input _prompt;
         protected Input _negativePrompt;
-        protected int _steps;
+        protected int _numInferenceSteps;
         protected int _height;
         protected int _width;
         protected int _batchSize;
@@ -58,7 +58,7 @@ namespace Doji.AI.Diffusers {
                 Model = ModelInfo.ModelId,
                 Pipeline = GetType().Name,
                 NegativePrompt = _negativePrompt != null ? (_negativePrompt as SingleInput).Text : null,
-                Steps = _steps,
+                Steps = _numInferenceSteps,
                 Sampler = Scheduler.GetType().Name,
                 CfgScale = _guidanceScale,
                 Seed = _seed,

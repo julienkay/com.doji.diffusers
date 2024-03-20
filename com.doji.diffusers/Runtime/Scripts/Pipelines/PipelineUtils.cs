@@ -187,7 +187,7 @@ namespace Doji.AI.Diffusers {
         public IImg2ImgPipeline CreateImg2Img() {
             return this switch {
                 StableDiffusionPipeline => (new StableDiffusionImg2ImgPipeline(this) as IImg2ImgPipeline),
-                StableDiffusionXLPipeline => throw new NotImplementedException("Img2Img pipeline not yet implemented for SDXL"),
+                StableDiffusionXLPipeline => (new StableDiffusionXLImg2ImgPipeline(this) as IImg2ImgPipeline),
                 _ => throw new NotImplementedException($"Img2Img pipeline not yet implemented for {GetType().Name}"),
             };
         }
@@ -313,7 +313,6 @@ namespace Doji.AI.Diffusers {
                 tokenizerConfig
             );
             var scheduler = Scheduler.FromPretrained(model.File(Path.Combine("scheduler", SchedulerConfig.ConfigName)), backend);
-            //scheduler = Scheduler.FromConfig<PNDMScheduler>(scheduler.Config, backend);
             var vaeDecoder = VaeDecoder.FromPretrained(model.File(Path.Combine("vae_decoder", VaeConfig.ConfigName)), backend);
             var textEncoder = TextEncoder.FromPretrained(model.File(Path.Combine("text_encoder", TextEncoderConfig.ConfigName)), backend);
             var textEncoder2 = TextEncoder.FromPretrained(model.File(Path.Combine("text_encoder_2", TextEncoderConfig.ConfigName)), backend);

@@ -52,7 +52,7 @@ namespace Doji.AI.Diffusers {
             _negativePrompt = negativePrompt;
             _height = height;
             _width = width;
-            _steps = numInferenceSteps;
+            _numInferenceSteps = numInferenceSteps;
             _guidanceScale = guidanceScale;
             _numImagesPerPrompt = numImagesPerPrompt;
             _eta = eta;
@@ -79,13 +79,13 @@ namespace Doji.AI.Diffusers {
             bool doClassifierFreeGuidance = guidanceScale > 1.0f;
 
             Profiler.BeginSample("Encode Prompt(s)");
-            TensorFloat promptEmbeds = EncodePrompt(prompt, numImagesPerPrompt, doClassifierFreeGuidance, negativePrompt);
+            TensorFloat promptEmbeds = EncodePrompt(prompt, _numImagesPerPrompt, doClassifierFreeGuidance, negativePrompt);
             Profiler.EndSample();
 
             // get the initial random noise unless the user supplied it
             TensorShape latentsShape = GetLatentsShape();
             if (latents == null) {
-                Profiler.BeginSample("Generate Latents");
+                Profiler.BeginSample("Generate Noise");
                 latents = _ops.RandomNormal(latentsShape, 0, 1, _seed);
                 Profiler.EndSample();
             } else if (latents.shape != latentsShape) {
@@ -94,7 +94,7 @@ namespace Doji.AI.Diffusers {
 
             // set timesteps
             Profiler.BeginSample($"{Scheduler.GetType().Name}.SetTimesteps");
-            Scheduler.SetTimesteps(numInferenceSteps);
+            Scheduler.SetTimesteps(_numInferenceSteps);
             Profiler.EndSample();
 
             if (Scheduler.InitNoiseSigma > 1.0f) {

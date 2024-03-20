@@ -43,12 +43,15 @@ namespace Doji.AI.Diffusers {
             }
         }
 
-        public void PreProcess(
+        public TensorFloat PreProcess(
             TensorFloat image,
             int height = -1,
             int width = -1)
         {
-            throw new NotImplementedException();
+            if (image.shape == new TensorShape(1, 3, 512, 512)) {
+                return image;
+            }
+            throw new NotImplementedException("Image processing not implemented yet. Make sure to pass a 512x512 RGB texture as an input image.");
         }
 
         public void PostProcess(TensorFloat image) {

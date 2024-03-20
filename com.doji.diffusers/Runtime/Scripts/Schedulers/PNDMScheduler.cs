@@ -101,7 +101,6 @@ namespace Doji.AI.Diffusers {
         /// </remarks>
         public override SchedulerOutput Step(StepArgs args) {
             base.Step(args);
-            UnityEngine.Debug.Log(AlphasCumprod.tensorOnDevice.GetType().Name);
             if (Counter < PrkTimesteps.Length && !SkipPrkSteps) {
                 return StepPrk(modelOutput, (int)timestep, sample);
             } else {

@@ -13,22 +13,53 @@ namespace Doji.AI.Diffusers {
     /// <remarks>
     /// pipeline_stable_diffusion_xl.py from huggingface/optimum
     /// </remarks>
-    public partial class StableDiffusionXLPipeline : DiffusionPipeline, ITxt2ImgPipeline, IDisposable {
+    public partial class StableDiffusionXLImg2ImgPipeline : DiffusionPipeline, IImg2ImgPipeline, IDisposable {
+
+        public VaeEncoder VaeEncoder { get; protected set; }
+        public VaeImageProcessor ImageProcessor { get; protected set; }
 
         public ClipTokenizer Tokenizer2 { get; private set; }
         public TextEncoder TextEncoder2 { get; private set; }
 
         public List<(ClipTokenizer Tokenizer, TextEncoder TextEncoder)> Encoders { get; set; }
-        
+
         public int VaeScaleFactor { get; set; }
 
         private List<TensorFloat> _promptEmbedsList = new List<TensorFloat>();
         private List<TensorFloat> _negativePromptEmbedsList = new List<TensorFloat>();
 
+        private TensorFloat _image;
+        private float _strength;
+        private float _aestheticScore = 6.0f;
+        private float _negativeAestheticScore = 2.5f;
+
+        public StableDiffusionXLImg2ImgPipeline(DiffusionPipeline pipe) : base(pipe._ops.backendType) {
+            ModelInfo = pipe.ModelInfo;
+            Config = pipe.Config;
+
+            if (pipe is StableDiffusionXLPipeline xl) {
+                VaeEncoder = VaeEncoder.FromPretrained(pipe.ModelInfo.VaeEncoderConfig, pipe._ops.backendType);
+                Tokenizer2 = xl.Tokenizer2;
+                TextEncoder2 = xl.TextEncoder2;
+                VaeScaleFactor = xl.VaeScaleFactor;
+                Encoders = xl.Encoders;
+            } else {
+                throw new InvalidCastException($"Cannot create StableDiffusionXLImg2ImgPipeline from a {pipe.GetType()}.");
+            }
+
+            ImageProcessor = new VaeImageProcessor(/*vaeScaleFactor: self.vae_scale_factor*/);
+            VaeDecoder = pipe.VaeDecoder;
+            TextEncoder = pipe.TextEncoder;
+            Tokenizer = pipe.Tokenizer;
+            Scheduler = pipe.Scheduler;
+            Unet = pipe.Unet;
+        }
+
         /// <summary>
         /// Initializes a new Stable Diffusion XL pipeline.
         /// </summary>
-        public StableDiffusionXLPipeline(
+        public StableDiffusionXLImg2ImgPipeline(
+            VaeEncoder vaeEncoder,
             VaeDecoder vaeDecoder,
             TextEncoder textEncoder,
             ClipTokenizer tokenizer,
@@ -38,6 +69,8 @@ namespace Doji.AI.Diffusers {
             ClipTokenizer tokenizer2,
             BackendType backend) : base(backend)
         {
+            VaeEncoder = vaeEncoder;
+            ImageProcessor = new VaeImageProcessor(/*vaeScaleFactor: self.vae_scale_factor*/);
             VaeDecoder = vaeDecoder;
             Tokenizer = tokenizer;
             Tokenizer2 = tokenizer2;
@@ -58,58 +91,54 @@ namespace Doji.AI.Diffusers {
             }
         }
 
-        public override TensorFloat Generate(
+        public TensorFloat Generate(
             Input prompt,
-            int height = 512,
-            int width = 512,
+            TensorFloat image,
+            float strength = 0.8f,
             int numInferenceSteps = 50,
             float guidanceScale = 7.5f,
             Input negativePrompt = null,
             int numImagesPerPrompt = 1,
-            float eta = 0.0f,
+            float eta = 0,
             uint? seed = null,
-            TensorFloat latents = null,
             Action<int, float, TensorFloat> callback = null)
         {
-            return Generate(prompt, height, width, numInferenceSteps, guidanceScale, negativePrompt, numImagesPerPrompt, eta, seed, latents, callback);
+            return Generate(prompt, image, strength, numInferenceSteps, guidanceScale, negativePrompt, numImagesPerPrompt, eta, seed, callback, default, default, default, default);
         }
 
         public TensorFloat Generate(
             Input prompt,
-            int? height = 512,
-            int? width = 512,
+            TensorFloat image,
+            float strength = 0.3f,
             int numInferenceSteps = 50,
             float guidanceScale = 5.0f,
             Input negativePrompt = null,
             int numImagesPerPrompt = 1,
             float eta = 0.0f,
             uint? seed = null,
-            TensorFloat latents = null,
             Action<int, float, TensorFloat> callback = null,
             float guidanceRescale = 0.0f,
             (int width, int height)? originalSize = null,
             (int x, int y) cropsCoordsTopLeft = default((int, int)),
-            (int width, int height)? targetSize = null)
+            (int width, int height)? targetSize = null,
+            float aestheticScore = 6.0f,
+            float negativeAestheticScore = 2.5f)
         {
             Profiler.BeginSample($"{GetType().Name}.Generate");
-
-            // 0. Default height and width to unet
-            _height = height ?? (Unet.Config.SampleSize * VaeScaleFactor);
-            _width = width ?? (Unet.Config.SampleSize * VaeScaleFactor);
-            originalSize ??= (_height, _width);
-            targetSize ??= (_height, _width);
-
             _prompt = prompt;
+            _image = image;
+            _strength = strength;
             _negativePrompt = negativePrompt;
             _numInferenceSteps = numInferenceSteps;
             _guidanceScale = guidanceScale;
             _numImagesPerPrompt = numImagesPerPrompt;
             _eta = eta;
             _seed = seed;
-            _latents = latents;
+            _aestheticScore = aestheticScore;
+            _negativeAestheticScore = negativeAestheticScore;
             CheckInputs();
 
-            // 2. Define call parameters
+            // Define call parameters
             if (prompt == null) {
                 throw new ArgumentNullException(nameof(prompt));
             } else if (prompt is TextInput) {
@@ -121,38 +150,55 @@ namespace Doji.AI.Diffusers {
             }
 
             System.Random generator = null;
-            if (latents == null && _seed == null) {
+            if (_seed == null) {
                 generator = new System.Random();
                 _seed = unchecked((uint)generator.Next());
             }
 
             bool doClassifierFreeGuidance = guidanceScale > 1.0f;
 
-            // 3. Encode input prompt
+            // Encode input prompt
             Profiler.BeginSample("Encode Prompt(s)");
             Embeddings promptEmbeds = EncodePrompt(prompt, _numImagesPerPrompt, doClassifierFreeGuidance, negativePrompt);
             Profiler.EndSample();
 
-            // 4. Prepare timesteps
+            // Preprocess image
+            Profiler.BeginSample($"Preprocess image");
+            _image = ImageProcessor.PreProcess(_image);
+            Profiler.EndSample();
+
+            // Prepare timesteps
             Profiler.BeginSample($"{Scheduler.GetType().Name}.SetTimesteps");
             Scheduler.SetTimesteps(_numInferenceSteps);
             Profiler.EndSample();
 
-            // 5. Prepare latent variables
-            PrepareLatents();
+            float[] timesteps = GetTimesteps();
+            timesteps = timesteps.Repeat(_batchSize * base._numImagesPerPrompt);
+            using TensorFloat latentTimestep = new TensorFloat(new TensorShape(_batchSize * base._numImagesPerPrompt), ArrayUtils.Full(_batchSize * base._numImagesPerPrompt, timesteps[0]));
 
-            // 7. Prepare added time ids & embeddings
+            // Prepare latent variables
+            _latents = PrepareLatents(latentTimestep);
+
+            // Default height and width to unet
+            int height = _latents.shape[_latents.shape.rank - 2];
+            int width = _latents.shape[_latents.shape.rank - 1];
+            _height = height * VaeScaleFactor;
+            _width = width * VaeScaleFactor;
+            originalSize ??= (_height, _width);
+            targetSize ??= (_height, _width);
+
+            // Prepare added time ids & embeddings
             TensorFloat addTextEmbeds = promptEmbeds.PooledPromptEmbeds;
-            float[] timeIds = GetTimeIds(originalSize.Value, cropsCoordsTopLeft, targetSize.Value);
-            TensorFloat addTimeIds = new TensorFloat(new TensorShape(1, timeIds.Length), timeIds);
+            var (addTimeIds, addNegTimeIds) = GetAddTimeIds(originalSize.Value, cropsCoordsTopLeft, targetSize.Value);
+
             if (doClassifierFreeGuidance) {
                 promptEmbeds.PromptEmbeds = _ops.Concatenate(promptEmbeds.NegativePromptEmbeds, promptEmbeds.PromptEmbeds, axis: 0);
                 addTextEmbeds = _ops.Concatenate(promptEmbeds.NegativePooledPromptEmbeds, addTextEmbeds, axis: 0);
                 addTimeIds = _ops.Concatenate(addTimeIds, addTimeIds, axis: 0);
             }
-            addTimeIds = _ops.Repeat(addTimeIds, _batchSize * base._numImagesPerPrompt, axis: 0);
+            addTimeIds = _ops.Repeat(addTimeIds, _batchSize * _numImagesPerPrompt, axis: 0);
 
-            // 8. Denoising loop
+            // Denoising loop
             Profiler.BeginSample($"Denoising Loop");
             int numWarmupSteps = Scheduler.TimestepsLength - _numInferenceSteps * Scheduler.Order;
             int i = 0;
@@ -220,11 +266,11 @@ namespace Doji.AI.Diffusers {
             }
 
             Profiler.BeginSample($"VaeDecoder Decode Image");
-            TensorFloat image = VaeDecoder.Execute(result);
+            TensorFloat outputImage = VaeDecoder.Execute(result);
             Profiler.EndSample();
 
             Profiler.EndSample();
-            return image;
+            return outputImage;
         }
 
         private Embeddings EncodePrompt(
@@ -352,24 +398,49 @@ namespace Doji.AI.Diffusers {
             };
         }
 
-        private void PrepareLatents() {
-            var shape = new TensorShape(
-                _batchSize * _numImagesPerPrompt,
-                Unet.Config.InChannels ?? 4,
-                _height / 8,
-                _width / 8
-            );
+        private float[] GetTimesteps() {
+            // get the original timestep using init_timestep
+            int initTimestep = Math.Min((int)MathF.Floor(_numInferenceSteps * _strength), _numInferenceSteps);
+            int tStart = Math.Max(_numInferenceSteps - initTimestep, 0);
+            _numInferenceSteps = Math.Max(_numInferenceSteps - initTimestep, 0);
+            return Scheduler.GetTimesteps()[(tStart * Scheduler.Order)..];
+        }
 
-            if (_latents == null) {
-                _latents = _ops.RandomNormal(shape, 0, 1, _seed);
-            } else if (_latents.shape != shape) {
-                throw new ArgumentException($"Unexpected latents shape, got {_latents.shape}, expected {shape}");
+        private TensorFloat PrepareLatents(TensorFloat timestep) {
+            int batch_size = _batchSize * _numImagesPerPrompt;
+
+            TensorFloat initLatents = VaeEncoder.Execute(_image);
+            initLatents = _ops.Mul(initLatents, VaeDecoder.Config.ScalingFactor ?? 0.18215f);
+
+            if (batch_size > initLatents.shape[0] && batch_size % initLatents.shape[0] == 0) {
+                throw new NotImplementedException("Batch generation not implemented yet.");
+            } else if (batch_size > initLatents.shape[0] && batch_size % initLatents.shape[0] != 0) {
+                throw new ArgumentException($"Cannot duplicate `image` of batch size {initLatents.shape[0]} to {batch_size} text prompts.");
             }
-            
-            // scale the initial noise by the standard deviation required by the scheduler
-            if (Math.Abs(Scheduler.InitNoiseSigma - 1.0f) > 0.00001f) {
-                _latents = _ops.Mul(Scheduler.InitNoiseSigma, _latents);
+
+            // add noise to latents using the timesteps
+            Profiler.BeginSample("Generate Noise");
+            var noise = _ops.RandomNormal(initLatents.shape, 0, 1, _seed);
+            initLatents = Scheduler.AddNoise(initLatents, noise, timestep);
+            Profiler.EndSample();
+
+            return initLatents;
+        }
+
+        private (TensorFloat a, TensorFloat b) GetAddTimeIds((int, int) originalSize, (int, int) cropsCoordsTopLeft, (int, int) targetSize) {
+            float[] timeIds;
+            float[] negTimeIds;
+            if (Config.RequiresAestheticsScore) {
+                timeIds = GetTimeIds(originalSize, cropsCoordsTopLeft, _aestheticScore);
+                negTimeIds = GetTimeIds(originalSize, cropsCoordsTopLeft, _negativeAestheticScore);
+
+            } else {
+                timeIds = GetTimeIds(originalSize, cropsCoordsTopLeft, targetSize);
+                negTimeIds = GetTimeIds(originalSize, cropsCoordsTopLeft, targetSize);
             }
+            TensorFloat addTimeIds = new TensorFloat(new TensorShape(1, timeIds.Length), timeIds);
+            TensorFloat addNegTimeIds = new TensorFloat(new TensorShape(1, negTimeIds.Length), negTimeIds);
+            return (addTimeIds, addNegTimeIds);
         }
 
         private float[] GetTimeIds((int, int) a, (int, int) b, (int, int) c) {
@@ -380,6 +451,16 @@ namespace Doji.AI.Diffusers {
                 b.Item2,
                 c.Item1,
                 c.Item2
+            };
+        }
+
+        private float[] GetTimeIds((int, int) a, (int, int) b, float c) {
+            return new float[] {
+                a.Item1,
+                a.Item2,
+                b.Item1,
+                b.Item2,
+                c
             };
         }
 
