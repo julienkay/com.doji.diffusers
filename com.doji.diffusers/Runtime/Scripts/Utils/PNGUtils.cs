@@ -1,3 +1,4 @@
+using Doji.Pngcs;
 using System;
 using System.IO;
 using UnityEngine;
@@ -29,15 +30,38 @@ namespace Doji.AI.Diffusers {
 
         /// <summary>
         /// Rewrites the given PNG file by adding the given json string to the
-        /// PNG metadata under the 'description' keyword.
+        /// PNG metadata under the 'parameters' keyword.
         /// </summary>
         public static void AddMetadata(string pngFilePath, Parameters data) {
             if (!File.Exists(pngFilePath)) {
                 throw new FileNotFoundException($"The PNG file at {pngFilePath} was not found.");
             }
 
+            if (!Path.GetExtension(pngFilePath).Equals(".png", StringComparison.OrdinalIgnoreCase)) {
+                throw new ArgumentException($"The file at {pngFilePath} is not a PNG file.");
+            }
+
             string metaData = data.Serialize();
-            Pngcs.PngCS.AddMetadata(pngFilePath, "parameters", metaData);    
+            PngCS.AddMetadata(pngFilePath, "parameters", metaData);
+        }
+
+        /// <summary>
+        /// Retrieves the metadata entry with the the given <paramref name="key"/>
+        /// from the given PNG file
+        /// </summary>>
+        public static string GetMetadata(string pngFilePath) {
+            if (!File.Exists(pngFilePath)) {
+                throw new FileNotFoundException($"The PNG file at {pngFilePath} was not found.");
+            }
+
+            if (!Path.GetExtension(pngFilePath).Equals(".png", StringComparison.OrdinalIgnoreCase)) {
+                throw new ArgumentException($"The file at {pngFilePath} is not a PNG file.");
+            }
+
+            PngReader pngr = FileHelper.CreatePngReader(pngFilePath);
+            string data = pngr.GetMetadata().GetTxtForKey("parameters");
+            pngr.End();
+            return data;
         }
     }
 }
