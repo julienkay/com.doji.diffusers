@@ -89,8 +89,8 @@ namespace Doji.AI.Diffusers {
         public ModelFile TokenizerConfig    => new(this, Combine("tokenizer", "tokenizer_config.json")    , required: true);
         public ModelFile Vocab              => new(this, Combine("tokenizer", "vocab.json")               , required: true);
         public ModelFile Unet               => new(this, Combine("unet", "model.onnx")                    , required: true);
-        public ModelFile VaeDecoder         => new(this, Combine("vae_decoder, model.onnx")               , required: true);
-        public ModelFile VaeEncoder         => new(this, Combine("vae_encoder, model.onnx")               , required: true);
+        public ModelFile VaeDecoder         => new(this, Combine("vae_decoder", "model.onnx")             , required: true);
+        public ModelFile VaeEncoder         => new(this, Combine("vae_encoder", "model.onnx")             , required: true);
                                                                                                        
         public ModelFile TextEncoder2       => new(this, Combine("text_encoder_2", "model.onnx")          , required: false);
         public ModelFile Merges2            => new(this, Combine("tokenizer_2", "merges.txt")             , required: false);
