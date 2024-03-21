@@ -237,11 +237,6 @@ namespace Doji.AI.Diffusers {
         }
 #endif
         public static bool ExistsInStreamingAssets(DiffusionModel model) {
-            foreach (var f in model) {
-                bool r = f.Required;
-                bool d = File.Exists(f.StreamingAssetsPath);
-
-            }
             // check if at least all required files are present in StreamingAssets
             return model.All(file => !file.Required || File.Exists(file.StreamingAssetsPath));
         }
@@ -262,7 +257,7 @@ namespace Doji.AI.Diffusers {
             );
             var scheduler = Scheduler.FromPretrained(model, backend);
             var vaeDecoder = VaeDecoder.FromPretrained(model, backend);
-            var textEncoder = TextEncoder.FromPretrained(model, backend);
+            var textEncoder = TextEncoder.FromPretrained(model.TextEncoder, model.TextEncoderConfig, backend);
             var unet = Unet.FromPretrained(model, backend);
 
             StableDiffusionPipeline sdPipeline = new StableDiffusionPipeline(
@@ -311,7 +306,7 @@ namespace Doji.AI.Diffusers {
             var scheduler = Scheduler.FromPretrained(model, backend);
             var vaeEncoder = VaeEncoder.FromPretrained(model, backend);
             var vaeDecoder = VaeDecoder.FromPretrained(model, backend);
-            var textEncoder = TextEncoder.FromPretrained(model, backend);
+            var textEncoder = TextEncoder.FromPretrained(model.TextEncoder, model.TextEncoderConfig, backend);
             var unet = Unet.FromPretrained(model, backend);
 
             StableDiffusionImg2ImgPipeline sdPipeline = new StableDiffusionImg2ImgPipeline(
@@ -373,8 +368,8 @@ namespace Doji.AI.Diffusers {
             );
             var scheduler = Scheduler.FromPretrained(model, backend);
             var vaeDecoder = VaeDecoder.FromPretrained(model, backend);
-            var textEncoder = TextEncoder.FromPretrained(model, backend);
-            var textEncoder2 = TextEncoder.FromPretrained(model, backend);
+            var textEncoder = TextEncoder.FromPretrained(model.TextEncoder, model.TextEncoderConfig, backend);
+            var textEncoder2 = TextEncoder.FromPretrained(model.TextEncoder2, model.TextEncoderConfig2, backend);
             var unet = Unet.FromPretrained(model, backend);
 
             StableDiffusionXLPipeline sdPipeline = new StableDiffusionXLPipeline(
@@ -440,8 +435,8 @@ namespace Doji.AI.Diffusers {
             var scheduler = Scheduler.FromPretrained(model, backend);
             var vaeEncoder = VaeEncoder.FromPretrained(model, backend);
             var vaeDecoder = VaeDecoder.FromPretrained(model, backend);
-            var textEncoder = TextEncoder.FromPretrained(model, backend);
-            var textEncoder2 = TextEncoder.FromPretrained(model, backend);
+            var textEncoder = TextEncoder.FromPretrained(model.TextEncoder, model.TextEncoderConfig, backend);
+            var textEncoder2 = TextEncoder.FromPretrained(model.TextEncoder2, model.TextEncoderConfig2, backend);
             var unet = Unet.FromPretrained(model, backend);
 
             StableDiffusionXLImg2ImgPipeline sdPipeline = new StableDiffusionXLImg2ImgPipeline(

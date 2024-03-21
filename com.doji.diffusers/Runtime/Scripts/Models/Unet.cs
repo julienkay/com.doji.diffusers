@@ -148,7 +148,7 @@ namespace Doji.AI.Diffusers {
         /// Instantiate a Unet from a JSON configuration file.
         /// </summary>
         public static Unet FromPretrained(DiffusionModel model, BackendType backend) {
-            return IModel<UnetConfig>.FromPretrained<Unet>(model.UnetConfig, backend);
+            return IModel<UnetConfig>.FromPretrained<Unet>(model.Unet, model.UnetConfig, backend);
         }
 
         public void Dispose() {

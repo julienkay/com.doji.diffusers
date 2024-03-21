@@ -42,9 +42,8 @@ namespace Doji.AI.Diffusers {
             }
         }
 
-        protected new static C FromPretrained<C>(ModelFile modelConfig, BackendType backend) where C : IModel<T> {
+        protected static C FromPretrained<C>(ModelFile modelFile, ModelFile modelConfig, BackendType backend) where C : IModel<T> {
             var config = LoadConfig(modelConfig);
-            var modelFile = modelConfig.New("model.onnx");
             var model = LoadModel(modelFile);
             return model == null
                 ? throw new FileNotFoundException($"File '{modelConfig.FileName}' not found for: '{typeof(T).Name}'")

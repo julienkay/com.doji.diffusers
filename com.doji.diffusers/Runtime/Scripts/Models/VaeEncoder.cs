@@ -59,7 +59,7 @@ namespace Doji.AI.Diffusers {
         /// Instantiate a VaeEncoder from a JSON configuration file.
         /// </summary>
         public static VaeEncoder FromPretrained(DiffusionModel model, BackendType backend) {
-            return IModel<VaeConfig>.FromPretrained<VaeEncoder>(model.VaeEncoderConfig, backend);
+            return IModel<VaeConfig>.FromPretrained<VaeEncoder>(model.VaeEncoder, model.VaeEncoderConfig, backend);
         }
 
         public void Dispose() {
