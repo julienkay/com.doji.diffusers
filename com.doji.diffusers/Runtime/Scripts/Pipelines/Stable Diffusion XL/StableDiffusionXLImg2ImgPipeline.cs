@@ -180,7 +180,7 @@ namespace Doji.AI.Diffusers {
             Profiler.BeginSample($"Denoising Loop");
             int numWarmupSteps = Scheduler.TimestepsLength - _numInferenceSteps * Scheduler.Order;
             int i = 0;
-            foreach (float t in Scheduler) {
+            foreach (float t in timesteps) {
                 // expand the latents if doing classifier free guidance
                 TensorFloat latentModelInput = doClassifierFreeGuidance ? _ops.Concatenate(_latents, _latents, 0) : _latents;
                 latentModelInput = Scheduler.ScaleModelInput(latentModelInput, t);
