@@ -17,24 +17,6 @@ namespace Doji.AI.Diffusers {
 
         private float _strength;
 
-        public StableDiffusionImg2ImgPipeline(DiffusionPipeline pipe) : base(pipe._ops.backendType) {
-            ModelInfo = pipe.ModelInfo;
-            Config = pipe.Config;
-
-            if (pipe is StableDiffusionPipeline) {
-                VaeEncoder = VaeEncoder.FromPretrained(pipe.ModelInfo, pipe._ops.backendType);
-            } else {
-                throw new InvalidCastException($"Cannot create StableDiffusionImg2ImgPipeline from a {pipe.GetType()}.");
-            }
-
-            ImageProcessor = new VaeImageProcessor(/*vaeScaleFactor: self.vae_scale_factor*/);
-            VaeDecoder = pipe.VaeDecoder;
-            TextEncoder = pipe.TextEncoder;
-            Tokenizer = pipe.Tokenizer;
-            Scheduler = pipe.Scheduler;
-            Unet = pipe.Unet;
-        }
-
         /// <summary>
         /// Initializes a new stable diffusion img2img pipeline.
         /// </summary>

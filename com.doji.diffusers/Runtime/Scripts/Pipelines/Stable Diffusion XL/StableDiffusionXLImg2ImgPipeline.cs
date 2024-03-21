@@ -33,28 +33,6 @@ namespace Doji.AI.Diffusers {
         private float _aestheticScore = 6.0f;
         private float _negativeAestheticScore = 2.5f;
 
-        public StableDiffusionXLImg2ImgPipeline(DiffusionPipeline pipe) : base(pipe._ops.backendType) {
-            ModelInfo = pipe.ModelInfo;
-            Config = pipe.Config;
-
-            if (pipe is StableDiffusionXLPipeline xl) {
-                VaeEncoder = VaeEncoder.FromPretrained(pipe.ModelInfo, pipe._ops.backendType);
-                Tokenizer2 = xl.Tokenizer2;
-                TextEncoder2 = xl.TextEncoder2;
-                VaeScaleFactor = xl.VaeScaleFactor;
-                Encoders = xl.Encoders;
-            } else {
-                throw new InvalidCastException($"Cannot create StableDiffusionXLImg2ImgPipeline from a {pipe.GetType()}.");
-            }
-
-            ImageProcessor = new VaeImageProcessor(/*vaeScaleFactor: self.vae_scale_factor*/);
-            VaeDecoder = pipe.VaeDecoder;
-            TextEncoder = pipe.TextEncoder;
-            Tokenizer = pipe.Tokenizer;
-            Scheduler = pipe.Scheduler;
-            Unet = pipe.Unet;
-        }
-
         /// <summary>
         /// Initializes a new Stable Diffusion XL pipeline.
         /// </summary>

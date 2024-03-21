@@ -60,7 +60,7 @@ namespace Doji.AI.Diffusers {
             _txt2img?.Dispose();
             _img2img?.Dispose();
             _txt2img = DiffusionPipeline.FromPretrained(Model, Backend);
-            _img2img = _txt2img.CreateImg2Img();
+            _img2img = _txt2img.As<IImg2ImgPipeline>();
             if (Result == null) {
                 Result = new RenderTexture(WIDTH, HEIGHT, 0, RenderTextureFormat.ARGB32);
             }

@@ -6,7 +6,7 @@ using Unity.Sentis;
 
 namespace Doji.AI.Diffusers {
 
-    public abstract partial class DiffusionPipeline : IDiffusionPipeline, IDisposable  {
+    public abstract partial class DiffusionPipeline : IDiffusionPipeline, IDisposable {
 
         public DiffusionModel ModelInfo { get; protected set; }
         public PipelineConfig Config { get; protected set; }
