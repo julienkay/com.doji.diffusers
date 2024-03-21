@@ -22,7 +22,7 @@ namespace Doji.AI.Diffusers {
             Config = pipe.Config;
 
             if (pipe is StableDiffusionPipeline) {
-                VaeEncoder = VaeEncoder.FromPretrained(pipe.ModelInfo.VaeEncoderConfig, pipe._ops.backendType);
+                VaeEncoder = VaeEncoder.FromPretrained(pipe.ModelInfo, pipe._ops.backendType);
             } else {
                 throw new InvalidCastException($"Cannot create StableDiffusionImg2ImgPipeline from a {pipe.GetType()}.");
             }

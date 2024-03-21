@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
+using static System.IO.Path;
 
 namespace Doji.AI.Diffusers {
 
@@ -43,63 +44,64 @@ namespace Doji.AI.Diffusers {
         }
 
         public override int GetHashCode() {
-            return ModelId.GetHashCode();
+            return ModelId.GetHashCode() ^ Revision.GetHashCode();
         }
 
         public override bool Equals(object obj) {
             DiffusionModel other = (DiffusionModel)obj;
-            return ModelId.Equals(other.ModelId);
+            return ModelId.Equals(other.ModelId) && Revision.Equals(other.Revision);
         }
 
-        public static readonly IEnumerable<string> Files = new List<string>() {
-            "model_index.json",
-            "scheduler/scheduler_config.json",
-            "text_encoder/model.onnx",
-            "tokenizer/merges.txt",
-            "tokenizer/special_tokens_map.json",
-            "tokenizer/tokenizer_config.json",
-            "tokenizer/vocab.json",
-            "unet/model.onnx",
-            "vae_decoder/model.onnx",
-            "vae_encoder/model.onnx"
+        public IEnumerable<ModelFile> Files => new List<ModelFile>() {
+            ModelIndex,
+            SchedulerConfig,
+            TextEncoder,
+            Merges,
+            SpecialTokensMap,
+            TokenizerConfig,
+            Vocab,
+            Unet,
+            VaeDecoder,
+            VaeEncoder,
         };
 
-        public static readonly IEnumerable<string> OptionalFiles = new List<string>() {
-            "text_encoder_2/model.onnx",           // SDXL
-            "text_encoder_2/model.onnx_data",      // SDXL
-            "tokenizer_2/merges.txt",              // SDXL
-            "tokenizer_2/special_tokens_map.json", // SDXL
-            "tokenizer_2/tokenizer_config.json",   // SDXL
-            "tokenizer_2/vocab.json",              // SDXL
-            "text_encoder_2/config.json",          // SDXL
-            "unet/model.onnx_data",                // stabilityai repo stores external weights that way
-            "unet/weights.pb",                     // runwayml repo stores external weights that way
-            "text_encoder/config.json",            // not present in CompVis/runwayml 1.x onnx models
-            "unet/config.json",                    // not present in CompVis/runwayml 1.x onnx models
-            "vae_decoder/config.json",             // not present in CompVis/runwayml 1.x onnx models
-            "vae_encoder/config.json"              // not present in CompVis/runwayml 1.x onnx models
+        public IEnumerable<ModelFile> OptionalFiles => new List<ModelFile>() {
+            TextEncoder2,                                                             // SDXL
+            new(this, Combine("text_encoder_2", "model.onnx_data"), required: false), // SDXL
+            Merges2,                                                                  // SDXL
+            SpecialTokensMap2,                                                        // SDXL
+            TokenizerConfig2,                                                         // SDXL
+            Vocab2,                                                                   // SDXL
+            TextEncoderConfig2,                                                       // SDXL
+            new(this, Combine("unet", "model.onnx_data"), required: false),           // stabilityai repo stores external weights that way
+            new(this, Combine("unet", "weights.pb"), required: false),                // runwayml repo stores external weights that way
+            TextEncoderConfig,                                                        // not present in CompVis/runwayml 1.x onnx models
+            UnetConfig,                                                               // not present in CompVis/runwayml 1.x onnx models
+            VaeDecoderConfig,                                                         // not present in CompVis/runwayml 1.x onnx models
+            VaeEncoderConfig                                                          // not present in CompVis/runwayml 1.x onnx models
         };
 
-        public ModelFile ModelIndex => new ModelFile(this, "model_index.json", required: true);
-        public ModelFile SchedulerConfig => new ModelFile(this, "scheduler/scheduler_config", required: true);
-        public ModelFile TextEncoder => new ModelFile(this, "text_encoder/model.onnx", required: true);
-        public ModelFile Merges => new ModelFile(this, "tokenizer/merges.txt", required: true);
-        public ModelFile SpecialTokensMap => new ModelFile(this, "tokenizer/special_tokens_map.json", required: true);
-        public ModelFile TokenizerConfig => new ModelFile(this, "tokenizer/tokenizer_config.json", required: true);
-        public ModelFile Vocab => new ModelFile(this, "tokenizer/vocab.json", required: true);
-        public ModelFile Unet => new ModelFile(this, "unet/model.onnx", required: true);
-        public ModelFile VaeDecoder => new ModelFile(this, "vae_decoder/model.onnx", required: true);
-        public ModelFile VaeEncoder => new ModelFile(this, "vae_encoder/model.onnx", required: true);
-
-        public ModelFile TextEncoder2 => new ModelFile(this, "text_encoder_2/model.onnx", required: false);
-        public ModelFile Merges2 => new ModelFile(this, "tokenizer_2/merges.txt", required: false);
-        public ModelFile SpecialTokensMap2 => new ModelFile(this, "tokenizer_2/special_tokens_map.json", required: false);
-        public ModelFile TokenizerConfig2 => new ModelFile(this, "tokenizer_2/tokenizer_config.json", required: false);
-        public ModelFile Vocab2 => new ModelFile(this, "tokenizer_2/vocab.json", required: false);
-        public ModelFile TextEncoderConfig => new ModelFile(this, "text_encoder/config.json", required: false);
-        public ModelFile UnetConfig => new ModelFile(this, "unet/config.json", required: false);
-        public ModelFile VaeDecoderConfig => new ModelFile(this, "vae_decoder/config.json", required: false);
-        public ModelFile VaeEncoderConfig => new ModelFile(this, "vae_encoder/config.json", required: false);
+        public ModelFile ModelIndex         => new(this, "model_index.json"                               , required: true);
+        public ModelFile SchedulerConfig    => new(this, Combine("scheduler", Diffusers.SchedulerConfig.ConfigName), required: true);
+        public ModelFile TextEncoder        => new(this, Combine("text_encoder", "model.onnx")            , required: true);
+        public ModelFile Merges             => new(this, Combine("tokenizer", "merges.txt")               , required: true);
+        public ModelFile SpecialTokensMap   => new(this, Combine("tokenizer", "special_tokens_map.json")  , required: true);
+        public ModelFile TokenizerConfig    => new(this, Combine("tokenizer", "tokenizer_config.json")    , required: true);
+        public ModelFile Vocab              => new(this, Combine("tokenizer", "vocab.json")               , required: true);
+        public ModelFile Unet               => new(this, Combine("unet", "model.onnx")                    , required: true);
+        public ModelFile VaeDecoder         => new(this, Combine("vae_decoder, model.onnx")               , required: true);
+        public ModelFile VaeEncoder         => new(this, Combine("vae_encoder, model.onnx")               , required: true);
+                                                                                                       
+        public ModelFile TextEncoder2       => new(this, Combine("text_encoder_2", "model.onnx")          , required: false);
+        public ModelFile Merges2            => new(this, Combine("tokenizer_2", "merges.txt")             , required: false);
+        public ModelFile SpecialTokensMap2  => new(this, Combine("tokenizer_2", "special_tokens_map.json"), required: false);
+        public ModelFile TokenizerConfig2   => new(this, Combine("tokenizer_2", "tokenizer_config.json")  , required: false);
+        public ModelFile Vocab2             => new(this, Combine("tokenizer_2", "vocab.json")             , required: false);
+        public ModelFile TextEncoderConfig  => new(this, Combine("text_encoder", Diffusers.TextEncoderConfig.ConfigName), required: false);
+        public ModelFile TextEncoderConfig2 => new(this, Combine("text_encoder_2", Diffusers.TextEncoderConfig.ConfigName), required: false);
+        public ModelFile UnetConfig         => new(this, Combine("unet", Diffusers.UnetConfig.ConfigName) , required: false);
+        public ModelFile VaeDecoderConfig   => new(this, Combine("vae_decoder", VaeConfig.ConfigName)     , required: false);
+        public ModelFile VaeEncoderConfig   => new(this, Combine("vae_encoder", VaeConfig.ConfigName)     , required: false);
 
         public ModelFile File(string path, bool required = true) {
             return new ModelFile(this, path, required);
@@ -110,11 +112,11 @@ namespace Doji.AI.Diffusers {
         public string BaseUrl { get { return $"{HF_URL}/{ModelId}"; } }
 
         public IEnumerator<ModelFile> GetEnumerator() {
-            foreach (string fileName in Files) {
-                yield return new ModelFile(this, fileName, required: true);
+            foreach (var file in Files) {
+                yield return file;
             }
-            foreach (string fileName in OptionalFiles) {
-                yield return new ModelFile(this, fileName, required: false);
+            foreach (var file in OptionalFiles) {
+                yield return file;
             }
         }
 

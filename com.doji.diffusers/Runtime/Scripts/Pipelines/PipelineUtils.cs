@@ -238,10 +238,10 @@ namespace Doji.AI.Diffusers {
                 merges,
                 tokenizerConfig
             );
-            var scheduler = Scheduler.FromPretrained(model.File(Path.Combine("scheduler", SchedulerConfig.ConfigName)), backend);
-            var vaeDecoder = VaeDecoder.FromPretrained(model.File(Path.Combine("vae_decoder", VaeConfig.ConfigName)), backend);
-            var textEncoder = TextEncoder.FromPretrained(model.File(Path.Combine("text_encoder", TextEncoderConfig.ConfigName)), backend);
-            var unet = Unet.FromPretrained(model.File(Path.Combine("unet", UnetConfig.ConfigName)), backend);
+            var scheduler = Scheduler.FromPretrained(model, backend);
+            var vaeDecoder = VaeDecoder.FromPretrained(model, backend);
+            var textEncoder = TextEncoder.FromPretrained(model, backend);
+            var unet = Unet.FromPretrained(model, backend);
 
             StableDiffusionPipeline sdPipeline = new StableDiffusionPipeline(
                 vaeDecoder,
@@ -270,11 +270,11 @@ namespace Doji.AI.Diffusers {
                 merges,
                 tokenizerConfig
             );
-            var scheduler = Scheduler.FromPretrained(model.File(Path.Combine("scheduler", SchedulerConfig.ConfigName)), backend);
-            var vaeEncoder = VaeEncoder.FromPretrained(model.File(Path.Combine("vae_encoder", VaeConfig.ConfigName)), backend);
-            var vaeDecoder = VaeDecoder.FromPretrained(model.File(Path.Combine("vae_decoder", VaeConfig.ConfigName)), backend);
-            var textEncoder = TextEncoder.FromPretrained(model.File(Path.Combine("text_encoder", TextEncoderConfig.ConfigName)), backend);
-            var unet = Unet.FromPretrained(model.File(Path.Combine("unet", UnetConfig.ConfigName)), backend);
+            var scheduler = Scheduler.FromPretrained(model, backend);
+            var vaeEncoder = VaeEncoder.FromPretrained(model, backend);
+            var vaeDecoder = VaeDecoder.FromPretrained(model, backend);
+            var textEncoder = TextEncoder.FromPretrained(model, backend);
+            var unet = Unet.FromPretrained(model, backend);
 
             StableDiffusionImg2ImgPipeline sdPipeline = new StableDiffusionImg2ImgPipeline(
                 vaeEncoder,
@@ -312,11 +312,11 @@ namespace Doji.AI.Diffusers {
                 merges,
                 tokenizerConfig
             );
-            var scheduler = Scheduler.FromPretrained(model.File(Path.Combine("scheduler", SchedulerConfig.ConfigName)), backend);
-            var vaeDecoder = VaeDecoder.FromPretrained(model.File(Path.Combine("vae_decoder", VaeConfig.ConfigName)), backend);
-            var textEncoder = TextEncoder.FromPretrained(model.File(Path.Combine("text_encoder", TextEncoderConfig.ConfigName)), backend);
-            var textEncoder2 = TextEncoder.FromPretrained(model.File(Path.Combine("text_encoder_2", TextEncoderConfig.ConfigName)), backend);
-            var unet = Unet.FromPretrained(model.File(Path.Combine("unet", UnetConfig.ConfigName)), backend);
+            var scheduler = Scheduler.FromPretrained(model, backend);
+            var vaeDecoder = VaeDecoder.FromPretrained(model, backend);
+            var textEncoder = TextEncoder.FromPretrained(model, backend);
+            var textEncoder2 = TextEncoder.FromPretrained(model, backend);
+            var unet = Unet.FromPretrained(model, backend);
  
             StableDiffusionXLPipeline sdPipeline = new StableDiffusionXLPipeline(
                 vaeDecoder,

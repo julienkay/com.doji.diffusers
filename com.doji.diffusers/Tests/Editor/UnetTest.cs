@@ -60,12 +60,12 @@ namespace Doji.AI.Diffusers.Editor.Tests {
         }
 
         private static Unet LoadUnet_1_5() {
-            Unet unet = Unet.FromPretrained(DiffusionModel.SD_1_5.UnetConfig, BackendType.GPUCompute);
+            Unet unet = Unet.FromPretrained(DiffusionModel.SD_1_5, BackendType.GPUCompute);
             return unet;
         }
         
         private static Unet LoadUnet_2_1() {
-            Unet unet = Unet.FromPretrained(DiffusionModel.SD_2_1.UnetConfig, BackendType.GPUCompute);
+            Unet unet = Unet.FromPretrained(DiffusionModel.SD_2_1, BackendType.GPUCompute);
             return unet;
         }
 

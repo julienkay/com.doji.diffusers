@@ -363,8 +363,8 @@ namespace Doji.AI.Diffusers {
         /// <summary>
         /// Instantiate a Scheduler from a JSON configuration file.
         /// </summary>
-        public static Scheduler FromPretrained(ModelFile schedulerConfig, BackendType backend) {
-            return IConfigurable<SchedulerConfig>.FromPretrained<Scheduler>(schedulerConfig, backend);
+        public static Scheduler FromPretrained(DiffusionModel model, BackendType backend) {
+            return IConfigurable<SchedulerConfig>.FromPretrained<Scheduler>(model.SchedulerConfig, backend);
         }
 
         /// <summary>

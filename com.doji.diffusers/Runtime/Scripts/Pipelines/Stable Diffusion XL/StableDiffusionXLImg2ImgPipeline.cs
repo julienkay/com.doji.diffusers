@@ -38,7 +38,7 @@ namespace Doji.AI.Diffusers {
             Config = pipe.Config;
 
             if (pipe is StableDiffusionXLPipeline xl) {
-                VaeEncoder = VaeEncoder.FromPretrained(pipe.ModelInfo.VaeEncoderConfig, pipe._ops.backendType);
+                VaeEncoder = VaeEncoder.FromPretrained(pipe.ModelInfo, pipe._ops.backendType);
                 Tokenizer2 = xl.Tokenizer2;
                 TextEncoder2 = xl.TextEncoder2;
                 VaeScaleFactor = xl.VaeScaleFactor;
