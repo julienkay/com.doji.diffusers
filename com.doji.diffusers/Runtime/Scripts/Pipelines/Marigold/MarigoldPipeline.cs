@@ -8,7 +8,7 @@ namespace Doji.AI.Diffusers {
 
     /// <summary>
     /// Pipeline for monocular depth estimation using Marigold
-    /// https://marigoldmonodepth.github.io.
+    /// <seealso href="https://marigoldmonodepth.github.io"/>
     /// </summary>
     public class MarigoldPipeline : IDisposable {
 

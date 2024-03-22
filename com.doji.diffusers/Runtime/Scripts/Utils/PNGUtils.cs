@@ -7,12 +7,12 @@ namespace Doji.AI.Diffusers {
 
     public static class PNGUtils {
 
-        public static void SaveToDisk(this RenderTexture texture, string directory, Parameters parameters) {
+        public static void SaveToDisk(this RenderTexture texture, string directory, Metadata metadata) {
             if (!Directory.Exists(directory)) {
                 throw new ArgumentException($"The directory '{directory} does not exist");
             }
 
-            string prompt = parameters.Prompt;
+            string prompt = metadata.Parameters.Prompt.ToString();
             var invalids = Path.GetInvalidFileNameChars();
             var fileName = string.Join("_", prompt.Split(invalids, StringSplitOptions.RemoveEmptyEntries)).TrimEnd('.');
             fileName = fileName[..Math.Min(fileName.Length, 60)];
@@ -25,14 +25,14 @@ namespace Doji.AI.Diffusers {
             tex.ReadPixels(new Rect(0, 0, width, height), 0, 0);
             File.WriteAllBytes(filePath, tex.EncodeToPNG());
 
-            PNGUtils.AddMetadata(filePath, parameters);
+            PNGUtils.AddMetadata(filePath, metadata);
         }
 
         /// <summary>
         /// Rewrites the given PNG file by adding the given json string to the
         /// PNG metadata under the 'parameters' keyword.
         /// </summary>
-        public static void AddMetadata(string pngFilePath, Parameters data) {
+        public static void AddMetadata(string pngFilePath, Metadata data) {
             if (!File.Exists(pngFilePath)) {
                 throw new FileNotFoundException($"The PNG file at {pngFilePath} was not found.");
             }
@@ -46,10 +46,9 @@ namespace Doji.AI.Diffusers {
         }
 
         /// <summary>
-        /// Retrieves the metadata entry with the the given <paramref name="key"/>
-        /// from the given PNG file
+        /// Retrieves the metadata entry with the the 'parameters' key from the given PNG file.
         /// </summary>>
-        public static string GetMetadata(string pngFilePath) {
+        public static Metadata GetMetadata(string pngFilePath) {
             if (!File.Exists(pngFilePath)) {
                 throw new FileNotFoundException($"The PNG file at {pngFilePath} was not found.");
             }
@@ -61,7 +60,11 @@ namespace Doji.AI.Diffusers {
             PngReader pngr = FileHelper.CreatePngReader(pngFilePath);
             string data = pngr.GetMetadata().GetTxtForKey("parameters");
             pngr.End();
-            return data;
+            if (string.IsNullOrEmpty(data)) {
+                return null;
+            } else {
+                return Metadata.Deserialize(data);
+            }
         }
     }
 }

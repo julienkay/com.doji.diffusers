@@ -1,10 +1,12 @@
 using Doji.AI.Transformers;
 using System;
-using System.Collections.Generic;
 using System.Threading.Tasks;
 using Unity.Sentis;
 
 namespace Doji.AI.Diffusers {
+
+
+    public delegate void PipelineCallback(int step, float timestep, TensorFloat latents);
 
     public abstract partial class DiffusionPipeline : IDiffusionPipeline, IDisposable {
 
@@ -17,189 +19,161 @@ namespace Doji.AI.Diffusers {
         public Scheduler Scheduler { get; protected set; }
         public Unet Unet { get; protected set; }
 
-        protected Input _prompt;
-        protected Input _negativePrompt;
-        protected int _numInferenceSteps;
-        protected int _height;
-        protected int _width;
-        protected int _batchSize;
-        protected int _numImagesPerPrompt;
-        protected float _guidanceScale;
-        protected float? _eta;
-        protected uint? _seed;
-        protected TensorFloat _latents;
-
         internal Ops _ops;
+
+        protected Parameters _parameters;
+
+#pragma warning disable IDE1006 // Naming Styles
+
+        /* Parameters accessors for convenience */
+
+        protected Input prompt { get => _parameters.Prompt; set => _parameters.Prompt = value; }
+        protected int height { get => _parameters.Height.Value; set => _parameters.Height = value; }
+        protected int width { get => _parameters.Width.Value; set => _parameters.Width = value; }
+        protected int numInferenceSteps { get => _parameters.NumInferenceSteps.Value; set => _parameters.NumInferenceSteps = value; }
+        protected float guidanceScale { get => _parameters.GuidanceScale.Value; set => _parameters.GuidanceScale = value; }
+        protected Input negativePrompt { get => _parameters.NegativePrompt; set => _parameters.NegativePrompt = value; }
+        protected int numImagesPerPrompt { get => _parameters.NumImagesPerPrompt.Value; set => _parameters.NumImagesPerPrompt = value; }
+        protected float eta { get => _parameters.Eta.Value; set => _parameters.Eta = value; }
+        protected uint? seed { get => _parameters.Seed; set => _parameters.Seed = value; }
+        protected TensorFloat latents { get => _parameters.Latents; set => _parameters.Latents = value; }
+        protected float guidanceRescale { get => _parameters.GuidanceRescale.Value; set => _parameters.GuidanceRescale = value; }
+        protected PipelineCallback callback { get => _parameters.Callback; set => _parameters.Callback = value; }
+        protected TensorFloat image { get => _parameters.Image; set => _parameters.Image = value; }
+        protected float strength { get => _parameters.Strength.Value; set => _parameters.Strength = value; }
+        protected (int width, int height)? originalSize { get => _parameters.OriginalSize; set => _parameters.OriginalSize = value; }
+        protected (int x, int y)? cropsCoordsTopLeft { get => _parameters.CropsCoordsTopLeft; set => _parameters.CropsCoordsTopLeft = value; }
+        protected (int width, int height)? targetSize { get => _parameters.TargetSize; set => _parameters.TargetSize = value; }
+        protected int batchSize { get; set; } = 1;
+
+#pragma warning restore IDE1006
 
         public DiffusionPipeline(BackendType backendType) {
             _ops = WorkerFactory.CreateOps(backendType, null);
         }
 
+        /// <summary>
+        /// Applies default values for the specific pipeline.
+        /// </summary>
+        /// <param name="parameters">The parameters that were passed to athe Generate() method.</param>
+        protected void SetParameterDefaults(Parameters parameters) {
+            Parameters defaults = GetDefaultParameters();
+            _parameters = parameters;
+            _parameters.Height ??= defaults.Height;
+            _parameters.Width ??= defaults.Width;
+            _parameters.NumInferenceSteps ??= defaults.NumInferenceSteps;
+            _parameters.GuidanceScale ??= defaults.GuidanceScale;
+            _parameters.NegativePrompt ??= defaults.NegativePrompt;
+            _parameters.NumImagesPerPrompt ??= defaults.NumImagesPerPrompt;
+            _parameters.Eta ??= defaults.Eta;
+            _parameters.Seed ??= defaults.Seed;
+            _parameters.Latents ??= defaults.Latents;
+            _parameters.Callback ??= defaults.Callback;
+            _parameters.Image = defaults.Image;
+            _parameters.Strength = defaults.Strength;
+            _parameters.OriginalSize = defaults.OriginalSize;
+            _parameters.CropsCoordsTopLeft = defaults.CropsCoordsTopLeft;
+            _parameters.TargetSize = defaults.TargetSize;
+        }
+
+        public abstract Parameters GetDefaultParameters();
+
         protected void CheckInputs() {
-            if (_height % 8 != 0 || _width % 8 != 0) {
-                throw new ArgumentException($"`height` and `width` have to be divisible by 8 but are {_height} and {_width}.");
+            if (height % 8 != 0 || width % 8 != 0) {
+                throw new ArgumentException($"`height` and `width` have to be divisible by 8 but are {height} and {width}.");
             }
-            if (_numImagesPerPrompt > 1) {
-                throw new ArgumentException($"More than one image per prompt not supported yet. `numImagesPerPrompt` was {_numImagesPerPrompt}.");
+            if (numImagesPerPrompt > 1) {
+                throw new ArgumentException($"More than one image per prompt not supported yet. `numImagesPerPrompt` was {numImagesPerPrompt}.");
             }
-            if (_latents != null && _seed != null) {
+            if (latents != null && seed != null) {
                 throw new ArgumentException($"Both a seed and pre-generated noise has been passed. Please use either one or the other.");
             }
         }
 
-        public Parameters GetParameters() {
-            if (_prompt is not SingleInput) {
+        public Metadata GetMetadata() {
+            if (prompt is not SingleInput) {
                 throw new NotImplementedException("GetParameters not yet implemented for batch inputs.");
             }
 
-            return new Parameters() {
-                PackageVersion = System.Diagnostics.FileVersionInfo.GetVersionInfo(System.Reflection.Assembly.GetExecutingAssembly().Location).ProductVersion,
-                Prompt = (_prompt as SingleInput).Text,
+            return new Metadata() {
                 Model = ModelInfo.ModelId,
                 Pipeline = GetType().Name,
-                NegativePrompt = _negativePrompt != null ? (_negativePrompt as SingleInput).Text : null,
-                Steps = _numInferenceSteps,
                 Sampler = Scheduler.GetType().Name,
-                CfgScale = _guidanceScale,
-                Seed = _seed,
-                Width = _width,
-                Height = _height,
-                Eta = _eta
+                Parameters = _parameters,
             };
-        }
-
-        /// <inheritdoc cref="Generate(Input, int, int, int, float, Input, int, float, uint?, TensorFloat, Action{int, float, TensorFloat})"/>
-        public TensorFloat Generate(
-            string prompt,
-            int height = 512,
-            int width = 512,
-            int numInferenceSteps = 50,
-            float guidanceScale = 7.5f,
-            string negativePrompt = null,
-            int numImagesPerPrompt = 1,
-            float eta = 0.0f,
-            uint? seed = null,
-            TensorFloat latents = null,
-            Action<int, float, TensorFloat> callback = null)
-        {
-            return Generate((TextInput)prompt, height, width, numInferenceSteps, guidanceScale,
-               (TextInput)negativePrompt, numImagesPerPrompt, eta, seed, latents, callback);
-        }
-
-        /// <param name="prompt">The prompts used to generate the batch of images for.</param>
-        /// <inheritdoc cref="Generate(Input, int, int, int, float, Input, int, float, uint?, TensorFloat, Action{int, float, TensorFloat})"/>
-        public TensorFloat Generate(
-            List<string> prompt,
-            int height = 512,
-            int width = 512,
-            int numInferenceSteps = 50,
-            float guidanceScale = 7.5f,
-            List<string> negativePrompt = null,
-            int numImagesPerPrompt = 1,
-            float eta = 0.0f,
-            uint? seed = null,
-            TensorFloat latents = null,
-            Action<int, float, TensorFloat> callback = null)
-        {
-            return Generate((BatchInput)prompt, height, width, numInferenceSteps, guidanceScale,
-                (BatchInput)negativePrompt, numImagesPerPrompt, eta, seed, latents, callback);
         }
 
         /// <summary>
         /// Execute the pipeline to generate images.
         /// </summary>
-        /// <param name="prompt">The prompt or prompts to guide the image generation.
-        /// If not defined, one has to pass `prompt_embeds` instead.</param>
-        /// <param name="height">The height in pixels of the generated image.</param>
-        /// <param name="width">The width in pixels of the generated image.</param>
-        /// <param name="numInferenceSteps"> The number of denoising steps.
-        /// More denoising steps usually lead to a higher quality image
-        /// at the expense of slower inference.</param>
-        /// <param name="guidanceScale">Guidance scale as defined in [Classifier-Free Diffusion Guidance](https://arxiv.org/abs/2207.12598).
-        /// `guidance_scale` is defined as `w` of equation 2. of[Imagen Paper] (https://arxiv.org/pdf/2205.11487.pdf).
-        /// Guidance scale is enabled by setting `guidance_scale > 1`. Higher guidance scale encourages to generate images
-        /// that are closely linked to the text `prompt`, usually at the expense of lower image quality.</param>
-        /// <param name="negativePrompt">The prompt or prompts not to guide the image generation.
-        /// Ignored when not using guidance (i.e., ignored if <paramref name="guidanceScale"/> is less than `1`).</param>
-        /// <param name="numImagesPerPrompt">The number of images to generate per prompt.</param>
-        /// <param name="eta">Corresponds to parameter eta in the DDIM paper: https://arxiv.org/abs/2010.02502. Only applies to
-        /// <see cref="DDIMScheduler"/>, will be ignored for others.</param>
-        /// <param name="seed">A seed to use to generate initial noise. Set this to make generation deterministic.</param>
-        /// <param name="latents">Pre-generated noise, sampled from a Gaussian distribution, to be used as inputs for image
-        /// generation. If not provided, a latents tensor will be generated for you using the supplied <paramref name="seed"/>.</param>
-        /// <param name="callback">A function that will be called at every step during inference.
-        /// The function will be called with the following arguments:
-        /// `callback(step: int, timestep: float, latents: TensorFloat)`.</param>
-        public virtual TensorFloat Generate(
-            Input prompt,
-            int height = 512,
-            int width = 512,
-            int numInferenceSteps = 50,
-            float guidanceScale = 7.5f,
-            Input negativePrompt = null,
-            int numImagesPerPrompt = 1,
-            float eta = 0.0f,
-            uint? seed = null,
-            TensorFloat latents = null,
-            Action<int, float, TensorFloat> callback = null)
-        {
-            throw new NotImplementedException($"This overload of the '{nameof(Generate)}' method not implemented for {GetType().Name}.");
-        }
+        /// <param name="parameters">the parameters used to generate the image</param>
+        /// <returns>the resulting image tensor</returns>
+        public abstract TensorFloat Generate(Parameters parameters);
 
-        /// <inheritdoc cref="GenerateAsync(Input, int, int, int, float, Input, int, float, uint?, TensorFloat, Action{int, float, TensorFloat})"/>
-        public async Task<TensorFloat> GenerateAsync(
+        /// <summary>
+        /// Execute the pipeline to generate images.
+        /// </summary>
+        /// <remarks>
+        /// This is an overload for the most common generation parameters for convenience.
+        /// For more control and advanced pipeline usage, pass parameters via the
+        /// <see cref="Generate(Parameters)"/> method instead.
+        /// </remarks>
+        
+        public TensorFloat Generate(
             string prompt,
-            int height = 512,
-            int width = 512,
-            int numInferenceSteps = 50,
-            float guidanceScale = 7.5f,
+            int? width = null,
+            int? height = null,
+            int? numInferenceSteps = null,
+            float? guidanceScale = null,
             string negativePrompt = null,
-            int numImagesPerPrompt = 1,
-            float eta = 0.0f,
-            uint? seed = null,
-            TensorFloat latents = null,
-            Action<int, float, TensorFloat> callback = null)
+            uint? seed = null)
         {
-            return await GenerateAsync((TextInput)prompt, height, width, numInferenceSteps, guidanceScale,
-               (TextInput)negativePrompt, numImagesPerPrompt, eta, seed, latents, callback);
+            Parameters parameters = new Parameters() {
+                Prompt = prompt,
+                Width = width,
+                Height = height,
+                NumInferenceSteps = numInferenceSteps,
+                GuidanceRescale = guidanceScale,
+                NegativePrompt = negativePrompt,
+                Seed = seed,
+            };
+            return Generate(parameters);
         }
 
-        /// <param name="prompt">The prompts used to generate the batch of images for.</param>
-        /// <inheritdoc cref="GenerateAsync(Input, int, int, int, float, Input, int, float, uint?, TensorFloat, Action{int, float, TensorFloat})"/>
-        public async Task<TensorFloat> GenerateAsync(
-            List<string> prompt,
-            int height = 512,
-            int width = 512,
-            int numInferenceSteps = 50,
-            float guidanceScale = 7.5f,
-            List<string> negativePrompt = null,
-            int numImagesPerPrompt = 1,
-            float eta = 0.0f,
-            uint? seed = null,
-            TensorFloat latents = null,
-            Action<int, float, TensorFloat> callback = null)
+        /// <summary>
+        /// Execute the pipeline to generate images asynchronously.
+        /// </summary>
+        /// <remarks>
+        /// This is an overload for the most common generation parameters for convenience.
+        /// For more control and advanced pipeline usage, pass parameters via the
+        /// <see cref="GenerateAsync(Parameters)"/> method instead.
+        /// </remarks>
+
+        public Task<TensorFloat> GenerateAsync(
+            string prompt,
+            int? width = null,
+            int? height = null,
+            int? numInferenceSteps = null,
+            float? guidanceScale = null,
+            string negativePrompt = null,
+            uint? seed = null)
         {
-            return await GenerateAsync((BatchInput)prompt, height, width, numInferenceSteps, guidanceScale,
-                (BatchInput)negativePrompt, numImagesPerPrompt, eta, seed, latents, callback);
+            Parameters parameters = new Parameters() {
+                Prompt = prompt,
+                Width = width,
+                Height = height,
+                NumInferenceSteps = numInferenceSteps,
+                GuidanceRescale = guidanceScale,
+                NegativePrompt = negativePrompt,
+                Seed = seed,
+            };
+            return GenerateAsync(parameters);
         }
 
         /// <summary>
         /// Execute the pipeline asynchronously.
         /// </summary>
-        /// <inheritdoc cref="DiffusionPipeline.Generate(Input, int, int, int, float, Input, int, float, uint?, TensorFloat, Action{int, float, TensorFloat})"/>
-        public virtual Task<TensorFloat> GenerateAsync(
-            Input prompt,
-            int height = 512,
-            int width = 512,
-            int numInferenceSteps = 50,
-            float guidanceScale = 7.5f,
-            Input negativePrompt = null,
-            int numImagesPerPrompt = 1,
-            float eta = 0.0f,
-            uint? seed = null,
-            TensorFloat latents = null,
-            Action<int, float, TensorFloat> callback = null)
-        {
+        public virtual Task<TensorFloat> GenerateAsync(Parameters parameters) {
             throw new NotImplementedException($"{nameof(GenerateAsync)} not implemented for {GetType().Name}.");
         }
 

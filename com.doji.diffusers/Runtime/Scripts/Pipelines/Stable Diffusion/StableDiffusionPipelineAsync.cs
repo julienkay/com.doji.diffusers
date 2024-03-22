@@ -12,45 +12,24 @@ namespace Doji.AI.Diffusers {
     /// </summary>
     public partial class StableDiffusionPipeline {
 
-        public override async Task<TensorFloat> GenerateAsync(
-            Input prompt,
-            int height = 512,
-            int width = 512,
-            int numInferenceSteps = 50,
-            float guidanceScale = 7.5f,
-            Input negativePrompt = null,
-            int numImagesPerPrompt = 1,
-            float eta = 0.0f,
-            uint? seed = null,
-            TensorFloat latents = null,
-            Action<int, float, TensorFloat> callback = null)
-        {
-            _prompt = prompt;
-            _negativePrompt = negativePrompt;
-            _height = height;
-            _width = width;
-            _numInferenceSteps = numInferenceSteps;
-            _guidanceScale = guidanceScale;
-            _numImagesPerPrompt = numImagesPerPrompt;
-            _eta = eta;
-            _seed = seed;
-            _latents = latents;
+        public override async Task<TensorFloat> GenerateAsync(Parameters parameters) {
+            SetParameterDefaults(parameters);
             CheckInputs();
 
             if (prompt == null) {
                 throw new ArgumentNullException(nameof(prompt));
             } else if (prompt is TextInput) {
-                _batchSize = 1;
+                batchSize = 1;
             } else if (prompt is BatchInput prompts) {
-                _batchSize = prompts.Sequence.Count;
+                batchSize = prompts.Sequence.Count;
             } else {
                 throw new ArgumentException($"Invalid prompt argument {nameof(prompt)}");
             }
 
             System.Random generator = null;
-            if (latents == null && _seed == null) {
+            if (latents == null && seed == null) {
                 generator = new System.Random();
-                _seed = unchecked((uint)generator.Next());
+                seed = unchecked((uint)generator.Next());
             }
 
             bool doClassifierFreeGuidance = guidanceScale > 1.0f;
@@ -60,7 +39,7 @@ namespace Doji.AI.Diffusers {
             // get the initial random noise unless the user supplied it
             TensorShape latentsShape = GetLatentsShape();
             if (latents == null) {
-                latents = _ops.RandomNormal(latentsShape, 0, 1, _seed);
+                latents = _ops.RandomNormal(latentsShape, 0, 1, seed);
             } else if (latents.shape != latentsShape) {
                 throw new ArgumentException($"Unexpected latents shape, got {latents.shape}, expected {latentsShape}");
             }
@@ -79,7 +58,7 @@ namespace Doji.AI.Diffusers {
                 latentModelInput = Scheduler.ScaleModelInput(latentModelInput, t);
 
                 // predict the noise residual
-                using Tensor timestep = Unet.CreateTimestep(new TensorShape(_batchSize), t);
+                using Tensor timestep = Unet.CreateTimestep(new TensorShape(batchSize), t);
 
                 TensorFloat noisePred = await Unet.ExecuteAsync(latentModelInput, timestep, promptEmbeds);
 
@@ -106,7 +85,7 @@ namespace Doji.AI.Diffusers {
             TensorFloat result = _ops.Div(latents, 0.18215f);
 
             // batch decode
-            if (_batchSize > 1) {
+            if (batchSize > 1) {
                 throw new NotImplementedException();
             }
 
@@ -139,7 +118,7 @@ namespace Doji.AI.Diffusers {
                     $"{Tokenizer.ModelMaxLength} tokens.");
                 }
 
-                using TensorInt textIdTensor = new TensorInt(new TensorShape(_batchSize, textInputIds.Length), textInputIds);
+                using TensorInt textIdTensor = new TensorInt(new TensorShape(batchSize, textInputIds.Length), textInputIds);
 
                 promptEmbeds = (await TextEncoder.ExecuteAsync(textIdTensor))[0] as TensorFloat;
             }
@@ -151,14 +130,14 @@ namespace Doji.AI.Diffusers {
             if (doClassifierFreeGuidance && negativePromptEmbeds == null) {
                 List<string> uncondTokens;
                 if (negativePrompt == null) {
-                    uncondTokens = Enumerable.Repeat("", _batchSize).ToList();
+                    uncondTokens = Enumerable.Repeat("", batchSize).ToList();
                 } else if (prompt.GetType() != negativePrompt.GetType()) {
                     throw new ArgumentException($"`negativePrompt` should be the same type as `prompt`, but got {negativePrompt.GetType()} != {prompt.GetType()}.");
                 } else if (negativePrompt is SingleInput) {
-                    uncondTokens = Enumerable.Repeat((negativePrompt as SingleInput).Text, _batchSize).ToList();
-                } else if (_batchSize != (negativePrompt as BatchInput).Sequence.Count) {
+                    uncondTokens = Enumerable.Repeat((negativePrompt as SingleInput).Text, batchSize).ToList();
+                } else if (batchSize != (negativePrompt as BatchInput).Sequence.Count) {
                     throw new ArgumentException($"`negativePrompt`: {negativePrompt} has batch size {(negativePrompt as BatchInput).Sequence.Count}, " +
-                        $"but `prompt`: {prompt} has batch size {_batchSize}. Please make sure that passed `negativePrompt` matches " +
+                        $"but `prompt`: {prompt} has batch size {batchSize}. Please make sure that passed `negativePrompt` matches " +
                         $"the batch size of `prompt`.");
                 } else {
                     uncondTokens = (negativePrompt as BatchInput).Sequence as List<string>;
@@ -173,7 +152,7 @@ namespace Doji.AI.Diffusers {
                 ) as BatchEncoding;
                 int[] uncondInputIds = uncondInput.InputIds as int[] ?? throw new Exception("Failed to get unconditioned input ids.");
 
-                using TensorInt uncondIdTensor = new TensorInt(new TensorShape(_batchSize, uncondInputIds.Length), uncondInputIds);
+                using TensorInt uncondIdTensor = new TensorInt(new TensorShape(batchSize, uncondInputIds.Length), uncondInputIds);
 
                 ownsPromptEmbeds = true;
                 promptEmbeds.TakeOwnership();

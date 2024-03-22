@@ -13,7 +13,6 @@ namespace Doji.AI.Diffusers.Samples {
         public RawImage Image;
 
         public Model Model = Model.SD_1_5;
-        public string Prompt = "a cat";
         public int Resolution = 512;
         public int Steps = 20;
         public float GuidanceScale = 7.5f;
@@ -37,33 +36,31 @@ namespace Doji.AI.Diffusers.Samples {
         }
 
         private void OnModelChanged(int modelIndex) {
-            Debug.Log((Model)modelIndex);
             var model = ((Model)modelIndex).GetModelInfo();
             if (_stableDiffusion.Model != model) {
-                Debug.Log("Change model");
                 _stableDiffusion.Model = model;
             }
         }
 
-        public void Txt2Img() {
+        public void Txt2Img(string prompt) {
             Result = _stableDiffusion.Result;
-            Parameters p = _stableDiffusion.Imagine(Prompt, Resolution, Resolution, Steps, GuidanceScale, _negativePrompts);
+            Metadata m = _stableDiffusion.Imagine(prompt, Resolution, Resolution, Steps, GuidanceScale, _negativePrompts);
             Image.texture = Result;
-            PNGUtils.SaveToDisk(Result, ".", p);
+            PNGUtils.SaveToDisk(Result, ".", m);
         }
 
-        public async Task Txt2ImgAsync() {
+        public async Task Txt2ImgAsync(string prompt) {
             Result = _stableDiffusion.Result;
-            Parameters p = await _stableDiffusion.ImagineAsync(Prompt, Resolution, Resolution, Steps, GuidanceScale, _negativePrompts);
+            Metadata m = await _stableDiffusion.ImagineAsync(prompt, Resolution, Resolution, Steps, GuidanceScale, _negativePrompts);
             Image.texture = Result;
-            PNGUtils.SaveToDisk(Result, ".", p);
+            PNGUtils.SaveToDisk(Result, ".", m);
         }
 
-        public void Img2Img() {
+        public void Img2Img(string prompt, float strength) {
             Result = _stableDiffusion.Result;
-            Parameters p = _stableDiffusion.Imagine(Prompt, InputImage, Steps, GuidanceScale, _negativePrompts);
+            Metadata m = _stableDiffusion.Imagine(prompt, InputImage, Steps, GuidanceScale, _negativePrompts, strength: strength);
             Image.texture = Result;
-            PNGUtils.SaveToDisk(Result, ".", p);
+            PNGUtils.SaveToDisk(Result, ".", m);
         }
 
         private void OnDestroy() {

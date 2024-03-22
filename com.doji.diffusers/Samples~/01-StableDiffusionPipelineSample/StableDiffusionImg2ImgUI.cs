@@ -13,20 +13,17 @@ namespace Doji.AI.Diffusers.Samples {
         public Texture2D InputImage;
         public RawImage Input;
 
+        public float Strength = 0.8f;
+
         private void Awake() {
             UI = GetComponentInParent<StableDiffusionUI>();
-            PromptField.onValueChanged.AddListener(OnPromptChanged);
             GenerateButton.onClick.AddListener(OnGenerateClicked);
             Input.texture = InputImage;
             UI.InputImage = InputImage;
         }
 
         private void OnGenerateClicked() {
-            UI.Img2Img();
-        }
-
-        private void OnPromptChanged(string value) {
-            UI.Prompt = value;
+            UI.Img2Img(PromptField.text, Strength);
         }
 
 #if UNITY_EDITOR

@@ -1,5 +1,3 @@
-using System.IO;
-using System;
 using Unity.Sentis;
 using UnityEngine;
 
@@ -48,12 +46,12 @@ namespace Doji.AI.Diffusers.Editor.Tests {
         /// Dumps a tensor to a png file.
         /// </summary>
         public static void ToFile(DiffusionPipeline sd, TensorFloat generated) {
-            var parameters = sd.GetParameters();
-            int width = parameters.Width;
-            int height = parameters.Height;
+            var m = sd.GetMetadata();
+            int width = m.Parameters.Width.Value;
+            int height = m.Parameters.Height.Value;
             var tmp = RenderTexture.GetTemporary(width, height);
             TextureConverter.RenderToTexture(generated, tmp);
-            PNGUtils.SaveToDisk(tmp, ".", parameters);
+            PNGUtils.SaveToDisk(tmp, ".", m);
         }
     }
 }

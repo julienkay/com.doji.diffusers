@@ -48,7 +48,7 @@ namespace Doji.AI.Diffusers {
         }
 
         /// <summary>
-        /// Rescales betas to have zero terminal SNR Based on https://arxiv.org/pdf/2305.08891.pdf (Algorithm 1)
+        /// Rescales betas to have zero terminal SNR Based on <see href="https://arxiv.org/pdf/2305.08891.pdf"/> (Algorithm 1)
         /// </summary>
         /// <remarks>
         /// TODO: Eventually use tensor ops for all this, but that's somewhat blocked
@@ -210,7 +210,7 @@ namespace Doji.AI.Diffusers {
         /// divide by s. Dynamic thresholding pushes saturated pixels (those near -1 and 1) inwards, thereby actively
         /// preventing pixels from saturation at each step.We find that dynamic thresholding results in significantly
         /// better photorealism as well as better image-text alignment, especially when using very large guidance weights."
-        /// https://arxiv.org/abs/2205.11487
+        /// <seealso href="https://arxiv.org/abs/2205.11487"/>
         /// </summary>
         private TensorFloat ThresholdSample(TensorFloat sample) {
             TensorShape shape = sample.shape;

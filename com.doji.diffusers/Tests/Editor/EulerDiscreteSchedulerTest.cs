@@ -1,6 +1,5 @@
 using NUnit.Framework;
 using Unity.Sentis;
-using UnityEngine;
 using UnityEngine.TestTools.Utils;
 using static Doji.AI.Diffusers.Scheduler;
 

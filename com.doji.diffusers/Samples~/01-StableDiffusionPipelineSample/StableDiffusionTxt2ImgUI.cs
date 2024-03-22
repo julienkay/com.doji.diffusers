@@ -14,22 +14,16 @@ namespace Doji.AI.Diffusers.Samples {
 
         private void Awake() {
             UI = GetComponentInParent<StableDiffusionUI>();
-            PromptField.onValueChanged.AddListener(OnPromptChanged);
             GenerateButton.onClick.AddListener(OnGenerateClicked);
         }
 
         private async void OnGenerateClicked() {
-            UI.Txt2Img();
+            UI.Txt2Img(PromptField.text);
             /*try {
                 await UI.Txt2ImgAsync();
             } catch (Exception ex) {
                 throw ex;
             }*/
         }
-
-        private void OnPromptChanged(string value) {
-            UI.Prompt = value;
-        }
-
     }
 }

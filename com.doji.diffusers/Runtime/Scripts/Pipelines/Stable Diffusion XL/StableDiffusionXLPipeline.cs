@@ -2,6 +2,7 @@ using Doji.AI.Transformers;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Security.Cryptography;
 using Unity.Sentis;
 using UnityEngine.Profiling;
 
@@ -49,8 +50,6 @@ namespace Doji.AI.Diffusers {
                 ? new() { (Tokenizer, TextEncoder), (Tokenizer2, TextEncoder2) }
                 : new() { (Tokenizer2, TextEncoder2) };
 
-            //TODO: move this into a base class, but need to consolidate 
-            //diffusers-based onnx pipelines with optimum-based pipelines
             if (VaeDecoder.Config.BlockOutChannels != null) {
                 VaeScaleFactor = 1 << (VaeDecoder.Config.BlockOutChannels.Length - 1);
             } else {
@@ -58,84 +57,65 @@ namespace Doji.AI.Diffusers {
             }
         }
 
-        public override TensorFloat Generate(
-            Input prompt,
-            int height = 512,
-            int width = 512,
-            int numInferenceSteps = 50,
-            float guidanceScale = 7.5f,
-            Input negativePrompt = null,
-            int numImagesPerPrompt = 1,
-            float eta = 0.0f,
-            uint? seed = null,
-            TensorFloat latents = null,
-            Action<int, float, TensorFloat> callback = null)
-        {
-            return Generate(prompt, height, width, numInferenceSteps, guidanceScale, negativePrompt, numImagesPerPrompt, eta, seed, latents, callback);
+        public override Parameters GetDefaultParameters() {
+            return new Parameters() {
+                Height = null,
+                Width = null,
+                NumInferenceSteps = 50,
+                GuidanceScale = 5.0f,
+                NegativePrompt = null,
+                NumImagesPerPrompt = 1,
+                Eta = 0.0f,
+                Seed = null,
+                Latents = null,
+                Callback = null,
+                GuidanceRescale = 0.0f,
+                OriginalSize = null,
+                CropsCoordsTopLeft = (0, 0),
+                TargetSize = null,
+            };
         }
 
-        public TensorFloat Generate(
-            Input prompt,
-            int? height = 512,
-            int? width = 512,
-            int numInferenceSteps = 50,
-            float guidanceScale = 5.0f,
-            Input negativePrompt = null,
-            int numImagesPerPrompt = 1,
-            float eta = 0.0f,
-            uint? seed = null,
-            TensorFloat latents = null,
-            Action<int, float, TensorFloat> callback = null,
-            float guidanceRescale = 0.0f,
-            (int width, int height)? originalSize = null,
-            (int x, int y) cropsCoordsTopLeft = default((int, int)),
-            (int width, int height)? targetSize = null)
-        {
+        public override TensorFloat Generate(Parameters parameters) {
             Profiler.BeginSample($"{GetType().Name}.Generate");
 
-            // 0. Default height and width to unet
-            _height = height ?? (Unet.Config.SampleSize * VaeScaleFactor);
-            _width = width ?? (Unet.Config.SampleSize * VaeScaleFactor);
-            originalSize ??= (_height, _width);
-            targetSize ??= (_height, _width);
+            SetParameterDefaults(parameters);
 
-            _prompt = prompt;
-            _negativePrompt = negativePrompt;
-            _numInferenceSteps = numInferenceSteps;
-            _guidanceScale = guidanceScale;
-            _numImagesPerPrompt = numImagesPerPrompt;
-            _eta = eta;
-            _seed = seed;
-            _latents = latents;
+            // Default height and width to unet
+            _parameters.Height ??= (Unet.Config.SampleSize * VaeScaleFactor);
+            _parameters.Width ??= (Unet.Config.SampleSize * VaeScaleFactor);
+            originalSize ??= (height, width);
+            targetSize ??= (height, width);
+
             CheckInputs();
 
             // 2. Define call parameters
             if (prompt == null) {
                 throw new ArgumentNullException(nameof(prompt));
             } else if (prompt is TextInput) {
-                _batchSize = 1;
+                batchSize = 1;
             } else if (prompt is BatchInput prompts) {
-                _batchSize = prompts.Sequence.Count;
+                batchSize = prompts.Sequence.Count;
             } else {
                 throw new ArgumentException($"Invalid prompt argument {nameof(prompt)}");
             }
 
             System.Random generator = null;
-            if (latents == null && _seed == null) {
+            if (latents == null && seed == null) {
                 generator = new System.Random();
-                _seed = unchecked((uint)generator.Next());
+                seed = unchecked((uint)generator.Next());
             }
 
             bool doClassifierFreeGuidance = guidanceScale > 1.0f;
 
             // 3. Encode input prompt
             Profiler.BeginSample("Encode Prompt(s)");
-            Embeddings promptEmbeds = EncodePrompt(prompt, _numImagesPerPrompt, doClassifierFreeGuidance, negativePrompt);
+            Embeddings promptEmbeds = EncodePrompt(prompt, numImagesPerPrompt, doClassifierFreeGuidance, negativePrompt);
             Profiler.EndSample();
 
             // 4. Prepare timesteps
             Profiler.BeginSample($"{Scheduler.GetType().Name}.SetTimesteps");
-            Scheduler.SetTimesteps(_numInferenceSteps);
+            Scheduler.SetTimesteps(numInferenceSteps);
             Profiler.EndSample();
 
             // 5. Prepare latent variables
@@ -143,27 +123,27 @@ namespace Doji.AI.Diffusers {
 
             // 7. Prepare added time ids & embeddings
             TensorFloat addTextEmbeds = promptEmbeds.PooledPromptEmbeds;
-            float[] timeIds = GetTimeIds(originalSize.Value, cropsCoordsTopLeft, targetSize.Value);
+            float[] timeIds = GetTimeIds(originalSize.Value, cropsCoordsTopLeft.Value, targetSize.Value);
             TensorFloat addTimeIds = new TensorFloat(new TensorShape(1, timeIds.Length), timeIds);
             if (doClassifierFreeGuidance) {
                 promptEmbeds.PromptEmbeds = _ops.Concatenate(promptEmbeds.NegativePromptEmbeds, promptEmbeds.PromptEmbeds, axis: 0);
                 addTextEmbeds = _ops.Concatenate(promptEmbeds.NegativePooledPromptEmbeds, addTextEmbeds, axis: 0);
                 addTimeIds = _ops.Concatenate(addTimeIds, addTimeIds, axis: 0);
             }
-            addTimeIds = _ops.Repeat(addTimeIds, _batchSize * base._numImagesPerPrompt, axis: 0);
+            addTimeIds = _ops.Repeat(addTimeIds, batchSize * base.numImagesPerPrompt, axis: 0);
 
             // 8. Denoising loop
             Profiler.BeginSample($"Denoising Loop");
-            int numWarmupSteps = Scheduler.TimestepsLength - _numInferenceSteps * Scheduler.Order;
+            int numWarmupSteps = Scheduler.TimestepsLength - numInferenceSteps * Scheduler.Order;
             int i = 0;
             foreach (float t in Scheduler) {
                 // expand the latents if doing classifier free guidance
-                TensorFloat latentModelInput = doClassifierFreeGuidance ? _ops.Concatenate(_latents, _latents, 0) : _latents;
+                TensorFloat latentModelInput = doClassifierFreeGuidance ? _ops.Concatenate(latents, latents, 0) : latents;
                 latentModelInput = Scheduler.ScaleModelInput(latentModelInput, t);
 
                 // predict the noise residual
                 Profiler.BeginSample("Prepare Timestep Tensor");
-                using Tensor timestep = Unet.CreateTimestep(new TensorShape(_batchSize), t);
+                using Tensor timestep = Unet.CreateTimestep(new TensorShape(batchSize), t);
                 Profiler.EndSample();
 
                 Profiler.BeginSample("Execute Unet");
@@ -192,16 +172,16 @@ namespace Doji.AI.Diffusers {
 
                 // compute the previous noisy sample x_t -> x_t-1
                 Profiler.BeginSample($"{Scheduler.GetType().Name}.Step");
-                var stepArgs = new Scheduler.StepArgs(noisePred, t, _latents, eta, generator: generator);
+                var stepArgs = new Scheduler.StepArgs(noisePred, t, latents, eta, generator: generator);
                 var schedulerOutput = Scheduler.Step(stepArgs);
-                _latents = schedulerOutput.PrevSample;
+                latents = schedulerOutput.PrevSample;
                 Profiler.EndSample();
 
                 if (i == Scheduler.TimestepsLength - 1 || ((i + 1) > numWarmupSteps && (i + 1) % Scheduler.Order == 0)) {
                     int stepIdx = i / Scheduler.Order;
                     if (callback != null) {
                         Profiler.BeginSample($"{GetType()} Callback");
-                        callback.Invoke(i / Scheduler.Order, t, _latents);
+                        callback.Invoke(i / Scheduler.Order, t, latents);
                         Profiler.EndSample();
                     }
                 }
@@ -211,11 +191,11 @@ namespace Doji.AI.Diffusers {
             Profiler.EndSample();
 
             Profiler.BeginSample($"Scale Latents");
-            TensorFloat result = _ops.Div(_latents, VaeDecoder.Config.ScalingFactor ?? 0.18215f);
+            TensorFloat result = _ops.Div(latents, VaeDecoder.Config.ScalingFactor ?? 0.18215f);
             Profiler.EndSample();
 
             // batch decode
-            if (_batchSize > 1) {
+            if (batchSize > 1) {
                 throw new NotImplementedException();
             }
 
@@ -259,7 +239,7 @@ namespace Doji.AI.Diffusers {
                     Profiler.EndSample();
 
                     Profiler.BeginSample("Prepare Text ID Tensor");
-                    using TensorInt textIdTensor = new TensorInt(new TensorShape(_batchSize, textInputIds.Length), textInputIds);
+                    using TensorInt textIdTensor = new TensorInt(new TensorShape(batchSize, textInputIds.Length), textInputIds);
                     Profiler.EndSample();
 
                     Profiler.BeginSample("Execute TextEncoder");
@@ -294,10 +274,10 @@ namespace Doji.AI.Diffusers {
                 if (prompt is not null && prompt.GetType() != negativePrompt.GetType()) {
                     throw new ArgumentException($"`negativePrompt` should be the same type as `prompt`, but got {negativePrompt.GetType()} != {prompt.GetType()}.");
                 } else if (negativePrompt is SingleInput) {
-                    uncondTokens = Enumerable.Repeat((negativePrompt as SingleInput).Text, _batchSize).ToList();
-                } else if (_batchSize != (negativePrompt as BatchInput).Sequence.Count) {
+                    uncondTokens = Enumerable.Repeat((negativePrompt as SingleInput).Text, batchSize).ToList();
+                } else if (batchSize != (negativePrompt as BatchInput).Sequence.Count) {
                     throw new ArgumentException($"`negativePrompt`: {negativePrompt} has batch size {(negativePrompt as BatchInput).Sequence.Count}, " +
-                        $"but `prompt`: {prompt} has batch size {_batchSize}. Please make sure that passed `negativePrompt` matches " +
+                        $"but `prompt`: {prompt} has batch size {batchSize}. Please make sure that passed `negativePrompt` matches " +
                         $"the batch size of `prompt`.");
                 } else {
                     uncondTokens = (negativePrompt as BatchInput).Sequence as List<string>;
@@ -317,7 +297,7 @@ namespace Doji.AI.Diffusers {
                     Profiler.EndSample();
 
                     Profiler.BeginSample("Prepare Unconditioned Text ID Tensor");
-                    using TensorInt uncondIdTensor = new TensorInt(new TensorShape(_batchSize, uncondInputIds.Length), uncondInputIds);
+                    using TensorInt uncondIdTensor = new TensorInt(new TensorShape(batchSize, uncondInputIds.Length), uncondInputIds);
                     Profiler.EndSample();
 
                     Profiler.BeginSample("Execute TextEncoder For Unconditioned Input");
@@ -354,21 +334,21 @@ namespace Doji.AI.Diffusers {
 
         private void PrepareLatents() {
             var shape = new TensorShape(
-                _batchSize * _numImagesPerPrompt,
+                batchSize * numImagesPerPrompt,
                 Unet.Config.InChannels ?? 4,
-                _height / 8,
-                _width / 8
+                height / 8,
+                width / 8
             );
 
-            if (_latents == null) {
-                _latents = _ops.RandomNormal(shape, 0, 1, _seed);
-            } else if (_latents.shape != shape) {
-                throw new ArgumentException($"Unexpected latents shape, got {_latents.shape}, expected {shape}");
+            if (latents == null) {
+                latents = _ops.RandomNormal(shape, 0, 1, seed);
+            } else if (latents.shape != shape) {
+                throw new ArgumentException($"Unexpected latents shape, got {latents.shape}, expected {shape}");
             }
             
             // scale the initial noise by the standard deviation required by the scheduler
             if (Math.Abs(Scheduler.InitNoiseSigma - 1.0f) > 0.00001f) {
-                _latents = _ops.Mul(Scheduler.InitNoiseSigma, _latents);
+                latents = _ops.Mul(Scheduler.InitNoiseSigma, latents);
             }
         }
 
@@ -384,8 +364,8 @@ namespace Doji.AI.Diffusers {
         }
 
         /// <summary>
-        /// Rescale `noise_cfg` according to `guidance_rescale`. Based on findings of [Common Diffusion Noise Schedules and
-        /// Sample Steps are Flawed](https://arxiv.org/pdf/2305.08891.pdf). See Section 3.4
+        /// Rescale `noise_cfg` according to `guidance_rescale`. Based on findings of <see href="https://arxiv.org/pdf/2305.08891.pdf">
+        /// Common Diffusion Noise Schedules and Sample Steps are Flawed</see>. See Section 3.4
         /// </summary>
         private TensorFloat RescaleNoiseCfg(TensorFloat noiseCfg, TensorFloat noise_pred_text, float guidanceRescale = 0.0f) {
             throw new NotImplementedException("guidanceRescale > 0.0f not supported yet.");

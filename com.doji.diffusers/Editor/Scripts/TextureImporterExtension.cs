@@ -43,22 +43,22 @@ public class TextureImporterExtension : Editor {
 
         GUILayout.Space(20);
         string assetPath = (_defaultEditor.target as TextureImporter).assetPath;
-       
-        if (GetMetadata(assetPath, out Parameters p)) {
+
+        if (GetMetadata(assetPath, out Metadata m)) {
             GUILayout.Label("Generation Parameters", EditorStyles.boldLabel);
             EditorGUI.indentLevel++;
             //EditorGUI.BeginDisabledGroup(true);
-            ReadOnlyTextField("Model", p.Model);
-            ReadOnlyTextField("Pipeline", p.Pipeline);
-            ReadOnlyTextArea("Prompt", p.Prompt);
-            ReadOnlyTextArea("NegativePrompt", p.NegativePrompt);
-            ReadOnlyTextField("Steps", p.Steps.ToString());
-            ReadOnlyTextField("Sampler", p.Sampler);
-            ReadOnlyTextField("CfgScale", p.CfgScale.ToString());
-            ReadOnlyTextField("Seed", p.Seed == null ? "None" : p.Seed?.ToString());
-            ReadOnlyTextField("Width", p.Width.ToString());
-            ReadOnlyTextField("Height", p.Height.ToString());
-            ReadOnlyTextField("Eta", p.Eta == null ? "None" : p.Eta.ToString());
+            ReadOnlyTextField("Model", m.Model);
+            ReadOnlyTextField("Pipeline", m.Pipeline);
+            ReadOnlyTextField("Sampler", m.Sampler);
+            ReadOnlyTextArea("Prompt", m.Parameters.PromptString);
+            ReadOnlyTextArea("NegativePrompt", m.Parameters.NegativePromptString);
+            ReadOnlyTextField("Steps", m.Parameters.NumInferenceSteps.ToString());
+            ReadOnlyTextField("Guidance Scale", m.Parameters.GuidanceScale.ToString());
+            ReadOnlyTextField("Seed", m.Parameters.Seed == null ? "None" : m.Parameters.Seed?.ToString());
+            ReadOnlyTextField("Width", m.Parameters.Width.ToString());
+            ReadOnlyTextField("Height", m.Parameters.Height.ToString());
+            ReadOnlyTextField("Eta", m.Parameters.Eta == null ? "None" : m.Parameters.Eta.ToString());
 
             //EditorGUI.EndDisabledGroup();
             EditorGUI.indentLevel--;
@@ -90,19 +90,14 @@ public class TextureImporterExtension : Editor {
     /// Returns false for other file types or PNGs that do not contain
     /// the expected metadata key.
     /// </summary>
-    private bool GetMetadata(string filePath, out Parameters p) {
-        p = null;
+    private bool GetMetadata(string filePath, out Metadata metadata) {
+        metadata = null;
         if (!Path.GetExtension(filePath).Equals(".png", StringComparison.OrdinalIgnoreCase)) {
             return false;
         }
 
-        string metadata = PNGUtils.GetMetadata(filePath);
-        if (string.IsNullOrEmpty(metadata)) {
-            return false;
-        }
-
-        p = JsonConvert.DeserializeObject<Parameters>(metadata);
-        if (p == null) {
+        metadata = PNGUtils.GetMetadata(filePath);
+        if (metadata == null) {
             return false;
         }
 

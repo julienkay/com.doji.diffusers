@@ -4,7 +4,6 @@ using Unity.Sentis;
 using System.Linq;
 using System.Collections.Generic;
 using System.Collections;
-using Unity.Sentis.Layers;
 
 namespace Doji.AI.Diffusers {
 

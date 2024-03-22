@@ -7,7 +7,7 @@ using UnityEngine.Profiling;
 namespace Doji.AI.Diffusers {
 
     /// <summary>
-    /// This class wraps <see cref="DiffusionPipeline"/> objects.
+    /// This class wraps various <see cref="DiffusionPipeline"/>s.
     /// It provides a higher level API than the pipeline classes, making it more convenient
     /// to use especially for getting started with doing simple generations.
     /// - you don't have to deal with Tensors, the API uses RenderTexture/Texture2D objects
@@ -69,7 +69,7 @@ namespace Doji.AI.Diffusers {
         /// <summary>
         /// txt2img generation
         /// </summary>
-        public Parameters Imagine(string prompt, int width, int height, int numInferenceSteps = 50, float guidanceScale = 7.5f, string negativePrompt = null) {
+        public Metadata Imagine(string prompt, int width, int height, int numInferenceSteps = 50, float guidanceScale = 7.5f, string negativePrompt = null) {
             Result.name = prompt;
 
             Profiler.BeginSample("StableDiffusion.Imagine");
@@ -87,10 +87,10 @@ namespace Doji.AI.Diffusers {
             TextureConverter.RenderToTexture(image, Result);
             Profiler.EndSample();
 
-            return _txt2img.GetParameters();
+            return _txt2img.GetMetadata();
         }
 
-        public async Task<Parameters> ImagineAsync(string prompt, int width, int height, int numInferenceSteps = 50, float guidanceScale = 7.5f, string negativePrompt = null) {
+        public async Task<Metadata> ImagineAsync(string prompt, int width, int height, int numInferenceSteps = 50, float guidanceScale = 7.5f, string negativePrompt = null) {
             Result.name = prompt;
             var image = await _txt2img.GenerateAsync(
                 prompt,
@@ -101,23 +101,24 @@ namespace Doji.AI.Diffusers {
                 negativePrompt: negativePrompt
             );
             TextureConverter.RenderToTexture(image, Result);
-            return _txt2img.GetParameters();
+            return _txt2img.GetMetadata();
         }
 
         /// <summary>
         /// img2img generation
         /// </summary>
-        public Parameters Imagine(string prompt, Texture2D inputTexture, int numInferenceSteps = 50, float guidanceScale = 7.5f, string negativePrompt = null) {
+        public Metadata Imagine(string prompt, Texture2D inputTexture, int numInferenceSteps = 50, float guidanceScale = 7.5f, string negativePrompt = null, float strength = 0.8f) {
             Result.name = prompt;
             using var input = TextureConverter.ToTensor(inputTexture);
 
             Profiler.BeginSample("StableDiffusion.Imagine");
             var image = _img2img.Generate(
-                prompt,
-                input,
+                prompt: prompt,
+                image: input,
                 numInferenceSteps: numInferenceSteps,
                 guidanceScale: guidanceScale,
-                negativePrompt: negativePrompt
+                negativePrompt: negativePrompt,
+                strength: strength
             );
             Profiler.EndSample();
 
@@ -125,7 +126,7 @@ namespace Doji.AI.Diffusers {
             TextureConverter.RenderToTexture(image, Result);
             Profiler.EndSample();
 
-            return _img2img.GetParameters();
+            return _img2img.GetMetadata();
         }
 
         public void Dispose() {
