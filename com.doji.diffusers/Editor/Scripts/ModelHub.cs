@@ -67,7 +67,9 @@ namespace Doji.AI.Diffusers.Editor {
 
             if (!ExistsInStreamingAssets(model)) {
                 if (GUILayout.Button("Serialize to StreamingAssets")) {
+                    EditorUtility.DisplayProgressBar("Model Hub - Serialize to StreamingAssets", $"Serializing '{model.ModelId}' to StreamingAssets...", 0.1f);
                     ConvertModel(model);
+                    EditorUtility.ClearProgressBar();
                 }
             }
 
@@ -122,6 +124,7 @@ namespace Doji.AI.Diffusers.Editor {
             } else { // copy other files (text files like configs & model_index.json)
                 File.Copy(file.ResourcesFilePath, file.StreamingAssetsPath, overwrite: true);
             }
+            Resources.UnloadAsset(asset);
         }
 
         private void BeginSubHeading(string content, int spacing = 0) {
