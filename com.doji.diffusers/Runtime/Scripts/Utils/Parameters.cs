@@ -19,7 +19,7 @@ namespace Doji.AI.Diffusers {
         public Input Prompt { get; set; }
 
         [JsonIgnore]
-        public readonly string PromptString => Prompt.ToString();
+        public readonly string PromptString => Prompt is null ? "Unknown" : Prompt.ToString();
 
         /// <summary>
         /// The height in pixels of the generated image.
@@ -59,7 +59,7 @@ namespace Doji.AI.Diffusers {
         public Input NegativePrompt { get; set; }
 
         [JsonIgnore]
-        public readonly string NegativePromptString => NegativePrompt.ToString();
+        public readonly string NegativePromptString => NegativePrompt is null ? "Unknown" : NegativePrompt.ToString();
 
         /// <summary>
         /// The number of images to generate per prompt.

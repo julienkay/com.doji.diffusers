@@ -8,14 +8,12 @@ namespace Doji.AI.Diffusers {
     /// to generate an image.
     /// </summary>
     public class Metadata {
+
         [JsonProperty("comment")]
-#pragma warning disable IDE0051
-        private const string COMMENT = "This image was generated using https://github.com/julienkay/com.doji.diffusers";
-#pragma warning restore IDE0051
+        public readonly string Comment = "This image was generated using https://github.com/julienkay/com.doji.diffusers";
 
         [JsonProperty("package_version")]
-        [JsonConverter(typeof(PackageVersionConverter))]
-        public string PackageVersion { get; set; }
+        public readonly string PackageVersion = System.Diagnostics.FileVersionInfo.GetVersionInfo(System.Reflection.Assembly.GetExecutingAssembly().Location).ProductVersion;
 
         [JsonProperty("model")]
         public string Model { get; set; }
@@ -30,26 +28,13 @@ namespace Doji.AI.Diffusers {
         public Parameters Parameters { get; set; }
 
         public string Serialize() {
-            return JsonConvert.SerializeObject(this);
+            return JsonConvert.SerializeObject(this, new JsonSerializerSettings {
+                NullValueHandling = NullValueHandling.Ignore
+            });
         }
 
         public static Metadata Deserialize(string data) {
             return JsonConvert.DeserializeObject<Metadata>(data);
-        }
-    }
-
-    public class PackageVersionConverter : JsonConverter {
-        public override bool CanConvert(Type objectType) {
-            return objectType == typeof(string);
-        }
-
-        public override object ReadJson(JsonReader reader, Type objectType, object existingValue, JsonSerializer serializer) {
-            return serializer.Deserialize<string>(reader);
-        }
-
-        public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer) {
-            string packageVersion = System.Diagnostics.FileVersionInfo.GetVersionInfo(System.Reflection.Assembly.GetExecutingAssembly().Location).ProductVersion;
-            writer.WriteValue(packageVersion.ToString());
         }
     }
 }

@@ -1,4 +1,6 @@
 using Doji.Pngcs;
+using Newtonsoft.Json.Linq;
+using Newtonsoft.Json;
 using System;
 using System.IO;
 using UnityEngine;
@@ -60,10 +62,28 @@ namespace Doji.AI.Diffusers {
             PngReader pngr = FileHelper.CreatePngReader(pngFilePath);
             string data = pngr.GetMetadata().GetTxtForKey("parameters");
             pngr.End();
+
             if (string.IsNullOrEmpty(data)) {
                 return null;
-            } else {
+            }
+
+            if (!IsValidJson(data)) {
+                return null;
+            }
+
+            try {
                 return Metadata.Deserialize(data);
+            } catch (Exception) {
+                return null;
+            }
+        }
+
+        private static bool IsValidJson(string jsonString) {
+            try {
+                JToken.Parse(jsonString);
+                return true;
+            } catch (JsonReaderException) {
+                return false;
             }
         }
     }

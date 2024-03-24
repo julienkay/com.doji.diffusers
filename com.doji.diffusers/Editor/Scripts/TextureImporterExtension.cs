@@ -1,5 +1,4 @@
 using Doji.AI.Diffusers;
-using Newtonsoft.Json;
 using System;
 using System.IO;
 using System.Reflection;
@@ -47,20 +46,25 @@ public class TextureImporterExtension : Editor {
         if (GetMetadata(assetPath, out Metadata m)) {
             GUILayout.Label("Generation Parameters", EditorStyles.boldLabel);
             EditorGUI.indentLevel++;
-            //EditorGUI.BeginDisabledGroup(true);
+
+            ReadOnlyTextField("Comment", m.Comment);
+            ReadOnlyTextField("Version", m.PackageVersion);
             ReadOnlyTextField("Model", m.Model);
             ReadOnlyTextField("Pipeline", m.Pipeline);
             ReadOnlyTextField("Sampler", m.Sampler);
             ReadOnlyTextArea("Prompt", m.Parameters.PromptString);
             ReadOnlyTextArea("NegativePrompt", m.Parameters.NegativePromptString);
-            ReadOnlyTextField("Steps", m.Parameters.NumInferenceSteps.ToString());
-            ReadOnlyTextField("Guidance Scale", m.Parameters.GuidanceScale.ToString());
-            ReadOnlyTextField("Seed", m.Parameters.Seed == null ? "None" : m.Parameters.Seed?.ToString());
-            ReadOnlyTextField("Width", m.Parameters.Width.ToString());
-            ReadOnlyTextField("Height", m.Parameters.Height.ToString());
-            ReadOnlyTextField("Eta", m.Parameters.Eta == null ? "None" : m.Parameters.Eta.ToString());
+            ReadOnlyTextField("Steps", m.Parameters.NumInferenceSteps);
+            ReadOnlyTextField("Guidance Scale", m.Parameters.GuidanceScale);
+            ReadOnlyTextField("Seed", m.Parameters.Seed);
+            ReadOnlyTextField("Width", m.Parameters.Width);
+            ReadOnlyTextField("Height", m.Parameters.Height);
+            ReadOnlyTextField("Eta", m.Parameters.Eta);
+            ReadOnlyTextField("Guidance Rescale", m.Parameters.GuidanceRescale);
+            ReadOnlyTextField("Strength", m.Parameters.Strength);
+            ReadOnlyTextField("Aesthetic Score", m.Parameters.AestheticScore);
+            ReadOnlyTextField("Negative Aesthetic Score", m.Parameters.NegativeAestheticScore);
 
-            //EditorGUI.EndDisabledGroup();
             EditorGUI.indentLevel--;
         }
 
@@ -69,6 +73,17 @@ public class TextureImporterExtension : Editor {
         // Unfortunately we cant hide the 'ImportedObject' section
         // this just moves it out of view
         //GUILayout.Space(2048);
+    }
+
+    private void ReadOnlyTextField(string label, float? floatValue) {
+        ReadOnlyTextField(label, floatValue != null ? floatValue.Value.ToString() : "None");
+    }
+
+    private void ReadOnlyTextField(string label, uint? uintValue) {
+        ReadOnlyTextField(label, uintValue != null ? uintValue.Value.ToString() : "None");
+    }
+    private void ReadOnlyTextField(string label, int? intValue) {
+        ReadOnlyTextField(label, intValue != null ? intValue.Value.ToString() : "None");
     }
 
     private void ReadOnlyTextField(string label, string text) {
