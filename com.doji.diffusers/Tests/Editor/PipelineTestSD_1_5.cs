@@ -1,4 +1,5 @@
 using NUnit.Framework;
+using System;
 using Unity.Sentis;
 using UnityEngine;
 using UnityEngine.TestTools;
@@ -72,6 +73,17 @@ namespace Doji.AI.Diffusers.Editor.Tests {
         private void TestPredictedNoiseLarge(int i, float t, TensorFloat latents) {
             latents.MakeReadable();
             CollectionAssert.AreEqual(GetLatentsLarge(i), latents.ToReadOnlyArray(), new FloatArrayComparer(0.0001f), $"Latents differ at step {i}");
+        }
+
+        [Test]
+        public void TestPromptNull() {
+            Assert.Throws<ArgumentException>(() => _pipeline.Generate(prompt: null));
+        }
+
+        [Test]
+        public void TestImageNull() {
+            var img2img = _pipeline.As<IImg2ImgPipeline>();
+            Assert.Throws<ArgumentException>(() => img2img.Generate("test", null));
         }
     }
 }

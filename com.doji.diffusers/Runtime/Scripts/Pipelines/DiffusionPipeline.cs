@@ -79,7 +79,7 @@ namespace Doji.AI.Diffusers {
         public abstract Parameters GetDefaultParameters();
 
         protected void CheckInputs() {
-            if (height % 8 != 0 || width % 8 != 0) {
+            if (this is not IImg2ImgPipeline && (height % 8 != 0 || width % 8 != 0)) {
                 throw new ArgumentException($"`height` and `width` have to be divisible by 8 but are {height} and {width}.");
             }
             if (numImagesPerPrompt > 1) {
@@ -87,6 +87,12 @@ namespace Doji.AI.Diffusers {
             }
             if (latents != null && seed != null) {
                 throw new ArgumentException($"Both a seed and pre-generated noise has been passed. Please use either one or the other.");
+            }
+            if (this is ITxt2ImgPipeline && prompt == null) {
+                throw new ArgumentException("Please provide a 'prompt' parameter to generate images.");
+            }
+            if (this is IImg2ImgPipeline && image == null) {
+                throw new ArgumentException($"Please provide an 'image' parameter to generate images.");
             }
         }
 
