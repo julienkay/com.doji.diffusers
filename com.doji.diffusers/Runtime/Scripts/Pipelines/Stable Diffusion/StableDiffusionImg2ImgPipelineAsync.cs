@@ -12,7 +12,7 @@ namespace Doji.AI.Diffusers {
     /// </summary>
     public partial class StableDiffusionImg2ImgPipeline {
 
-        public async Task<TensorFloat> GenerateAsync(Parameters parameters) {
+        public override async Task<TensorFloat> GenerateAsync(Parameters parameters) {
             SetParameterDefaults(parameters);
             CheckInputs();
 
