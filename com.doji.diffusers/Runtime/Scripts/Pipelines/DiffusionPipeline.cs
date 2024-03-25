@@ -73,6 +73,7 @@ namespace Doji.AI.Diffusers {
             _parameters.Callback ??= defaults.Callback;
             _parameters.Image ??= defaults.Image;
             _parameters.Strength ??= defaults.Strength;
+            _parameters.GuidanceRescale ??= defaults.GuidanceRescale;
             _parameters.OriginalSize ??= defaults.OriginalSize;
             _parameters.CropsCoordsTopLeft ??= defaults.CropsCoordsTopLeft;
             _parameters.TargetSize ??= defaults.TargetSize;
@@ -158,7 +159,6 @@ namespace Doji.AI.Diffusers {
         /// For more control and advanced pipeline usage, pass parameters via the
         /// <see cref="GenerateAsync(Parameters)"/> method instead.
         /// </remarks>
-
         public Task<TensorFloat> GenerateAsync(
             string prompt,
             int? width = null,
