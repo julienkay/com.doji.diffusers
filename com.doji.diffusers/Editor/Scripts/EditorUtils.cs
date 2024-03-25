@@ -26,7 +26,7 @@ namespace Doji.AI.Diffusers.Editor {
             }
 
             EditorApplication.ExitPlaymode();
-            DownloadUtils.DownloadModel(model);
+            _ = DownloadUtils.DownloadModel(model);
         }
 
         /// <summary>

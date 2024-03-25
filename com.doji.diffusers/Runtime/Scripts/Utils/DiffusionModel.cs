@@ -126,17 +126,17 @@ namespace Doji.AI.Diffusers {
 
         public static readonly DiffusionModel SD_1_5 = new DiffusionModel("runwayml/stable-diffusion-v1-5", "onnx");
         public static readonly DiffusionModel SD_2_1 = new DiffusionModel("julienkay/stable-diffusion-2-1");
-        public static readonly DiffusionModel SD_XL_BASE  = new DiffusionModel("stabilityai/stable-diffusion-xl-base-1.0");
-        public static readonly DiffusionModel SD_TURBO  = new DiffusionModel("julienkay/sd-turbo");
+        public static readonly DiffusionModel SD_XL_BASE = new DiffusionModel("stabilityai/stable-diffusion-xl-base-1.0");
+        public static readonly DiffusionModel SD_TURBO = new DiffusionModel("julienkay/sd-turbo");
         public static readonly DiffusionModel SD_XL_TURBO = new DiffusionModel("stabilityai/sdxl-turbo");
 
         /* all the validated models */
         public static readonly DiffusionModel[] ValidatedModels = new DiffusionModel[] {
-                 SD_1_5,
-                 SD_2_1,
-                 SD_XL_BASE,
-                 SD_TURBO,
-                 SD_XL_TURBO,
+            SD_1_5,
+            SD_2_1,
+            SD_XL_BASE,
+            SD_TURBO,
+            SD_XL_TURBO,
         };
     }
 

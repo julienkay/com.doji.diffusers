@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Linq;
 using Unity.Sentis;
 using UnityEditor;
 using UnityEngine;
@@ -12,7 +13,9 @@ namespace Doji.AI.Diffusers.Editor {
 
         internal static class Content {
             internal static readonly string SettingsRootTitle = "Project/Diffusers/Model Hub";
-            internal static readonly string ModelsLabel = "Models";
+            internal static readonly string ModelsLabel = "Base Models";
+            internal static readonly string CustomLabel = "Custom Models";
+            internal static readonly string ModelId = "Model ID";
         }
 
         public ModelHub(string path, SettingsScope scope = SettingsScope.User) : base(path, scope) { }
@@ -29,6 +32,60 @@ namespace Doji.AI.Diffusers.Editor {
             EditorGUILayout.Space(10);
             EditorGUI.indentLevel++;
 
+            DrawBaseModels();
+            DrawDownloadCustomDownload();
+
+            EditorGUI.indentLevel--;
+        }
+
+        private string _modelInput;
+
+        private void DrawDownloadCustomDownload() {
+            BeginSubHeading(Content.CustomLabel);
+
+            const string DEFAULT = "<enter model id (e.g. 'stabilityai/sdxl-turbo')>";
+            GUILayout.BeginHorizontal();
+            GUILayout.BeginVertical();
+
+            bool valid = !string.IsNullOrEmpty(_modelInput) && _modelInput != DEFAULT;
+
+            if (!valid) {
+                var style = new GUIStyle(EditorStyles.textField);
+                style.normal.textColor = Color.grey;
+                style.active.textColor = Color.grey;
+                style.focused.textColor = Color.grey;
+                style.hover.textColor = Color.grey;
+                _modelInput = EditorGUILayout.TextField(Content.ModelId, DEFAULT, style);
+            } else {
+                _modelInput = EditorGUILayout.TextField(Content.ModelId, _modelInput);
+            }
+
+            valid = !string.IsNullOrEmpty(_modelInput) && _modelInput != DEFAULT;
+
+            if (!EditorGUIUtility.editingTextField && _modelInput.Split("/").Count() != 2) {
+                EditorGUILayout.HelpBox("model id is in an invalid format. (Use 'author/repoName')", MessageType.Error);
+                valid = false;
+            }
+            GUILayout.EndVertical();
+
+            EditorGUI.BeginDisabledGroup(!valid);
+            if (GUILayout.Button("Download", GUILayout.Width(70))) {
+                var model = new DiffusionModel(_modelInput);
+                // TODO: display message if model is already on users machine
+                if (ExistsInResources(model)) {
+                    EditorUtility.DisplayDialog("Model Hub", $"The model '{_modelInput}' is already downloaded.", "OK");
+                } else {
+                    _ = DownloadUtils.DownloadModel(model);
+                }
+            }
+            EditorGUI.EndDisabledGroup();
+
+            GUILayout.EndHorizontal();
+
+            EndSubHeading();
+        }
+
+        private void DrawBaseModels() {
             BeginSubHeading(Content.ModelsLabel);
 
             foreach (var model in DiffusionModel.ValidatedModels) {
@@ -36,8 +93,6 @@ namespace Doji.AI.Diffusers.Editor {
             }
 
             EndSubHeading();
-
-            EditorGUI.indentLevel--;
         }
 
         private void DrawModel(DiffusionModel model) {
@@ -54,7 +109,7 @@ namespace Doji.AI.Diffusers.Editor {
             EditorGUILayout.LabelField(model.ModelId);
 
             if (GUILayout.Button("Download", GUILayout.Width(70))) {
-                DownloadUtils.DownloadModel(model);
+                _ = DownloadUtils.DownloadModel(model);
             }
 
             GUILayout.EndHorizontal();

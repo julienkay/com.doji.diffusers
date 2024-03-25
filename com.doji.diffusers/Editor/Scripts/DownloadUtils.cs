@@ -10,8 +10,23 @@ namespace Doji.AI.Diffusers.Editor {
 
         private static HashSet<DiffusionModel> _downloads = new HashSet<DiffusionModel>();
 
-        public async static void DownloadModel(DiffusionModel model) {
+        /// <summary>
+        /// Downloads the weights of a pretrained diffusion pipeline hosten od Hugging Face.
+        /// </summary>
+        /// <param name="model">the model to download</param>
+        public async static Task DownloadModel(DiffusionModel model) {
             if (InProgress(model)) {
+                return;
+            }
+
+            bool existsOnHF = await model.ExistsOnHF();
+            if (!existsOnHF) {
+                EditorUtility.DisplayDialog(
+                    $"com.doji.diffusers | Unknown Model '{model.ModelId}'",
+                    "The model you requested can not be found on Hugging Face.\n\n" +
+                    "Check the spelling and that all required pipeline components are present in the repository.\n\n",
+                    "OK"
+                );
                 return;
             }
 
@@ -97,10 +112,8 @@ namespace Doji.AI.Diffusers.Editor {
                 return;
             }
 
-            if (wr.responseCode == 404 && !file.Required) {
+            if (wr.error != null || wr.result != UnityWebRequest.Result.Success) {
                 File.Delete(filePath);
-                return;
-            } else if (wr.error != null || wr.result != UnityWebRequest.Result.Success) {
                 EditorUtility.DisplayDialog(
                     "com.doji.diffusers | Download Error",
                     $"Downloading {url} failed.\n{wr.error}",
@@ -122,5 +135,21 @@ namespace Doji.AI.Diffusers.Editor {
                "Download", "Cancel");
         }
 
+        /// <summary>
+        /// Does this model point to a valid pipeline on Hugging Face?
+        /// </summary>
+        private async static Task<bool> ExistsOnHF(this DiffusionModel model) {
+            UnityWebRequest headRequest = UnityWebRequest.Head(model.ModelIndex.Url);
+            var hr = headRequest.SendWebRequest();
+            while (!hr.isDone) {
+                await Task.Yield();
+            }
+
+            if (headRequest.responseCode == 200) {
+                return true;
+            }
+            
+            return false;
+        }
     }
 }

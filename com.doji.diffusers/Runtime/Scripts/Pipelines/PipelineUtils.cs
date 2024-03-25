@@ -198,7 +198,21 @@ namespace Doji.AI.Diffusers {
 #endif
 
         /// <summary>
-        /// Loads the given model into a txt2img pipeline.
+        /// Loads a diffusion pipeline from pretrained pipeline weights.
+        /// The pipelines components need to be either in .onnx or .sentis format
+        /// and be present in the Resources or StreamingAssets folder respectively.
+        /// </summary>
+        /// <param name="modelId">The 'repo id' (for example `stabilityai/sdxl-turbo`) of a pretrained pipeline.</param>
+        public static DiffusionPipeline FromPretrained(string modelId, BackendType backend = BackendType.GPUCompute) {
+            DiffusionModel model = new DiffusionModel(modelId);
+            return FromPretrained(model, backend);
+        }
+
+
+        /// <summary>
+        /// Loads the given model into a diffusion pipeline.
+        /// The pipelines components need to be either in .onnx or .sentis format
+        /// and be present in the Resources or StreamingAssets folder respectively.
         /// </summary>
         public static DiffusionPipeline FromPretrained(DiffusionModel model, BackendType backend = BackendType.GPUCompute) {
 #if UNITY_EDITOR

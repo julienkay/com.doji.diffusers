@@ -52,6 +52,11 @@ namespace Doji.AI.Diffusers {
             Initialize();
         }
 
+        public StableDiffusion(string modelId) {
+            _model = new DiffusionModel(modelId);
+            Initialize();
+        }
+
         /// <summary>
         /// Initialise a Stable diffusion pipeline for the current <see cref="Model"/>
         /// and the current <see cref="Backend"/>.
