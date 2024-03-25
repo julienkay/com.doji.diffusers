@@ -44,6 +44,8 @@ namespace Doji.AI.Diffusers {
         protected (int width, int height)? originalSize { get => _parameters.OriginalSize; set => _parameters.OriginalSize = value; }
         protected (int x, int y)? cropsCoordsTopLeft { get => _parameters.CropsCoordsTopLeft; set => _parameters.CropsCoordsTopLeft = value; }
         protected (int width, int height)? targetSize { get => _parameters.TargetSize; set => _parameters.TargetSize = value; }
+        protected float aestheticScore { get => _parameters.AestheticScore.Value; set => _parameters.AestheticScore = value; }
+        protected float negativeAestheticScore { get => _parameters.NegativeAestheticScore.Value; set => _parameters.NegativeAestheticScore = value; }
         protected int batchSize { get; set; } = 1;
 
 #pragma warning restore IDE1006
@@ -74,6 +76,8 @@ namespace Doji.AI.Diffusers {
             _parameters.OriginalSize ??= defaults.OriginalSize;
             _parameters.CropsCoordsTopLeft ??= defaults.CropsCoordsTopLeft;
             _parameters.TargetSize ??= defaults.TargetSize;
+            _parameters.AestheticScore ??= defaults.AestheticScore;
+            _parameters.NegativeAestheticScore ??= defaults.NegativeAestheticScore;
         }
 
         public abstract Parameters GetDefaultParameters();

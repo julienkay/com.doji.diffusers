@@ -27,11 +27,6 @@ namespace Doji.AI.Diffusers {
         private List<TensorFloat> _promptEmbedsList = new List<TensorFloat>();
         private List<TensorFloat> _negativePromptEmbedsList = new List<TensorFloat>();
 
-        private TensorFloat _image;
-        private float _strength;
-        private float _aestheticScore = 6.0f;
-        private float _negativeAestheticScore = 2.5f;
-
         /// <summary>
         /// Initializes a new Stable Diffusion XL pipeline.
         /// </summary>
@@ -117,7 +112,7 @@ namespace Doji.AI.Diffusers {
 
             // Preprocess image
             Profiler.BeginSample($"Preprocess image");
-            _image = ImageProcessor.PreProcess(_image);
+            image = ImageProcessor.PreProcess(image);
             Profiler.EndSample();
 
             // Prepare timesteps
@@ -350,7 +345,7 @@ namespace Doji.AI.Diffusers {
 
         private float[] GetTimesteps() {
             // get the original timestep using init_timestep
-            int initTimestep = Math.Min((int)MathF.Floor(numInferenceSteps * _strength), numInferenceSteps);
+            int initTimestep = Math.Min((int)MathF.Floor(numInferenceSteps * strength), numInferenceSteps);
             int tStart = Math.Max(numInferenceSteps - initTimestep, 0);
             numInferenceSteps = Math.Max(numInferenceSteps - initTimestep, 0);
             return Scheduler.GetTimesteps()[(tStart * Scheduler.Order)..];
@@ -359,7 +354,7 @@ namespace Doji.AI.Diffusers {
         private TensorFloat PrepareLatents(TensorFloat timestep) {
             int batch_size = batchSize * numImagesPerPrompt;
 
-            TensorFloat initLatents = VaeEncoder.Execute(_image);
+            TensorFloat initLatents = VaeEncoder.Execute(image);
             initLatents = _ops.Mul(initLatents, VaeDecoder.Config.ScalingFactor ?? 0.18215f);
 
             if (batch_size > initLatents.shape[0] && batch_size % initLatents.shape[0] == 0) {
@@ -381,8 +376,8 @@ namespace Doji.AI.Diffusers {
             float[] timeIds;
             float[] negTimeIds;
             if (Config.RequiresAestheticsScore) {
-                timeIds = GetTimeIds(originalSize, cropsCoordsTopLeft, _aestheticScore);
-                negTimeIds = GetTimeIds(originalSize, cropsCoordsTopLeft, _negativeAestheticScore);
+                timeIds = GetTimeIds(originalSize, cropsCoordsTopLeft, aestheticScore);
+                negTimeIds = GetTimeIds(originalSize, cropsCoordsTopLeft, negativeAestheticScore);
 
             } else {
                 timeIds = GetTimeIds(originalSize, cropsCoordsTopLeft, targetSize);
