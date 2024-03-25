@@ -107,6 +107,42 @@ namespace Doji.AI.Diffusers {
             //var sigmas = _ops.Pow(tmp2, pow);
         }
 
+        public override TensorFloat AddNoise(TensorFloat originalSamples, TensorFloat noise, TensorFloat timesteps) {
+            float[] scheduleTimesteps = Timesteps;
+
+            int[] stepIndices;
+            // BeginIndex is null when pipeline does not implement SetBeginIndex
+            if (BeginIndex == null) {
+                float[] timestepsF = timesteps.ToReadOnlyArray();
+                stepIndices = new int[timestepsF.Length];
+                for (int i = 0; i < timestepsF.Length; i++) {
+                    float t = timestepsF[i];
+                    stepIndices[i] = (IndexForTimestep(t, scheduleTimesteps));
+                }
+            } else if (StepIndex != null) {
+                // add_noise is called after first denoising step (for inpainting)
+                stepIndices = new int[timesteps.shape[0]];
+                for (int i = 0; i < timesteps.shape[0]; i++) {
+                    stepIndices[i] = StepIndex.Value;
+                }
+            } else {
+                // add noise is called before first denoising step to create inital latent(img2img)
+                stepIndices = new int[timesteps.shape[0]];
+                for (int i = 0; i < timesteps.shape[0]; i++) {
+                    stepIndices[i] = BeginIndex.Value;
+                }
+            }
+
+            using TensorInt indices = new TensorInt(new TensorShape(stepIndices.Length), stepIndices);
+            using TensorFloat sigmas = new TensorFloat(new TensorShape(Sigmas.Length), Sigmas);
+            var sigma = _ops.GatherElements(sigmas, indices, 0);
+            while (sigma.shape.rank < originalSamples.shape.rank) {
+                sigma = sigma.ShallowReshape(sigma.shape.Unsqueeze(-1)) as TensorFloat; // unsqueeze
+            }
+            var noisySamples = _ops.Add(originalSamples, _ops.Mul(noise, sigma));
+            return noisySamples;
+        }
+
         private int IndexForTimestep(float timestep, float[] scheduleTimesteps = null) {
             scheduleTimesteps ??= Timesteps;
 
