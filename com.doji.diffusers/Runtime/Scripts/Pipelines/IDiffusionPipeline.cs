@@ -43,7 +43,7 @@ namespace Doji.AI.Diffusers {
                 Prompt = prompt,
                 Image = image,
                 NumInferenceSteps = numInferenceSteps,
-                GuidanceRescale = guidanceScale,
+                GuidanceScale = guidanceScale,
                 NegativePrompt = negativePrompt,
                 Strength = strength,
             };

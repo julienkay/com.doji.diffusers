@@ -143,7 +143,7 @@ namespace Doji.AI.Diffusers {
                 Width = width,
                 Height = height,
                 NumInferenceSteps = numInferenceSteps,
-                GuidanceRescale = guidanceScale,
+                GuidanceScale = guidanceScale,
                 NegativePrompt = negativePrompt,
                 Seed = seed,
             };
@@ -173,7 +173,7 @@ namespace Doji.AI.Diffusers {
                 Width = width,
                 Height = height,
                 NumInferenceSteps = numInferenceSteps,
-                GuidanceRescale = guidanceScale,
+                GuidanceScale = guidanceScale,
                 NegativePrompt = negativePrompt,
                 Seed = seed,
             };
