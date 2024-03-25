@@ -69,11 +69,11 @@ namespace Doji.AI.Diffusers {
             _parameters.Seed ??= defaults.Seed;
             _parameters.Latents ??= defaults.Latents;
             _parameters.Callback ??= defaults.Callback;
-            _parameters.Image = defaults.Image;
-            _parameters.Strength = defaults.Strength;
-            _parameters.OriginalSize = defaults.OriginalSize;
-            _parameters.CropsCoordsTopLeft = defaults.CropsCoordsTopLeft;
-            _parameters.TargetSize = defaults.TargetSize;
+            _parameters.Image ??= defaults.Image;
+            _parameters.Strength ??= defaults.Strength;
+            _parameters.OriginalSize ??= defaults.OriginalSize;
+            _parameters.CropsCoordsTopLeft ??= defaults.CropsCoordsTopLeft;
+            _parameters.TargetSize ??= defaults.TargetSize;
         }
 
         public abstract Parameters GetDefaultParameters();
