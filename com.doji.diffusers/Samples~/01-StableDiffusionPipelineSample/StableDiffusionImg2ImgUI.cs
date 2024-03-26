@@ -10,28 +10,30 @@ namespace Doji.AI.Diffusers.Samples {
 
         public TMP_InputField PromptField;
         public Button GenerateButton;
-        public Texture2D InputImage;
-        public RawImage Input;
+        public Texture2D Input;
+        public RawImage InputImage;
+        public RawImage ResultImage;
 
         public float Strength = 0.8f;
 
         private void Awake() {
             UI = GetComponentInParent<StableDiffusionUI>();
             GenerateButton.onClick.AddListener(OnGenerateClicked);
-            Input.texture = InputImage;
-            UI.InputImage = InputImage;
+            InputImage.texture = Input;
+            UI.InputImage = Input;
         }
 
         private void OnGenerateClicked() {
             UI.Img2Img(PromptField.text, Strength);
+            ResultImage.texture = UI.Result;
         }
 
 #if UNITY_EDITOR
         private void OnValidate() {
-            if (Input.texture != Input) {
-                Input.texture = InputImage;
+            if (InputImage.texture != InputImage) {
+                InputImage.texture = Input;
                 if (UI != null) {
-                    UI.InputImage = InputImage;
+                    UI.InputImage = Input;
                 }
             }
         }

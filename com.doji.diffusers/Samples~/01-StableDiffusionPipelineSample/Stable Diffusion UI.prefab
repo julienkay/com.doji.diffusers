@@ -534,7 +534,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Texture: {fileID: 0}
+  m_Texture: {fileID: 2800000, guid: a69a1c789e98e084b98298f11ff98250, type: 3}
   m_UVRect:
     serializedVersion: 2
     x: 0
@@ -670,8 +670,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   PromptField: {fileID: 440903757864398249}
   GenerateButton: {fileID: 4785073056094626144}
-  InputImage: {fileID: 0}
-  Input: {fileID: 5337524314862918863}
+  Input: {fileID: 2800000, guid: a69a1c789e98e084b98298f11ff98250, type: 3}
+  InputImage: {fileID: 5337524314862918863}
+  ResultImage: {fileID: 8104755678282522198}
+  Strength: 0.8
 --- !u!1 &2490169865204826249
 GameObject:
   m_ObjectHideFlags: 0
@@ -1000,9 +1002,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   ModelDropdown: {fileID: 2999041153957958935}
-  Image: {fileID: 2854695364522148364}
   Model: 0
-  Prompt: a cat
   Resolution: 512
   Steps: 20
   GuidanceScale: 7.5
@@ -1506,7 +1506,7 @@ MonoBehaviour:
   m_CaretColor: {r: 0.19607843, g: 0.19607843, b: 0.19607843, a: 1}
   m_CustomCaretColor: 0
   m_SelectionColor: {r: 0.65882355, g: 0.80784315, b: 1, a: 0.7529412}
-  m_Text: a cat
+  m_Text: a rainbow coloured tiger
   m_CaretBlinkRate: 0.85
   m_CaretWidth: 1
   m_ReadOnly: 0
@@ -3244,6 +3244,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   PromptField: {fileID: 4001988286001638152}
   GenerateButton: {fileID: 5103292409896876314}
+  ResultImage: {fileID: 2854695364522148364}
 --- !u!1 &7572729274541044720
 GameObject:
   m_ObjectHideFlags: 0

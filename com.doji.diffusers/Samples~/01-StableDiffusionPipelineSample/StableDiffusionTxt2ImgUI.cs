@@ -11,6 +11,7 @@ namespace Doji.AI.Diffusers.Samples {
 
         public TMP_InputField PromptField;
         public Button GenerateButton;
+        public RawImage ResultImage;
 
         private void Awake() {
             UI = GetComponentInParent<StableDiffusionUI>();
@@ -20,10 +21,11 @@ namespace Doji.AI.Diffusers.Samples {
         private async void OnGenerateClicked() {
             UI.Txt2Img(PromptField.text);
             /*try {
-                await UI.Txt2ImgAsync();
+                await UI.Txt2ImgAsync(PromptField.text);
             } catch (Exception ex) {
                 throw ex;
             }*/
+            ResultImage.texture = UI.Result;
         }
     }
 }

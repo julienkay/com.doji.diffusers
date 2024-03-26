@@ -10,7 +10,6 @@ namespace Doji.AI.Diffusers.Samples {
     public class StableDiffusionUI : MonoBehaviour {
 
         public TMP_Dropdown ModelDropdown;
-        public RawImage Image;
 
         public Model Model = Model.SD_1_5;
         public int Resolution = 512;
@@ -45,21 +44,18 @@ namespace Doji.AI.Diffusers.Samples {
         public void Txt2Img(string prompt) {
             Result = _stableDiffusion.Result;
             Metadata m = _stableDiffusion.Imagine(prompt, Resolution, Resolution, Steps, GuidanceScale, _negativePrompts);
-            Image.texture = Result;
             PNGUtils.SaveToDisk(Result, ".", m);
         }
 
         public async Task Txt2ImgAsync(string prompt) {
             Result = _stableDiffusion.Result;
             Metadata m = await _stableDiffusion.ImagineAsync(prompt, Resolution, Resolution, Steps, GuidanceScale, _negativePrompts);
-            Image.texture = Result;
             PNGUtils.SaveToDisk(Result, ".", m);
         }
 
         public void Img2Img(string prompt, float strength) {
             Result = _stableDiffusion.Result;
             Metadata m = _stableDiffusion.Imagine(prompt, InputImage, Steps, GuidanceScale, _negativePrompts, strength: strength);
-            Image.texture = Result;
             PNGUtils.SaveToDisk(Result, ".", m);
         }
 
