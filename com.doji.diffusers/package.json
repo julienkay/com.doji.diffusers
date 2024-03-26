@@ -22,8 +22,8 @@
   },
   "samples": [
     {
-      "displayName": "Basic Stable Diffusion 1.5 Sample",
-      "description": "Basic example on generating images with a pretrained Stable Diffusion 1.5 model.",
+      "displayName": "Basic Stable Diffusion Sample",
+      "description": "Basic example on generating images with pretrained Stable Diffusion models.",
       "path": "Samples~/01-StableDiffusionPipelineSample"
     }
   ]
