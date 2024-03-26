@@ -32,8 +32,14 @@ Some things that might be worked on next are:
   - [ ] DDPM
   - [ ] KDPM2Discrete
   - [ ] KDPM2AncestralDiscrete
-- [ ] async pipeline methods (sliced inference)
-- [ ] pipelines for img2img, inpaint, upscale, depth2img
+- [ ] more pipeline/model types
+  - [x] txt2img
+  - [x] img2img,
+  - [ ] inpaint,
+  - [ ] upscale,
+  - [ ] depth2img
+  - [ ] marigold
+- [x] async pipeline methods (sliced inference)
 - [ ] support multiple images per prompt
 - [ ] write some documentation
 
