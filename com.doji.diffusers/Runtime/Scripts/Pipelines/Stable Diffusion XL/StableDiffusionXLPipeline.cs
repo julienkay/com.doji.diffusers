@@ -203,6 +203,10 @@ namespace Doji.AI.Diffusers {
             TensorFloat image = VaeDecoder.Execute(result);
             Profiler.EndSample();
 
+            Profiler.BeginSample($"PostProcess Image");
+            image = ImageProcessor.PostProcess(image);
+            Profiler.EndSample();
+
             Profiler.EndSample();
             return image;
         }

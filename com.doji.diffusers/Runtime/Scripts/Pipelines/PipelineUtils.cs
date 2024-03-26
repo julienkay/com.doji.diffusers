@@ -350,7 +350,6 @@ namespace Doji.AI.Diffusers {
                 throw new InvalidOperationException($"Cannot create StableDiffusionImg2ImgPipeline from a {pipe.GetType().Name}.");
             }
 
-            ImageProcessor = new VaeImageProcessor(/*vaeScaleFactor: self.vae_scale_factor*/);
             VaeDecoder = pipe.VaeDecoder;
             TextEncoder = pipe.TextEncoder;
             Tokenizer = pipe.Tokenizer;
@@ -486,7 +485,6 @@ namespace Doji.AI.Diffusers {
                 throw new InvalidOperationException($"Cannot create StableDiffusionXLImg2ImgPipeline from a {pipe.GetType().Name}.");
             }
 
-            ImageProcessor = new VaeImageProcessor(/*vaeScaleFactor: self.vae_scale_factor*/);
             VaeDecoder = pipe.VaeDecoder;
             TextEncoder = pipe.TextEncoder;
             Tokenizer = pipe.Tokenizer;

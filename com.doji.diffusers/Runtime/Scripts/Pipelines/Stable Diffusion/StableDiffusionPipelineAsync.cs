@@ -90,6 +90,7 @@ namespace Doji.AI.Diffusers {
             }
 
             TensorFloat image = await VaeDecoder.ExecuteAsync(result);
+            image = ImageProcessor.PostProcess(image, doDenormalize: true);
 
             return image;
         }

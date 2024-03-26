@@ -1,6 +1,5 @@
 using System;
 using Unity.Sentis;
-using UnityEngine.UI;
 
 namespace Doji.AI.Diffusers {
 
@@ -14,7 +13,11 @@ namespace Doji.AI.Diffusers {
     /// <summary>
     /// Image processor for VAE.
     /// </summary>
-    public class VaeImageProcessor {
+    public class VaeImageProcessor : IDisposable {
+
+        private Ops _ops;
+
+        private bool _doNormalize;
 
         /// <param name="doResize">
         /// Whether to downscale the image's (height, width) dimensions to multiples of <paramref name="vaeScaleFactor"/>.
@@ -33,14 +36,17 @@ namespace Doji.AI.Diffusers {
             bool doNormalize = true,
             bool doBinarize = false,
             bool doConvertRgb = false,
-            bool doConvertGrayscale = false)
+            bool doConvertGrayscale = false,
+            BackendType backend = BackendType.GPUCompute)
         {
+            _doNormalize = doNormalize;
             if (doConvertRgb && doConvertGrayscale) {
                 doConvertRgb = false;
                 throw new ArgumentException("`do_convert_rgb` and `do_convert_grayscale` can not both be set to `True`," +
                 " if you intended to convert the image into RGB format, please set `do_convert_grayscale = False`." +
                 " if you intended to convert the image into grayscale format, please set `do_convert_rgb = False`");
             }
+            _ops = WorkerFactory.CreateOps(backend, null);
         }
 
         public TensorFloat PreProcess(
@@ -48,15 +54,41 @@ namespace Doji.AI.Diffusers {
             int height = -1,
             int width = -1)
         {
-            if (image.shape == new TensorShape(1, 3, 512, 512)) {
-                return image;
+            if (image.shape != new TensorShape(1, 3, 512, 512)) {
+                throw new NotImplementedException("Image resizing not implemented yet. Make sure to pass a 512x512 RGB texture as an input image.");
             }
-            throw new NotImplementedException("Image processing not implemented yet. Make sure to pass a 512x512 RGB texture as an input image.");
+
+            // expected range [0,1], normalize to [-1,1]
+            if (_doNormalize) {
+                Normalize(image);
+            }
+
+            return image;
         }
 
-        public void PostProcess(TensorFloat image) {
-            throw new NotImplementedException();
+        public TensorFloat PostProcess(TensorFloat image, bool? doDenormalize = null) {
+            if (doDenormalize.HasValue || _doNormalize) {
+                image = Denormalize(image);
+            }
+            return image;
         }
 
+        /// <summary>
+        /// Normalize an image tensor from [0,1] to [-1,1].
+        /// </summary>
+        private TensorFloat Normalize(TensorFloat image) {
+            return _ops.Mad(image, 2.0f, -1.0f);
+        }
+
+        /// <summary>
+        /// Denormalize an image tensor from [-1,1] to [0,1].
+        /// </summary>
+        private TensorFloat Denormalize(TensorFloat image) {
+            return _ops.Mad(image, 0.5f, 0.5f);
+        }
+
+        public void Dispose() {
+            _ops?.Dispose();
+        }
     }
 }

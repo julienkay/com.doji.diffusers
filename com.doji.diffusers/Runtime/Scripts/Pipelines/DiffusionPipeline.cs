@@ -19,6 +19,8 @@ namespace Doji.AI.Diffusers {
         public Scheduler Scheduler { get; protected set; }
         public Unet Unet { get; protected set; }
 
+        public VaeImageProcessor ImageProcessor { get; protected set; }
+
         internal Ops _ops;
 
         protected Parameters _parameters;
@@ -50,8 +52,13 @@ namespace Doji.AI.Diffusers {
 
 #pragma warning restore IDE1006
 
+        /// <summary>
+        /// Base constructor for a diffusion pipeline.
+        /// TODO: When casting between pipeline types, we might want to reuse ops and image processor as well
+        /// </summary>
         public DiffusionPipeline(BackendType backendType) {
             _ops = WorkerFactory.CreateOps(backendType, null);
+            ImageProcessor = new VaeImageProcessor(/*vaeScaleFactor: self.vae_scale_factor*/ backend: backendType);
         }
 
         /// <summary>
@@ -192,6 +199,7 @@ namespace Doji.AI.Diffusers {
             TextEncoder?.Dispose();
             Scheduler?.Dispose();
             Unet?.Dispose();
+            ImageProcessor?.Dispose();
             _ops?.Dispose();
         }
     }

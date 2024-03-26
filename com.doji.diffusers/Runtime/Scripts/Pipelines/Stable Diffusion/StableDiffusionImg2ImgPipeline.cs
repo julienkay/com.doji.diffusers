@@ -13,7 +13,6 @@ namespace Doji.AI.Diffusers {
     public partial class StableDiffusionImg2ImgPipeline : DiffusionPipeline, IImg2ImgPipeline, IDisposable {
 
         public VaeEncoder VaeEncoder { get; protected set; }
-        public VaeImageProcessor ImageProcessor { get; protected set; }
 
         /// <summary>
         /// Initializes a new stable diffusion img2img pipeline.
@@ -28,7 +27,6 @@ namespace Doji.AI.Diffusers {
             BackendType backend) : base(backend)
         {
             VaeEncoder = vaeEncoder;
-            ImageProcessor = new VaeImageProcessor(/*vaeScaleFactor: self.vae_scale_factor*/);
             VaeDecoder = vaeDecoder;
             TextEncoder = textEncoder;
             Tokenizer = tokenizer;
@@ -175,6 +173,10 @@ namespace Doji.AI.Diffusers {
 
             Profiler.BeginSample($"VaeDecoder Decode Image");
             TensorFloat outputImage = VaeDecoder.Execute(result);
+            Profiler.EndSample();
+
+            Profiler.BeginSample($"PostProcess Image");
+            image = ImageProcessor.PostProcess(image, doDenormalize: true);
             Profiler.EndSample();
 
             Profiler.EndSample();

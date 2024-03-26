@@ -19,7 +19,6 @@ namespace Doji.AI.Diffusers {
         private Model _model;
 
         private IWorker _worker;
-        private Ops _ops;
 
         public VaeDecoder(Model model, VaeConfig config, BackendType backend = BackendType.GPUCompute) {
             Config = config ?? new VaeConfig();
@@ -34,7 +33,6 @@ namespace Doji.AI.Diffusers {
 
             _model = vaeDecoder;
             _worker = WorkerFactory.CreateWorker(Backend, _model);
-            _ops = WorkerFactory.CreateOps(Backend, null);
         }
 
         public TensorFloat Execute(TensorFloat latentSample) {
@@ -49,10 +47,7 @@ namespace Doji.AI.Diffusers {
             }
 
             _worker.Execute(latentSample);
-            TensorFloat sample = _worker.PeekOutput("sample") as TensorFloat;
-            TensorFloat normalized = _ops.Mad(sample, 0.5f, 0.5f);
-            TensorFloat image = _ops.Clip(normalized, 0.0f, 1.0f);
-            return image;
+            return _worker.PeekOutput("sample") as TensorFloat;
         }
 
         public async Task<TensorFloat> ExecuteAsync(TensorFloat latentSample) {
@@ -74,10 +69,7 @@ namespace Doji.AI.Diffusers {
                 }
             }
 
-            TensorFloat sample = _worker.PeekOutput("sample") as TensorFloat;
-            TensorFloat normalized = _ops.Mad(sample, 0.5f, 0.5f);
-            TensorFloat image = _ops.Clip(normalized, 0.0f, 1.0f);
-            return image;
+            return _worker.PeekOutput("sample") as TensorFloat;
         }
 
         /// <summary>
@@ -89,7 +81,6 @@ namespace Doji.AI.Diffusers {
 
         public void Dispose() {
             _worker?.Dispose();
-            _ops?.Dispose();
         }
     }
 }
