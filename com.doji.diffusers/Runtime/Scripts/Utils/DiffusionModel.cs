@@ -149,13 +149,13 @@ namespace Doji.AI.Diffusers {
 
 #if UNITY_EDITOR
         /// <summary>
-        /// The path to the Resources folder location of this file.
-        /// E.g. "Packages/com.doji.diffusers/Runtime/Resources/stabilityai/sdxl-turbo/main/unet/model.onnx"
+        /// The path to the Resources folder location of this file in the current project.
+        /// E.g. "Assets/Resources/stabilityai/sdxl-turbo/main/unet/model.onnx"
         /// Use this in-Editor only, to check whether the file is present.
         /// To actually load the file from Resources use <see cref="ResourcePath"/>
         /// </summary>
         public readonly string ResourcesFilePath
-            => Path.Combine("Packages", "com.doji.diffusers", "Runtime", "Resources", Model.Owner, Model.ModelName, Model.Revision, FileName);
+            => Path.Combine("Assets", "Resources", Model.Owner, Model.ModelName, Model.Revision, FileName);
 #endif
 
         /// <summary>
