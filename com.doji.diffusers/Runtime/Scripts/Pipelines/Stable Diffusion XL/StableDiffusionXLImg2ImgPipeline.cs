@@ -132,7 +132,9 @@ namespace Doji.AI.Diffusers {
 
             // Prepare added time ids & embeddings
             TensorFloat addTextEmbeds = promptEmbeds.PooledPromptEmbeds;
-            var (addTimeIds, addNegTimeIds) = GetAddTimeIds(originalSize.Value, cropsCoordsTopLeft.Value, targetSize.Value);
+            (TensorFloat initAddTimeIds, TensorFloat initAddNegTimeIds) = GetAddTimeIds(originalSize.Value, cropsCoordsTopLeft.Value, targetSize.Value);
+            TensorFloat addTimeIds = initAddTimeIds;
+            TensorFloat addNegTimeIds = initAddNegTimeIds;
 
             if (doClassifierFreeGuidance) {
                 promptEmbeds.PromptEmbeds = _ops.Concatenate(promptEmbeds.NegativePromptEmbeds, promptEmbeds.PromptEmbeds, axis: 0);
@@ -140,6 +142,8 @@ namespace Doji.AI.Diffusers {
                 addTimeIds = _ops.Concatenate(addTimeIds, addTimeIds, axis: 0);
             }
             addTimeIds = _ops.Repeat(addTimeIds, batchSize * numImagesPerPrompt, axis: 0);
+            initAddTimeIds.Dispose();
+            initAddNegTimeIds.Dispose();
 
             // Denoising loop
             Profiler.BeginSample($"Denoising Loop");
