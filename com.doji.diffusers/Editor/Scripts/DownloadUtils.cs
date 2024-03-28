@@ -39,7 +39,7 @@ namespace Doji.AI.Diffusers.Editor {
                     if (File.Exists(file.ResourcesFilePath)) {
                         continue;
                     }
-                    Task t = DownloadModelAsync(file, model.ModelId);
+                    Task t = DownloadFileAsync(file, model.ModelId);
                     tasks.Add(t);
                 }
                 await Task.WhenAll(tasks);
@@ -68,10 +68,10 @@ namespace Doji.AI.Diffusers.Editor {
         /// <param name="filePath">the path to save the downloaded file to</param>
         /// <param name="optional">if this is set to true, no error will be logged in case the file can not be found</param>
         /// <returns></returns>
-        private async static Task DownloadModelAsync(ModelFile file, string name) {
+        private async static Task DownloadFileAsync(ModelFile file, string name) {
             string filePath = file.ResourcesFilePath;
             string url = file.Url;
-            string fileName = Path.GetFileName(filePath);
+            string componentName = new FileInfo(filePath).Directory.Name;
 
             // first check if the file is available (some are optional)
             UnityWebRequest headRequest = UnityWebRequest.Head(url);
@@ -91,7 +91,7 @@ namespace Doji.AI.Diffusers.Editor {
 
             var asyncOp = wr.SendWebRequest();
 
-            int dlID = Progress.Start($"Downloading {name} - {fileName}");
+            int dlID = Progress.Start($"Downloading {name} - {componentName}");
             Progress.RegisterCancelCallback(dlID, () => { return true; });
 
             bool canceled = false;
