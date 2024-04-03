@@ -21,6 +21,8 @@ namespace Doji.AI.Diffusers {
 
         public VaeImageProcessor ImageProcessor { get; protected set; }
 
+        public int VaeScaleFactor { get; set; }
+
         internal Ops _ops;
 
         protected Parameters _parameters;
@@ -54,17 +56,23 @@ namespace Doji.AI.Diffusers {
 
         /// <summary>
         /// Base constructor for a diffusion pipeline.
-        /// TODO: When casting between pipeline types, we might want to reuse ops and image processor as well
+        /// To load a pretrained model, use <see cref="FromPretrained(DiffusionModel, BackendType)"/>
         /// </summary>
         public DiffusionPipeline(BackendType backendType) {
+            // TODO: When casting between pipeline types, we might want to reuse ops and image processor as well
             _ops = WorkerFactory.CreateOps(backendType, null);
-            ImageProcessor = new VaeImageProcessor(/*vaeScaleFactor: self.vae_scale_factor*/ backend: backendType);
+            if (VaeDecoder.Config.BlockOutChannels != null) {
+                VaeScaleFactor = 1 << (VaeDecoder.Config.BlockOutChannels.Length - 1);
+            } else {
+                VaeScaleFactor = 8;
+            }
+            ImageProcessor = new VaeImageProcessor(vaeScaleFactor: VaeScaleFactor, backend: backendType);
         }
 
         /// <summary>
         /// Applies default values for the specific pipeline.
         /// </summary>
-        /// <param name="parameters">The parameters that were passed to athe Generate() method.</param>
+        /// <param name="parameters">The parameters that were passed to the Generate() method.</param>
         protected void SetParameterDefaults(Parameters parameters) {
             Parameters defaults = GetDefaultParameters();
             _parameters = parameters;
@@ -81,6 +89,10 @@ namespace Doji.AI.Diffusers {
             _parameters.Image ??= defaults.Image;
             _parameters.Strength ??= defaults.Strength;
             _parameters.GuidanceRescale ??= defaults.GuidanceRescale;
+            _parameters.ControlnetConditioningScale ??= defaults.ControlnetConditioningScale;
+            _parameters.GuessMode ??= defaults.GuessMode;
+            _parameters.ControlGuidanceStart ??= defaults.ControlGuidanceStart;
+            _parameters.ControlGuidanceEnd ??= defaults.ControlGuidanceEnd;
             _parameters.OriginalSize ??= defaults.OriginalSize;
             _parameters.CropsCoordsTopLeft ??= defaults.CropsCoordsTopLeft;
             _parameters.TargetSize ??= defaults.TargetSize;
@@ -136,7 +148,6 @@ namespace Doji.AI.Diffusers {
         /// For more control and advanced pipeline usage, pass parameters via the
         /// <see cref="Generate(Parameters)"/> method instead.
         /// </remarks>
-        
         public TensorFloat Generate(
             string prompt,
             int? width = null,

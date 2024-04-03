@@ -8,19 +8,18 @@ using UnityEngine.Profiling;
 namespace Doji.AI.Diffusers {
 
     /// <summary>
-    /// Stable Diffusion XL Pipeline 
+    /// Pipeline for text-to-image generation using Stable Diffusion XL with ControlNet guidance.
     /// </summary>
-    /// <remarks>
-    /// pipeline_stable_diffusion_xl.py from huggingface/optimum
-    /// </remarks>
-    public partial class StableDiffusionXLPipeline : DiffusionPipeline, ITxt2ImgPipeline, IDisposable {
+    public partial class StableDiffusionXLControlNetPipeline : DiffusionPipeline, ITxt2ImgPipeline, IDisposable {
 
         public ClipTokenizer Tokenizer2 { get; private set; }
         public TextEncoder TextEncoder2 { get; private set; }
+        public ControlNetModel Controlnet { get; }
+
+        public VaeImageProcessor ControlImageProcessor { get; protected set; }
 
         public List<(ClipTokenizer Tokenizer, TextEncoder TextEncoder)> Encoders { get; set; }
-        
-        public int VaeScaleFactor { get; set; }
+
 
         private List<TensorFloat> _promptEmbedsList = new List<TensorFloat>();
         private List<TensorFloat> _negativePromptEmbedsList = new List<TensorFloat>();
@@ -28,7 +27,7 @@ namespace Doji.AI.Diffusers {
         /// <summary>
         /// Initializes a new Stable Diffusion XL pipeline.
         /// </summary>
-        public StableDiffusionXLPipeline(
+        public StableDiffusionXLControlNetPipeline(
             VaeDecoder vaeDecoder,
             TextEncoder textEncoder,
             ClipTokenizer tokenizer,
@@ -36,11 +35,13 @@ namespace Doji.AI.Diffusers {
             Unet unet,
             TextEncoder textEncoder2,
             ClipTokenizer tokenizer2,
+            ControlNetModel controlnet,
             BackendType backend) : base(backend)
         {
             VaeDecoder = vaeDecoder;
             Tokenizer = tokenizer;
             Tokenizer2 = tokenizer2;
+            Controlnet = controlnet;
             TextEncoder = textEncoder;
             TextEncoder2 = textEncoder2;
             Scheduler = scheduler;
@@ -49,11 +50,7 @@ namespace Doji.AI.Diffusers {
                 ? new() { (Tokenizer, TextEncoder), (Tokenizer2, TextEncoder2) }
                 : new() { (Tokenizer2, TextEncoder2) };
 
-            if (VaeDecoder.Config.BlockOutChannels != null) {
-                VaeScaleFactor = 1 << (VaeDecoder.Config.BlockOutChannels.Length - 1);
-            } else {
-                VaeScaleFactor = 8;
-            }
+            ControlImageProcessor = new VaeImageProcessor(vaeScaleFactor: VaeScaleFactor, doNormalize: false)
         }
 
         public override Parameters GetDefaultParameters() {
@@ -68,7 +65,10 @@ namespace Doji.AI.Diffusers {
                 Seed = null,
                 Latents = null,
                 Callback = null,
-                GuidanceRescale = 0.0f,
+                ControlnetConditioningScale = 1.0f,
+                GuessMode = false,
+                ControlGuidanceStart = 0.0f,
+                ControlGuidanceEnd = 1.0f,
                 OriginalSize = null,
                 CropsCoordsTopLeft = (0, 0),
                 TargetSize = null,

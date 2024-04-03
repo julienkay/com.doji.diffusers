@@ -1,5 +1,6 @@
 using Doji.AI.Transformers;
 using Newtonsoft.Json;
+using System.Collections.Generic;
 using Unity.Sentis;
 
 namespace Doji.AI.Diffusers {
@@ -121,6 +122,34 @@ namespace Doji.AI.Diffusers {
         /// </summary>
         [JsonProperty("strength")]
         public float? Strength { get; set; }
+
+        /* controlnet parameters */
+
+        /// <summary>
+        /// The outputs of the ControlNet are multiplied by `controlnet_conditioning_scale` before they are added
+        /// to the residual in the original `unet`.
+        /// </summary>
+        [JsonProperty("controlnet_conditioning_scale")]
+        public float? ControlnetConditioningScale { get; set; }
+
+        /// <summary>
+        /// The ControlNet encoder tries to recognize the content of the input image even if you remove all
+        /// prompts. A <see cref="GuidanceScale"/> value between 3.0 and 5.0 is recommended.
+        /// </summary>
+        [JsonProperty("guess_mode")]
+        public bool? GuessMode { get; set; }
+
+        /// <summary>
+        /// The percentage of total steps at which the ControlNet starts applying.
+        /// </summary>
+        [JsonProperty("control_guidance_start")]
+        public float? ControlGuidanceStart { get; set; }
+
+        /// <summary>
+        /// The percentage of total steps at which the ControlNet stops applying.
+        /// </summary>
+        [JsonProperty("control_guidance_end")]
+        public float? ControlGuidanceEnd { get; set; }
 
         /* sdxl parameters */
 
