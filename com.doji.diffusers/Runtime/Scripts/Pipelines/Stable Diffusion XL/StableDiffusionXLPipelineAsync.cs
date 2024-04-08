@@ -117,10 +117,10 @@ namespace Doji.AI.Diffusers {
                 throw new NotImplementedException();
             }
 
-            TensorFloat image = await VaeDecoder.ExecuteAsync(result);
-            image = ImageProcessor.PostProcess(image);
+            TensorFloat outputImage = await VaeDecoder.ExecuteAsync(result);
+            outputImage = ImageProcessor.PostProcess(outputImage);
 
-            return image;
+            return outputImage;
         }
 
         private async Task<Embeddings> EncodePromptAsync(

@@ -4,13 +4,14 @@ using System.Collections.Generic;
 using System.Linq;
 using Unity.Sentis;
 using UnityEngine.Profiling;
+using UnityEngine.UI;
 
 namespace Doji.AI.Diffusers {
 
     /// <summary>
     /// Pipeline for text-to-image generation using Stable Diffusion XL with ControlNet guidance.
     /// </summary>
-    public partial class StableDiffusionXLControlNetPipeline : DiffusionPipeline, ITxt2ImgPipeline, IDisposable {
+    public partial class StableDiffusionXLControlNetPipeline : DiffusionPipeline, IControlnetPipeline, IDisposable {
 
         public ClipTokenizer Tokenizer2 { get; private set; }
         public TextEncoder TextEncoder2 { get; private set; }
@@ -50,7 +51,7 @@ namespace Doji.AI.Diffusers {
                 ? new() { (Tokenizer, TextEncoder), (Tokenizer2, TextEncoder2) }
                 : new() { (Tokenizer2, TextEncoder2) };
 
-            ControlImageProcessor = new VaeImageProcessor(vaeScaleFactor: VaeScaleFactor, doNormalize: false)
+            ControlImageProcessor = new VaeImageProcessor(vaeScaleFactor: VaeScaleFactor, doNormalize: false);
         }
 
         public override Parameters GetDefaultParameters() {
@@ -79,13 +80,6 @@ namespace Doji.AI.Diffusers {
             Profiler.BeginSample($"{GetType().Name}.Generate");
 
             SetParameterDefaults(parameters);
-
-            // Default height and width to unet
-            _parameters.Height ??= (Unet.Config.SampleSize * VaeScaleFactor);
-            _parameters.Width ??= (Unet.Config.SampleSize * VaeScaleFactor);
-            originalSize ??= (height, width);
-            targetSize ??= (height, width);
-
             CheckInputs();
 
             // 2. Define call parameters
@@ -107,9 +101,20 @@ namespace Doji.AI.Diffusers {
 
             bool doClassifierFreeGuidance = guidanceScale > 1.0f;
 
+            bool globalPoolConditions = Controlnet.Config.GlobalPoolConditions;
+            guessMode |= globalPoolConditions;
+
             // 3. Encode input prompt
             Profiler.BeginSample("Encode Prompt(s)");
             Embeddings promptEmbeds = EncodePrompt(prompt, numImagesPerPrompt, doClassifierFreeGuidance, negativePrompt);
+            Profiler.EndSample();
+
+            // 4. Prepare image
+            Profiler.BeginSample("Prepare Image");
+            image = ControlImageProcessor.PreProcess(image);
+            if (doClassifierFreeGuidance && !guessMode) {
+                image = _ops.Concatenate(image, image);
+            }
             Profiler.EndSample();
 
             // 4. Prepare timesteps
@@ -201,15 +206,15 @@ namespace Doji.AI.Diffusers {
             }
 
             Profiler.BeginSample($"VaeDecoder Decode Image");
-            TensorFloat image = VaeDecoder.Execute(result);
+            TensorFloat outputImage = VaeDecoder.Execute(result);
             Profiler.EndSample();
 
             Profiler.BeginSample($"PostProcess Image");
-            image = ImageProcessor.PostProcess(image);
+            outputImage = ImageProcessor.PostProcess(outputImage);
             Profiler.EndSample();
 
             Profiler.EndSample();
-            return image;
+            return outputImage;
         }
 
         private Embeddings EncodePrompt(
@@ -385,6 +390,7 @@ namespace Doji.AI.Diffusers {
 
         public override void Dispose() {
             base.Dispose();
+            ControlImageProcessor?.Dispose();
             TextEncoder2?.Dispose();
         }
 

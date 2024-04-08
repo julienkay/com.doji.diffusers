@@ -1,6 +1,5 @@
 using Doji.AI.Transformers;
 using Newtonsoft.Json;
-using System.Collections.Generic;
 using Unity.Sentis;
 
 namespace Doji.AI.Diffusers {
@@ -108,6 +107,7 @@ namespace Doji.AI.Diffusers {
 
         /// <summary>
         /// Tensor representing an image, that will be used as the starting point for the process.
+        /// This is a required input for img2img and controlnet pipelines.
         /// </summary>
         [JsonIgnore]
         public TensorFloat Image { get; set; }

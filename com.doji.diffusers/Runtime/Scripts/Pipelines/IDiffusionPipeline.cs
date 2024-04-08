@@ -8,20 +8,9 @@ namespace Doji.AI.Diffusers {
         public TensorFloat Generate(Parameters parameters);
     }
 
-    public interface ITxt2ImgPipeline : IDiffusionPipeline {
-
-        /// <summary>
-        /// Execute the txt2img generation on this pipeline
-        /// </summary>
-        public new TensorFloat Generate(Parameters parameters);
-    }
+    public interface ITxt2ImgPipeline : IDiffusionPipeline { }
 
     public interface IImg2ImgPipeline : IDiffusionPipeline {
-
-        /// <summary>
-        /// Execute the img2img generation.
-        /// </summary>
-        public new TensorFloat Generate(Parameters parameters);
 
         /// <summary>
         /// Execute the img2img generation.
@@ -50,4 +39,5 @@ namespace Doji.AI.Diffusers {
             return Generate(parameters);
         }
     }
+    public interface IControlnetPipeline : IDiffusionPipeline { }
 }

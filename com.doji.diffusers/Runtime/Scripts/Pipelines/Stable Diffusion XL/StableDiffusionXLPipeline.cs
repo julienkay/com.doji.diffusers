@@ -201,15 +201,15 @@ namespace Doji.AI.Diffusers {
             }
 
             Profiler.BeginSample($"VaeDecoder Decode Image");
-            TensorFloat image = VaeDecoder.Execute(result);
+            TensorFloat outputImage = VaeDecoder.Execute(result);
             Profiler.EndSample();
 
             Profiler.BeginSample($"PostProcess Image");
-            image = ImageProcessor.PostProcess(image);
+            outputImage = ImageProcessor.PostProcess(outputImage);
             Profiler.EndSample();
 
             Profiler.EndSample();
-            return image;
+            return outputImage;
         }
 
         private Embeddings EncodePrompt(

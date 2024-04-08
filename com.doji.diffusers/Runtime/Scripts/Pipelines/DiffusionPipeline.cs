@@ -45,6 +45,10 @@ namespace Doji.AI.Diffusers {
         protected PipelineCallback callback { get => _parameters.Callback; set => _parameters.Callback = value; }
         protected TensorFloat image { get => _parameters.Image; set => _parameters.Image = value; }
         protected float strength { get => _parameters.Strength.Value; set => _parameters.Strength = value; }
+        protected float controlnetConditioningScale { get => _parameters.ControlnetConditioningScale.Value; set => _parameters.ControlnetConditioningScale = value; }
+        protected bool guessMode { get => _parameters.GuessMode.Value; set => _parameters.GuessMode = value; }
+        protected float controlGuidanceStart { get => _parameters.ControlGuidanceStart.Value; set => _parameters.ControlGuidanceStart = value; }
+        protected float controlGuidanceEnd { get => _parameters.ControlGuidanceEnd.Value; set => _parameters.ControlGuidanceEnd = value; }
         protected (int width, int height)? originalSize { get => _parameters.OriginalSize; set => _parameters.OriginalSize = value; }
         protected (int x, int y)? cropsCoordsTopLeft { get => _parameters.CropsCoordsTopLeft; set => _parameters.CropsCoordsTopLeft = value; }
         protected (int width, int height)? targetSize { get => _parameters.TargetSize; set => _parameters.TargetSize = value; }
@@ -115,8 +119,8 @@ namespace Doji.AI.Diffusers {
             if (this is ITxt2ImgPipeline && prompt == null) {
                 throw new ArgumentException("Please provide a 'prompt' parameter to generate images.");
             }
-            if (this is IImg2ImgPipeline && image == null) {
-                throw new ArgumentException($"Please provide an 'image' parameter to generate images.");
+            if ((this is IImg2ImgPipeline || this is IControlnetPipeline) && image == null) {
+                throw new ArgumentException($"Please provide an 'image' parameter to generate images using a {GetType()}.");
             }
         }
 
@@ -140,6 +144,9 @@ namespace Doji.AI.Diffusers {
         /// <returns>the resulting image tensor</returns>
         public abstract TensorFloat Generate(Parameters parameters);
 
+        // TODO: this should be moved to ITxt2Img pipeline, because these defaults only
+        // make sense for that (e.g. no image parameters). Maybe 'FromPretrained' should
+        // return loaded pipeline as Itxt2Img then.
         /// <summary>
         /// Execute the pipeline to generate images.
         /// </summary>

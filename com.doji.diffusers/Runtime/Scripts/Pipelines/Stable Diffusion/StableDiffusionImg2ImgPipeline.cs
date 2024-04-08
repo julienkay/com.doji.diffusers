@@ -176,7 +176,7 @@ namespace Doji.AI.Diffusers {
             Profiler.EndSample();
 
             Profiler.BeginSample($"PostProcess Image");
-            image = ImageProcessor.PostProcess(image, doDenormalize: true);
+            outputImage = ImageProcessor.PostProcess(outputImage, doDenormalize: true);
             Profiler.EndSample();
 
             Profiler.EndSample();
