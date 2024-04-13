@@ -137,7 +137,7 @@ namespace Doji.AI.Diffusers {
             using TensorFloat sigmas = new TensorFloat(new TensorShape(Sigmas.Length), Sigmas);
             var sigma = _ops.GatherElements(sigmas, indices, 0);
             while (sigma.shape.rank < originalSamples.shape.rank) {
-                sigma = sigma.ShallowReshape(sigma.shape.Unsqueeze(-1)) as TensorFloat; // unsqueeze
+                sigma.Reshape(sigma.shape.Unsqueeze(-1)); // unsqueeze
             }
             var noisySamples = _ops.Add(originalSamples, _ops.Mul(noise, sigma));
             return noisySamples;

@@ -143,11 +143,11 @@ namespace Doji.AI.Diffusers {
         protected float s_noise { get => _args.s_noise; }
 #pragma warning restore IDE1006
 
-        protected Ops _ops;
+        protected internal Ops _ops;
 
         public Scheduler(SchedulerConfig config, BackendType backend) {
             Config = config ?? new SchedulerConfig();
-            _ops = WorkerFactory.CreateOps(backend, null);
+            _ops = new Ops(backend);
         }
 
         /// <summary>
@@ -167,15 +167,15 @@ namespace Doji.AI.Diffusers {
         }
 
         public virtual TensorFloat AddNoise(TensorFloat originalSamples, TensorFloat noise, TensorFloat timesteps) {
-            var alphasCumprod = _ops.GatherElements(AlphasCumprod, _ops.Cast(timesteps, DataType.Int) as TensorInt, 0);
+            var alphasCumprod = _ops.GatherElements(AlphasCumprod, _ops.Cast(timesteps) as TensorInt, 0);
             var sqrtAlphaProd = _ops.Sqrt(alphasCumprod);
             while (sqrtAlphaProd.shape.rank < originalSamples.shape.rank) {
-                sqrtAlphaProd = sqrtAlphaProd.ShallowReshape(sqrtAlphaProd.shape.Unsqueeze(-1)) as TensorFloat; // unsqueeze
+                sqrtAlphaProd.Reshape(sqrtAlphaProd.shape.Unsqueeze(-1)); // unsqueeze
             }
 
             var sqrtOneMinusAlphaProd = _ops.Sqrt(_ops.Sub(1.0f, alphasCumprod));
             while (sqrtOneMinusAlphaProd.shape.rank < originalSamples.shape.rank) {
-                sqrtOneMinusAlphaProd = sqrtOneMinusAlphaProd.ShallowReshape(sqrtOneMinusAlphaProd.shape.Unsqueeze(-1)) as TensorFloat; // unsqueeze
+                sqrtOneMinusAlphaProd.Reshape(sqrtOneMinusAlphaProd.shape.Unsqueeze(-1)); // unsqueeze
             }
 
             var tmp1 = _ops.Mul(sqrtAlphaProd, originalSamples);

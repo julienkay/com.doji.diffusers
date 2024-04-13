@@ -4,7 +4,6 @@ using System.Collections.Generic;
 using System.Linq;
 using Unity.Sentis;
 using UnityEngine.Profiling;
-using UnityEngine.UI;
 
 namespace Doji.AI.Diffusers {
 
@@ -51,6 +50,12 @@ namespace Doji.AI.Diffusers {
                 ? new() { (Tokenizer, TextEncoder), (Tokenizer2, TextEncoder2) }
                 : new() { (Tokenizer2, TextEncoder2) };
 
+            if (VaeDecoder.Config.BlockOutChannels != null) {
+                VaeScaleFactor = 1 << (VaeDecoder.Config.BlockOutChannels.Length - 1);
+            } else {
+                VaeScaleFactor = 8;
+            }
+            ImageProcessor = new VaeImageProcessor(vaeScaleFactor: VaeScaleFactor, backend: backend);
             ControlImageProcessor = new VaeImageProcessor(vaeScaleFactor: VaeScaleFactor, doNormalize: false);
         }
 
@@ -79,8 +84,8 @@ namespace Doji.AI.Diffusers {
         public override TensorFloat Generate(Parameters parameters) {
             Profiler.BeginSample($"{GetType().Name}.Generate");
 
-            SetParameterDefaults(parameters);
-            CheckInputs();
+            InitGenerate(parameters);
+            ControlImageProcessor._ops.FlushTensors();
 
             // 2. Define call parameters
             if (prompt == null) {
@@ -165,7 +170,7 @@ namespace Doji.AI.Diffusers {
                 // perform guidance
                 if (doClassifierFreeGuidance) {
                     Profiler.BeginSample("Extend Predicted Noise For Classifier-Free Guidance");
-                    (var noisePredUncond, var noisePredText) = _ops.SplitHalf(noisePred, axis: 0);
+                    (TensorFloat noisePredUncond, TensorFloat noisePredText) = _ops.SplitHalf(noisePred, axis: 0);
                     var tmp = _ops.Sub(noisePredText, noisePredUncond);
                     var tmp2 = _ops.Mul(guidanceScale, tmp);
                     noisePred = _ops.Add(noisePredUncond, tmp2);
@@ -258,9 +263,7 @@ namespace Doji.AI.Diffusers {
 
                     pooledPromptEmbeds = _promptEmbeds[0] as TensorFloat;
                     promptEmbeds = _promptEmbeds[-2] as TensorFloat;
-
-                    // copy prompt embeds to avoid having to call TakeOwnership and track tensor to Dispose()
-                    promptEmbeds = _ops.Copy(promptEmbeds);
+                    promptEmbeds = _ops.Copy(promptEmbeds); // "take ownership"
 
                     Profiler.BeginSample($"Process Input for {numImagesPerPrompt} images per prompt.");
                     promptEmbeds = _ops.Repeat(promptEmbeds, numImagesPerPrompt, axis: 0);
@@ -274,9 +277,9 @@ namespace Doji.AI.Diffusers {
             // get unconditional embeddings for classifier free guidance
             bool zeroOutNegativePrompt = negativePrompt is null && Config.ForceZerosForEmptyPrompt;
             if (doClassifierFreeGuidance && negativePromptEmbeds is null && zeroOutNegativePrompt) {
-                using var zeros = TensorFloat.Zeros(promptEmbeds.shape);
+                using var zeros = TensorFloat.AllocZeros(promptEmbeds.shape);
                 negativePromptEmbeds = zeros;
-                using var zerosP = TensorFloat.Zeros(pooledPromptEmbeds.shape);
+                using var zerosP = TensorFloat.AllocZeros(pooledPromptEmbeds.shape);
                 negativePooledPromptEmbeds = zerosP;
             } else if (doClassifierFreeGuidance && negativePromptEmbeds is null) {
                 negativePrompt = negativePrompt ?? "";
@@ -351,14 +354,14 @@ namespace Doji.AI.Diffusers {
             );
 
             if (latents == null) {
-                latents = _ops.RandomNormal(shape, 0, 1, seed);
+                latents = _ops.RandomNormal(shape, 0, 1, unchecked((int)seed));
             } else if (latents.shape != shape) {
                 throw new ArgumentException($"Unexpected latents shape, got {latents.shape}, expected {shape}");
             }
             
             // scale the initial noise by the standard deviation required by the scheduler
             if (Math.Abs(Scheduler.InitNoiseSigma - 1.0f) > 0.00001f) {
-                latents = _ops.Mul(Scheduler.InitNoiseSigma, latents);
+                _ops.Mul(Scheduler.InitNoiseSigma, latents);
             }
         }
 

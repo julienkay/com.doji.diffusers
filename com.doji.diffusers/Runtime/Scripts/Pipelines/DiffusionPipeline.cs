@@ -29,7 +29,8 @@ namespace Doji.AI.Diffusers {
 
 #pragma warning disable IDE1006 // Naming Styles
 
-        /* Parameters accessors for convenience */
+        /* Parameters accessors for convenience
+         * only valid inside Generate() calls */
 
         protected Input prompt { get => _parameters.Prompt; set => _parameters.Prompt = value; }
         protected int height { get => _parameters.Height.Value; set => _parameters.Height = value; }
@@ -64,13 +65,7 @@ namespace Doji.AI.Diffusers {
         /// </summary>
         public DiffusionPipeline(BackendType backendType) {
             // TODO: When casting between pipeline types, we might want to reuse ops and image processor as well
-            _ops = WorkerFactory.CreateOps(backendType, null);
-            if (VaeDecoder.Config.BlockOutChannels != null) {
-                VaeScaleFactor = 1 << (VaeDecoder.Config.BlockOutChannels.Length - 1);
-            } else {
-                VaeScaleFactor = 8;
-            }
-            ImageProcessor = new VaeImageProcessor(vaeScaleFactor: VaeScaleFactor, backend: backendType);
+            _ops = new Ops(backendType);
         }
 
         /// <summary>
@@ -78,8 +73,12 @@ namespace Doji.AI.Diffusers {
         /// </summary>
         /// <param name="parameters">The parameters that were passed to the Generate() method.</param>
         protected void SetParameterDefaults(Parameters parameters) {
-            Parameters defaults = GetDefaultParameters();
+            // set the parameters that were passed by the user
             _parameters = parameters;
+
+            // then make sure that all parameters that were not specified,
+            // have the default value defined by the pipeline
+            Parameters defaults = GetDefaultParameters();
             _parameters.Height ??= defaults.Height;
             _parameters.Width ??= defaults.Width;
             _parameters.NumInferenceSteps ??= defaults.NumInferenceSteps;
@@ -135,6 +134,14 @@ namespace Doji.AI.Diffusers {
                 Sampler = Scheduler.GetType().Name,
                 Parameters = _parameters,
             };
+        }
+
+        protected void InitGenerate(Parameters parameters) {
+            _ops.FlushTensors();
+            ImageProcessor._ops.FlushTensors();
+            Scheduler._ops.FlushTensors();
+            SetParameterDefaults(parameters);
+            CheckInputs();
         }
 
         /// <summary>

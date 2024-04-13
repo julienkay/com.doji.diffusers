@@ -13,8 +13,7 @@ namespace Doji.AI.Diffusers {
     public partial class StableDiffusionPipeline {
 
         public override async Task<TensorFloat> GenerateAsync(Parameters parameters) {
-            SetParameterDefaults(parameters);
-            CheckInputs();
+            InitGenerate(parameters);
 
             if (prompt == null) {
                 throw new ArgumentNullException(nameof(prompt));
@@ -39,7 +38,7 @@ namespace Doji.AI.Diffusers {
             // get the initial random noise unless the user supplied it
             TensorShape latentsShape = GetLatentsShape();
             if (latents == null) {
-                latents = _ops.RandomNormal(latentsShape, 0, 1, seed);
+                latents = _ops.RandomNormal(latentsShape, 0, 1, seed.Value);
             } else if (latents.shape != latentsShape) {
                 throw new ArgumentException($"Unexpected latents shape, got {latents.shape}, expected {latentsShape}");
             }
@@ -127,7 +126,6 @@ namespace Doji.AI.Diffusers {
             promptEmbeds = _ops.Repeat(promptEmbeds, numImagesPerPrompt, axis: 0);
 
             // get unconditional embeddings for classifier free guidance
-            bool ownsPromptEmbeds = false;
             if (doClassifierFreeGuidance && negativePromptEmbeds == null) {
                 List<string> uncondTokens;
                 if (negativePrompt == null) {
@@ -155,8 +153,7 @@ namespace Doji.AI.Diffusers {
 
                 using TensorInt uncondIdTensor = new TensorInt(new TensorShape(batchSize, uncondInputIds.Length), uncondInputIds);
 
-                ownsPromptEmbeds = true;
-                promptEmbeds.TakeOwnership();
+                promptEmbeds = _ops.Copy(promptEmbeds);  // "take ownership"
                 negativePromptEmbeds = (await TextEncoder.ExecuteAsync(uncondIdTensor))[0] as TensorFloat;
             }
 
@@ -167,10 +164,6 @@ namespace Doji.AI.Diffusers {
                 // Here we concatenate the unconditional and text embeddings into a single batch
                 // to avoid doing two forward passes
                 TensorFloat combinedEmbeddings = _ops.Concatenate(negativePromptEmbeds, promptEmbeds, 0);
-
-                if (ownsPromptEmbeds) {
-                    promptEmbeds.Dispose();
-                }
 
                 return combinedEmbeddings;
             }

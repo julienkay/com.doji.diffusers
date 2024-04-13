@@ -22,8 +22,7 @@ namespace Doji.AI.Diffusers {
             Clear();
             int i = 0;
             foreach (var output in model.outputs) {
-                this[i] = worker.PeekOutput(output);
-                i++;
+                this[i++] = worker.PeekOutput(output.name);
             }
         }
     }

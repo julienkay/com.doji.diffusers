@@ -37,7 +37,7 @@ namespace Doji.AI.Diffusers.Editor.Tests {
         }
 
         private void TestPredictedNoise(int i, float t, TensorFloat latents) {
-            latents.MakeReadable();
+            latents.CompleteOperationsAndDownload();
             CollectionAssert.AreEqual(GetLatents(i), latents.ToReadOnlyArray(), new FloatArrayComparer(0.00001f), $"Latents differ at step {i}");
         }
 
@@ -49,10 +49,6 @@ namespace Doji.AI.Diffusers.Editor.Tests {
         /// </remarks>
         [Test]
         public void TestSD15() {
-            LogAssert.Expect(LogType.Error, "Thread group count is above the maximum allowed limit. Maximum allowed thread group count is 65535.");
-            LogAssert.Expect(LogType.Error, "Thread group count is above the maximum allowed limit. Maximum allowed thread group count is 65535.");
-            LogAssert.Expect(LogType.Error, "Thread group count is above the maximum allowed limit. Maximum allowed thread group count is 65535.");
-
             using var latents = LatentsLarge;
 
             Parameters p = new Parameters() {
@@ -71,7 +67,7 @@ namespace Doji.AI.Diffusers.Editor.Tests {
         }
 
         private void TestPredictedNoiseLarge(int i, float t, TensorFloat latents) {
-            latents.MakeReadable();
+            latents.CompleteOperationsAndDownload();
             CollectionAssert.AreEqual(GetLatentsLarge(i), latents.ToReadOnlyArray(), new FloatArrayComparer(0.0001f), $"Latents differ at step {i}");
         }
 

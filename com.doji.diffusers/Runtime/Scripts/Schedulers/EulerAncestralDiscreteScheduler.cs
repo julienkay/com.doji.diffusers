@@ -74,7 +74,7 @@ namespace Doji.AI.Diffusers {
 
             generator ??= new System.Random();
             uint seed = unchecked((uint)generator.Next());
-            var noise = _ops.RandomNormal(modelOutput.shape, 0, 1, seed);
+            var noise = _ops.RandomNormal(modelOutput.shape, 0, 1, unchecked((int)seed));
 
             prevSample = _ops.Add(prevSample, _ops.Mul(noise, sigmaUp));
 

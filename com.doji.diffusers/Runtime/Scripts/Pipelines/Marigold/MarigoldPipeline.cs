@@ -55,7 +55,7 @@ namespace Doji.AI.Diffusers {
             TextEncoder = textEncoder;
             Scheduler = scheduler;
             Unet = unet;
-            _ops = WorkerFactory.CreateOps(backend, null);
+            _ops =  new Ops(backend);
         }
 
 
@@ -153,7 +153,9 @@ namespace Doji.AI.Diffusers {
 
             // initial depth map (noise)
             uint seed = unchecked((uint)new System.Random().Next());
-            var depthLatents = _ops.RandomNormal(new TensorShape(_batchSize, 4, _inputHeight, _inputWidth), 0f, 1f, seed);
+            var latentsShape = new TensorShape(_batchSize, 4, _inputHeight, _inputWidth);
+            var latents = _ops.RandomNormal(latentsShape, 0, 1, unchecked((int)seed));
+            TensorFloat depthLatents = latents;
 
             // batched empty text embedding
             if (_emptyTextEmbed == null) {

@@ -50,7 +50,7 @@ namespace Doji.AI.Diffusers.Editor.Tests {
                 PredictionType = Prediction.V_Prediction,
             };
             _scheduler = new DDIMScheduler(config);
-            _ops = WorkerFactory.CreateOps(BackendType.GPUCompute, null);
+            _ops = new Ops(BackendType.GPUCompute);
         }
 
         [TearDown]
@@ -92,7 +92,7 @@ namespace Doji.AI.Diffusers.Editor.Tests {
                 sample = _scheduler.Step(stepArgs).PrevSample;
             }
 
-            sample.MakeReadable();
+            sample.CompleteOperationsAndDownload();
             CollectionAssert.AreEqual(ExpectedOutput, sample.ToReadOnlyArray(), new FloatArrayComparer(0.00001f));
         }
 

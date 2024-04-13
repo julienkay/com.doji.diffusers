@@ -13,15 +13,10 @@ namespace Doji.AI.Diffusers {
     public partial class StableDiffusionXLPipeline {
 
         public override async Task<TensorFloat> GenerateAsync(Parameters parameters) {
-            SetParameterDefaults(parameters);
+            InitGenerate(parameters);
 
-            // Default height and width to unet
-            _parameters.Height ??= (Unet.Config.SampleSize * VaeScaleFactor);
-            _parameters.Width ??= (Unet.Config.SampleSize * VaeScaleFactor);
             _parameters.OriginalSize ??= (height, width);
             _parameters.TargetSize ??= (height, width);
-
-            CheckInputs();
 
             // 2. Define call parameters
             if (prompt == null) {
@@ -171,9 +166,9 @@ namespace Doji.AI.Diffusers {
             // get unconditional embeddings for classifier free guidance
             bool zeroOutNegativePrompt = negativePrompt is null && Config.ForceZerosForEmptyPrompt;
             if (doClassifierFreeGuidance && negativePromptEmbeds is null && zeroOutNegativePrompt) {
-                using var zeros = TensorFloat.Zeros(promptEmbeds.shape);
+                using var zeros = TensorFloat.AllocZeros(promptEmbeds.shape);
                 negativePromptEmbeds = zeros;
-                using var zerosP = TensorFloat.Zeros(pooledPromptEmbeds.shape);
+                using var zerosP = TensorFloat.AllocZeros(pooledPromptEmbeds.shape);
                 negativePooledPromptEmbeds = zerosP;
             } else if (doClassifierFreeGuidance && negativePromptEmbeds is null) {
                 negativePrompt = negativePrompt ?? "";

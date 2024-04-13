@@ -67,7 +67,7 @@ namespace Doji.AI.Diffusers {
                 throw new NullReferenceException($"{nameof(_worker)} was null");
             }
 
-            var schedule = _worker.StartManualSchedule(inputIds);
+            var schedule = _worker.ExecuteLayerByLayer(inputIds);
             int i = 0;
             while (schedule.MoveNext()) {
                 if (++i % 100 == 0) {

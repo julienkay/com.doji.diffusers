@@ -52,7 +52,7 @@ namespace Doji.AI.Diffusers.Editor.Tests {
                 UseKarrasSigmas = false
             };
             _scheduler = new EulerDiscreteScheduler(config);
-            _ops = WorkerFactory.CreateOps(BackendType.GPUCompute, null);
+            _ops = new Ops(BackendType.GPUCompute);
         }
 
         [TearDown]
@@ -110,7 +110,7 @@ namespace Doji.AI.Diffusers.Editor.Tests {
                 sample = _scheduler.Step(stepArgs).PrevSample;
             }
 
-            sample.MakeReadable();
+            sample.CompleteOperationsAndDownload();
             CollectionAssert.AreEqual(ExpectedOutput, sample.ToReadOnlyArray(), new FloatArrayComparer(0.00001f));
         }
 

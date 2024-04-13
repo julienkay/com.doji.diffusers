@@ -4,8 +4,19 @@ using Unity.Sentis;
 
 namespace Doji.AI.Diffusers {
 
+    /// <summary>
+    /// Extends Ops class with not-yet implemented operators
+    /// and some overloads for more convenience.
+    /// </summary>
     public static class SentisUtils {
 
+        private static Tensor[] _tmpTensorRefs = new Tensor[2];
+        private static Tensor[] _tmpConcatTensorRefs = new Tensor[2];
+
+        /// <summary>
+        /// Computes the q-th quantiles of each row of the input tensor along the dimension dim.
+        /// torch.quantile
+        /// </summary>
         public static TensorFloat Quantile(this Ops ops, TensorFloat tensor, float q, int dim) {
             TensorFloat sorted = ops.Sort(tensor, dim);
             
@@ -13,7 +24,7 @@ namespace Doji.AI.Diffusers {
                 throw new ArgumentException("Quantile value must be between 0 and 1");
             }
 
-            float index = (sorted.shape[dim] - 1) * q;
+            float index = (tensor.shape[dim] - 1) * q;
 
             using TensorInt lowerIndex = new TensorInt((int)MathF.Floor(index));
             using TensorInt upperIndex = new TensorInt((int)MathF.Ceiling(index));
@@ -22,16 +33,15 @@ namespace Doji.AI.Diffusers {
             TensorFloat upperValues = ops.Gather(sorted, upperIndex, dim);
             float weights = index - (int)MathF.Floor(index);
 
-            TensorFloat tmp = ops.Sub(upperValues, lowerValues);
-            TensorFloat tmp2 = ops.Mul(weights, tmp);
-            TensorFloat interpolated = ops.Add(tmp2, lowerValues);
-
+            TensorFloat sub = ops.Sub(upperValues, lowerValues);
+            TensorFloat mul = ops.Mul(sub, weights);
+            TensorFloat interpolated = ops.Add(mul, lowerValues);
             return interpolated;
         }
 
         public static TensorFloat Sort(this Ops ops, TensorFloat tensor, int dim) {
             int num = tensor.shape[dim];
-            return ops.TopK(tensor, num, dim, false, true)[0] as TensorFloat;
+            return ops.TopK(tensor, num, dim, largest: false /* sort lowest-to-highest */, true).values;
         }
 
         public static TensorFloat Clamp(this Ops ops, TensorFloat tensor, TensorFloat min, TensorFloat max) {
@@ -44,7 +54,7 @@ namespace Doji.AI.Diffusers {
         /// <param name="X">The input tensor.</param>
         /// <returns>The computed output tensor.</returns>
         public static TensorInt NonZero(this Ops ops, TensorFloat X) {
-            ArrayTensorData.Pin(X);
+            BurstTensorData.Pin(X);
             int nbNonZeroIndices = 0;
             var end = X.shape.length;
             for (int i = 0; i < end; ++i) {
@@ -52,26 +62,22 @@ namespace Doji.AI.Diffusers {
                     nbNonZeroIndices += 1;
             }
 
-            var tmpO = TensorInt.Zeros(new TensorShape(X.shape.rank, nbNonZeroIndices));
-            if (tmpO.shape.HasZeroDims())
-                return tmpO;
+            TensorInt nonZeroIndices = TensorInt.AllocZeros(new TensorShape(X.shape.rank, nbNonZeroIndices));
+            if (nonZeroIndices.shape.HasZeroDims())
+                return nonZeroIndices;
 
-            ArrayTensorData.Pin(tmpO, clearOnInit: false);
+            BurstTensorData.Pin(nonZeroIndices, clearOnInit: false);
             int nonZeroIndicesIdx = 0;
             for (var it = new TensorNDIterator(X.shape); it.HasNext(); it.MoveNext()) {
                 if (X[it.index] != 0.0f) {
                     for (int i = 0; i < X.shape.rank; i++)
-                        tmpO[i * nbNonZeroIndices + nonZeroIndicesIdx] = it[i];
+                        nonZeroIndices[i * nbNonZeroIndices + nonZeroIndicesIdx] = it[i];
                     nonZeroIndicesIdx++;
                 }
             }
 
-            var O = ops.Copy(tmpO);
-            tmpO.Dispose();
-            return O;
+            return nonZeroIndices;
         }
-
-        private static Tensor[] _tmpTensorRefs = new Tensor[2];
 
         /// <summary>
         /// Alias for <see cref="Ops.Concat(Tensor[], int)"/> to match numpy.concatenate()
@@ -88,11 +94,11 @@ namespace Doji.AI.Diffusers {
         /// naming and for convenience by adding a List<TensorFloat> overload.
         /// </summary>
         public static TensorFloat Concatenate(this Ops ops, List<TensorFloat> tensors, int axis = 0) {
-            if (_tmpTensorRefs.Length != tensors.Count) {
-                _tmpTensorRefs = new Tensor[tensors.Count];
+            if (_tmpConcatTensorRefs.Length != tensors.Count) {
+                _tmpConcatTensorRefs = new Tensor[tensors.Count];
             }
             for (int i = 0; i < tensors.Count; i++) {
-                _tmpTensorRefs[i] = tensors[i];
+                _tmpConcatTensorRefs[i] = tensors[i];
             }
             return ops.Concat(_tmpTensorRefs, axis) as TensorFloat;
         }
@@ -149,7 +155,7 @@ namespace Doji.AI.Diffusers {
             }
             int half = tensor.shape[axis] / 2;
             int start = 0;
-            int end = tensor.shape[axis];    
+            int end = tensor.shape[axis];
             var a = ops.Split(tensor, axis: axis, start, half) as TensorFloat;
             var b = ops.Split(tensor, axis: axis, half, end) as TensorFloat;
             return (a, b);

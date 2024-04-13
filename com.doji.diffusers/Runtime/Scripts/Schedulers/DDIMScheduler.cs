@@ -216,17 +216,17 @@ namespace Doji.AI.Diffusers {
             TensorShape shape = sample.shape;
 
             // Flatten sample for doing quantile calculation along each image
-            sample = sample.ShallowReshape(sample.shape.Flatten()) as TensorFloat;
+            sample.Reshape(sample.shape.Flatten());
 
             var absSample = _ops.Abs(sample);  // "a certain percentile absolute pixel value"
 
             var s = _ops.Quantile(absSample, DynamicThresholdingRatio, 1);
             s = _ops.Clip(s, 1, SampleMaxValue);  // When clamped to min=1, equivalent to standard clipping to [-1, 1]
-            s = s.ShallowReshape(s.shape.Unsqueeze(1)) as TensorFloat;  // (batch_size, 1) because clamp will broadcast along dim=0
+            s.Reshape(s.shape.Unsqueeze(1));  // (batch_size, 1) because clamp will broadcast along dim=0
             var clip = _ops.Clamp(sample, _ops.Neg(s), s);  // "we threshold xt0 to the range [-s, s] and then divide by s"
             sample = _ops.Div(clip, s);
 
-            sample = sample.ShallowReshape(shape) as TensorFloat;
+            sample.Reshape(shape);
 
             return sample;
         }

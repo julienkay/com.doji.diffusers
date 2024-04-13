@@ -117,7 +117,7 @@ namespace Doji.AI.Diffusers {
                 _inputs["time_ids"] = timeIds;
             }
 
-            var schedule = _worker.StartManualSchedule(_inputs);
+            var schedule = _worker.ExecuteLayerByLayer(_inputs);
             int i = 0;
             while (schedule.MoveNext()) {
                 if (++i % 300 == 0) {

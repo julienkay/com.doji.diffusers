@@ -19,8 +19,6 @@ namespace Doji.AI.Diffusers {
         public TextEncoder TextEncoder2 { get; private set; }
 
         public List<(ClipTokenizer Tokenizer, TextEncoder TextEncoder)> Encoders { get; set; }
-        
-        public int VaeScaleFactor { get; set; }
 
         private List<TensorFloat> _promptEmbedsList = new List<TensorFloat>();
         private List<TensorFloat> _negativePromptEmbedsList = new List<TensorFloat>();
@@ -54,12 +52,13 @@ namespace Doji.AI.Diffusers {
             } else {
                 VaeScaleFactor = 8;
             }
+            ImageProcessor = new VaeImageProcessor(vaeScaleFactor: VaeScaleFactor, backend: backend);
         }
 
         public override Parameters GetDefaultParameters() {
             return new Parameters() {
-                Height = null,
-                Width = null,
+                Height = Unet.Config.SampleSize * VaeScaleFactor,
+                Width = Unet.Config.SampleSize * VaeScaleFactor,
                 NumInferenceSteps = 50,
                 GuidanceScale = 5.0f,
                 NegativePrompt = null,
@@ -78,15 +77,10 @@ namespace Doji.AI.Diffusers {
         public override TensorFloat Generate(Parameters parameters) {
             Profiler.BeginSample($"{GetType().Name}.Generate");
 
-            SetParameterDefaults(parameters);
+            InitGenerate(parameters);
 
-            // Default height and width to unet
-            _parameters.Height ??= (Unet.Config.SampleSize * VaeScaleFactor);
-            _parameters.Width ??= (Unet.Config.SampleSize * VaeScaleFactor);
             originalSize ??= (height, width);
             targetSize ??= (height, width);
-
-            CheckInputs();
 
             // 2. Define call parameters
             if (prompt == null) {
@@ -269,9 +263,9 @@ namespace Doji.AI.Diffusers {
             // get unconditional embeddings for classifier free guidance
             bool zeroOutNegativePrompt = negativePrompt is null && Config.ForceZerosForEmptyPrompt;
             if (doClassifierFreeGuidance && negativePromptEmbeds is null && zeroOutNegativePrompt) {
-                using var zeros = TensorFloat.Zeros(promptEmbeds.shape);
+                using var zeros = TensorFloat.AllocZeros(promptEmbeds.shape);
                 negativePromptEmbeds = zeros;
-                using var zerosP = TensorFloat.Zeros(pooledPromptEmbeds.shape);
+                using var zerosP = TensorFloat.AllocZeros(pooledPromptEmbeds.shape);
                 negativePooledPromptEmbeds = zerosP;
             } else if (doClassifierFreeGuidance && negativePromptEmbeds is null) {
                 negativePrompt = negativePrompt ?? "";
@@ -346,7 +340,7 @@ namespace Doji.AI.Diffusers {
             );
 
             if (latents == null) {
-                latents = _ops.RandomNormal(shape, 0, 1, seed);
+                latents = _ops.RandomNormal(shape, 0, 1, seed.Value);
             } else if (latents.shape != shape) {
                 throw new ArgumentException($"Unexpected latents shape, got {latents.shape}, expected {shape}");
             }

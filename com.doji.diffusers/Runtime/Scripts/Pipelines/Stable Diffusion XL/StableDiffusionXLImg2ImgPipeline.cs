@@ -21,7 +21,6 @@ namespace Doji.AI.Diffusers {
         public TextEncoder TextEncoder2 { get; private set; }
 
         public List<(ClipTokenizer Tokenizer, TextEncoder TextEncoder)> Encoders { get; set; }
-        public int VaeScaleFactor { get; set; }
 
         private List<TensorFloat> _promptEmbedsList = new List<TensorFloat>();
         private List<TensorFloat> _negativePromptEmbedsList = new List<TensorFloat>();
@@ -81,8 +80,7 @@ namespace Doji.AI.Diffusers {
         public override TensorFloat Generate(Parameters parameters) {
             Profiler.BeginSample($"{GetType().Name}.Generate");
 
-            SetParameterDefaults(parameters);
-            CheckInputs();
+            InitGenerate(parameters);
 
             // Define call parameters
             if (prompt == null) {
@@ -281,9 +279,9 @@ namespace Doji.AI.Diffusers {
             // get unconditional embeddings for classifier free guidance
             bool zeroOutNegativePrompt = negativePrompt is null && Config.ForceZerosForEmptyPrompt;
             if (doClassifierFreeGuidance && negativePromptEmbeds is null && zeroOutNegativePrompt) {
-                using var zeros = TensorFloat.Zeros(promptEmbeds.shape);
+                using var zeros = TensorFloat.AllocZeros(promptEmbeds.shape);
                 negativePromptEmbeds = zeros;
-                using var zerosP = TensorFloat.Zeros(pooledPromptEmbeds.shape);
+                using var zerosP = TensorFloat.AllocZeros(pooledPromptEmbeds.shape);
                 negativePooledPromptEmbeds = zerosP;
             } else if (doClassifierFreeGuidance && negativePromptEmbeds is null) {
                 negativePrompt = negativePrompt ?? "";
@@ -371,7 +369,7 @@ namespace Doji.AI.Diffusers {
 
             // add noise to latents using the timesteps
             Profiler.BeginSample("Generate Noise");
-            var noise = _ops.RandomNormal(initLatents.shape, 0, 1, seed);
+            var noise = _ops.RandomNormal(initLatents.shape, 0, 1, seed.Value);
             initLatents = Scheduler.AddNoise(initLatents, noise, timestep);
             Profiler.EndSample();
 

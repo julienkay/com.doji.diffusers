@@ -124,14 +124,14 @@ namespace Doji.AI.Diffusers {
             timestep = PrkTimesteps[Counter / 4 * 4];
 
             if (CurModelOutput == null) {
-                using var init = new TensorFloat(modelOutput.shape, new float[modelOutput.shape.length]);
+                using var init = TensorFloat.AllocZeros(modelOutput.shape);
                 CurModelOutput = init;
             }
 
             if (Counter % 4 == 0) {
                 var tmp = _ops.Div(modelOutput, 6f);
                 CurModelOutput = _ops.Add(CurModelOutput, tmp);
-                modelOutput.TakeOwnership();
+                modelOutput = TakeOwnership(modelOutput);
                 Ets.Add(modelOutput);
                 CurSample = sample;
             } else if ((Counter - 1) % 4 == 0) {
@@ -179,7 +179,7 @@ namespace Doji.AI.Diffusers {
                     Ets[i].Dispose();
                     Ets.RemoveAt(i);
                 }
-                modelOutput.TakeOwnership();
+                modelOutput = TakeOwnership(modelOutput);
                 Ets.Add(modelOutput);
             } else {
                 prevTimestep = timestep;
@@ -273,6 +273,12 @@ namespace Doji.AI.Diffusers {
                 t.Dispose();
             }
             Ets?.Clear();
+        }
+
+        private TensorFloat TakeOwnership(TensorFloat X) {
+            TensorFloat O = TensorFloat.AllocNoData(X.shape);
+            _ops._backend.MemCopy(X, O);
+            return O;
         }
 
         public override void Dispose() {

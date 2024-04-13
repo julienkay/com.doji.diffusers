@@ -15,7 +15,7 @@ namespace Doji.AI.Diffusers {
     /// </summary>
     public class VaeImageProcessor : IDisposable {
 
-        private Ops _ops;
+        internal Ops _ops;
 
         private bool _doNormalize;
 
@@ -46,7 +46,7 @@ namespace Doji.AI.Diffusers {
                 " if you intended to convert the image into RGB format, please set `do_convert_grayscale = False`." +
                 " if you intended to convert the image into grayscale format, please set `do_convert_rgb = False`");
             }
-            _ops = WorkerFactory.CreateOps(backend, null);
+            _ops = new Ops(backend);
         }
 
         public TensorFloat PreProcess(
@@ -60,14 +60,14 @@ namespace Doji.AI.Diffusers {
 
             // expected range [0,1], normalize to [-1,1]
             if (_doNormalize) {
-                Normalize(image);
+                image = Normalize(image);
             }
 
             return image;
         }
 
         public TensorFloat PostProcess(TensorFloat image, bool? doDenormalize = null) {
-            if (doDenormalize.HasValue || _doNormalize) {
+            if (doDenormalize == true || _doNormalize) {
                 image = Denormalize(image);
             }
             return image;

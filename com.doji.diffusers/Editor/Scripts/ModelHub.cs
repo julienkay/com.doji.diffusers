@@ -169,9 +169,7 @@ namespace Doji.AI.Diffusers.Editor {
             // .onnx to .sentis
             if (asset is ModelAsset) {
                 ModelAsset modelAsset = asset as ModelAsset;
-                Model model = new Model();
-                ModelLoader.LoadModelDesc(modelAsset, ref model);
-                ModelLoader.LoadModelWeights(modelAsset, ref model);
+                Model model = ModelLoader.Load(modelAsset);
                 string path = file.StreamingAssetsPath;
                 ModelWriter.Save(path, model);
                 AssetDatabase.Refresh();
