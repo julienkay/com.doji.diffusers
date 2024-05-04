@@ -290,17 +290,10 @@ namespace Doji.AI.Diffusers {
         /// <summary>
         /// Create a txt2img pipeline reusing the components of the given pipeline.
         /// </summary>
-        public StableDiffusionPipeline(DiffusionPipeline pipe) : base(pipe._ops.backendType) {
+        public StableDiffusionPipeline(DiffusionPipeline pipe) : base(pipe) {
             if (pipe is not StableDiffusionImg2ImgPipeline) {
                 throw new InvalidOperationException($"Cannot create StableDiffusionPipeline from a {pipe.GetType().Name}.");
             }
-            ModelInfo = pipe.ModelInfo;
-            Config = pipe.Config;
-            VaeDecoder = pipe.VaeDecoder;
-            Tokenizer = pipe.Tokenizer;
-            TextEncoder = pipe.TextEncoder;
-            Scheduler = pipe.Scheduler;
-            Unet = pipe.Unet;
         }
     }
 
@@ -340,21 +333,12 @@ namespace Doji.AI.Diffusers {
         /// <summary>
         /// Create an img2img pipeline reusing the components of the given pipeline.
         /// </summary>
-        public StableDiffusionImg2ImgPipeline(DiffusionPipeline pipe) : base(pipe._ops.backendType) {
-            ModelInfo = pipe.ModelInfo;
-            Config = pipe.Config;
-
+        public StableDiffusionImg2ImgPipeline(DiffusionPipeline pipe) : base(pipe) {
             if (pipe is StableDiffusionPipeline) {
                 VaeEncoder = VaeEncoder.FromPretrained(pipe.ModelInfo, pipe._ops.backendType);
             } else {
                 throw new InvalidOperationException($"Cannot create StableDiffusionImg2ImgPipeline from a {pipe.GetType().Name}.");
             }
-
-            VaeDecoder = pipe.VaeDecoder;
-            TextEncoder = pipe.TextEncoder;
-            Tokenizer = pipe.Tokenizer;
-            Scheduler = pipe.Scheduler;
-            Unet = pipe.Unet;
         }
     }
 
@@ -403,24 +387,14 @@ namespace Doji.AI.Diffusers {
         /// <summary>
         /// Create an SDXL img2img pipeline reusing the components of the given pipeline.
         /// </summary>
-        public StableDiffusionXLPipeline(DiffusionPipeline pipe) : base(pipe._ops.backendType) {
-            ModelInfo = pipe.ModelInfo;
-            Config = pipe.Config;
-
+        public StableDiffusionXLPipeline(DiffusionPipeline pipe) : base(pipe) {
             if (pipe is StableDiffusionXLImg2ImgPipeline xl) {
                 Tokenizer2 = xl.Tokenizer2;
                 TextEncoder2 = xl.TextEncoder2;
-                VaeScaleFactor = xl.VaeScaleFactor;
                 Encoders = xl.Encoders;
             } else {
                 throw new InvalidOperationException($"Cannot create StableDiffusionXLImg2ImgPipeline from a {pipe.GetType().Name}.");
             }
-
-            VaeDecoder = pipe.VaeDecoder;
-            TextEncoder = pipe.TextEncoder;
-            Tokenizer = pipe.Tokenizer;
-            Scheduler = pipe.Scheduler;
-            Unet = pipe.Unet;
         }
     }
 
@@ -471,7 +445,7 @@ namespace Doji.AI.Diffusers {
         /// <summary>
         /// Create an SDXL img2img pipeline reusing the components of the given pipeline.
         /// </summary>
-        public StableDiffusionXLImg2ImgPipeline(DiffusionPipeline pipe) : base(pipe._ops.backendType) {
+        public StableDiffusionXLImg2ImgPipeline(DiffusionPipeline pipe) : base(pipe) {
             ModelInfo = pipe.ModelInfo;
             Config = pipe.Config;
 
@@ -479,17 +453,10 @@ namespace Doji.AI.Diffusers {
                 VaeEncoder = VaeEncoder.FromPretrained(pipe.ModelInfo, pipe._ops.backendType);
                 Tokenizer2 = xl.Tokenizer2;
                 TextEncoder2 = xl.TextEncoder2;
-                VaeScaleFactor = xl.VaeScaleFactor;
                 Encoders = xl.Encoders;
             } else {
                 throw new InvalidOperationException($"Cannot create StableDiffusionXLImg2ImgPipeline from a {pipe.GetType().Name}.");
             }
-
-            VaeDecoder = pipe.VaeDecoder;
-            TextEncoder = pipe.TextEncoder;
-            Tokenizer = pipe.Tokenizer;
-            Scheduler = pipe.Scheduler;
-            Unet = pipe.Unet;
         }
     }
 }

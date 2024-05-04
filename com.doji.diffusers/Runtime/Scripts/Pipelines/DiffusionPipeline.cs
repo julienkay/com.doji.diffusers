@@ -63,9 +63,36 @@ namespace Doji.AI.Diffusers {
         /// Base constructor for a diffusion pipeline.
         /// To load a pretrained model, use <see cref="FromPretrained(DiffusionModel, BackendType)"/>
         /// </summary>
-        public DiffusionPipeline(BackendType backendType) {
+        public DiffusionPipeline(
+            VaeDecoder vaeDecoder,
+            TextEncoder textEncoder,
+            ClipTokenizer tokenizer,
+            Scheduler scheduler,
+            Unet unet,
+            BackendType backend)
+        {
+            VaeDecoder = vaeDecoder;
+            TextEncoder = textEncoder;
+            Tokenizer = tokenizer;
+            Scheduler = scheduler;
+            Unet = unet;
+
             // TODO: When casting between pipeline types, we might want to reuse ops and image processor as well
-            _ops = new Ops(backendType);
+            _ops = new Ops(backend);
+            if (VaeDecoder.Config.BlockOutChannels != null) {
+                VaeScaleFactor = 1 << (VaeDecoder.Config.BlockOutChannels.Length - 1);
+            } else {
+                VaeScaleFactor = 8;
+            }
+            ImageProcessor = new VaeImageProcessor(vaeScaleFactor: VaeScaleFactor, backend: backend);
+        }
+
+        /// <summary>
+        /// Create a pipeline reusing the components of the given pipeline.
+        /// </summary>
+        public DiffusionPipeline(DiffusionPipeline pipe) : this(pipe.VaeDecoder, pipe.TextEncoder, pipe.Tokenizer, pipe.Scheduler, pipe.Unet, pipe._ops.backendType) {
+            ModelInfo = pipe.ModelInfo;
+            Config = pipe.Config;
         }
 
         /// <summary>

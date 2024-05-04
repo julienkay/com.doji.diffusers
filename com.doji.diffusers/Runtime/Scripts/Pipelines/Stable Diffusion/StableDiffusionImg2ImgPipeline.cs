@@ -24,16 +24,10 @@ namespace Doji.AI.Diffusers {
             ClipTokenizer tokenizer,
             Scheduler scheduler,
             Unet unet,
-            BackendType backend) : base(backend)
+            BackendType backend) : base(vaeDecoder, textEncoder, tokenizer, scheduler, unet, backend)
         {
             VaeEncoder = vaeEncoder;
-            VaeDecoder = vaeDecoder;
-            TextEncoder = textEncoder;
-            Tokenizer = tokenizer;
-            Scheduler = scheduler;
-            Unet = unet;
             _ops = new Ops(backend);
-            ImageProcessor = new VaeImageProcessor(backend: backend);
         }
 
         public override Parameters GetDefaultParameters() {

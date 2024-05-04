@@ -36,26 +36,14 @@ namespace Doji.AI.Diffusers {
             TextEncoder textEncoder2,
             ClipTokenizer tokenizer2,
             ControlNetModel controlnet,
-            BackendType backend) : base(backend)
+            BackendType backend) : base(vaeDecoder, textEncoder, tokenizer, scheduler, unet, backend)
         {
-            VaeDecoder = vaeDecoder;
-            Tokenizer = tokenizer;
             Tokenizer2 = tokenizer2;
-            Controlnet = controlnet;
-            TextEncoder = textEncoder;
             TextEncoder2 = textEncoder2;
-            Scheduler = scheduler;
-            Unet = unet;
             Encoders = Tokenizer != null && TextEncoder != null
                 ? new() { (Tokenizer, TextEncoder), (Tokenizer2, TextEncoder2) }
                 : new() { (Tokenizer2, TextEncoder2) };
 
-            if (VaeDecoder.Config.BlockOutChannels != null) {
-                VaeScaleFactor = 1 << (VaeDecoder.Config.BlockOutChannels.Length - 1);
-            } else {
-                VaeScaleFactor = 8;
-            }
-            ImageProcessor = new VaeImageProcessor(vaeScaleFactor: VaeScaleFactor, backend: backend);
             ControlImageProcessor = new VaeImageProcessor(vaeScaleFactor: VaeScaleFactor, doNormalize: false);
         }
 
