@@ -51,7 +51,7 @@ namespace Doji.AI.Diffusers {
             }
         }
 
-        protected static C FromPretrained<C>(ModelFile file, BackendType backend) where C : IConfigurable<T> {
+        internal static C FromPretrained<C>(ModelFile file, BackendType backend) where C : IConfigurable<T> {
             var config = LoadConfig(file);
             return config == null
                 ? throw new FileNotFoundException($"File '{file.FileName}' not found for: '{typeof(T).Name}'")

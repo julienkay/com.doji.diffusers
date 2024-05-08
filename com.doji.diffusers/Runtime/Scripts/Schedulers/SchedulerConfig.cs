@@ -123,6 +123,9 @@ namespace Doji.AI.Diffusers {
 
         [JsonProperty("timestep_spacing")]
         public Spacing? TimestepSpacing { get; set; }
+        
+        [JsonProperty("timestep_scaling")]
+        public float? TimestepScaling { get; set; }
 
         [JsonProperty("trained_betas")]
         public float[] TrainedBetas { get; set; }
@@ -138,5 +141,8 @@ namespace Doji.AI.Diffusers {
 
         [JsonProperty("timestep_type")]
         public Timestep? TimestepType { get; set; }
+
+        [JsonProperty("original_inference_steps")]
+        public int? OriginalInferenceSteps { get; set; }
     }
 }

@@ -100,7 +100,7 @@ namespace Doji.AI.Diffusers {
         /// on the internal variable <see cref="Counter"/>.
         /// </remarks>
         public override SchedulerOutput Step(StepArgs args) {
-            base.Step(args);
+            SetStepArgs(args);
             if (Counter < PrkTimesteps.Length && !SkipPrkSteps) {
                 return StepPrk(modelOutput, (int)timestep, sample);
             } else {
@@ -287,5 +287,7 @@ namespace Doji.AI.Diffusers {
             AlphasCumprod?.Dispose();
             base.Dispose();
         }
+
+        public static PNDMScheduler FromConfig(SchedulerConfig cfg, BackendType b) => FromConfig<PNDMScheduler>(cfg, b);
     }
 }

@@ -10,6 +10,12 @@ namespace Doji.AI.Diffusers {
         /// input in the denoising loop.
         /// </summary>
         public TensorFloat PrevSample { get; internal set; }
+
+        /// <summary>
+        /// A <see cref="TensorFloat"/> of shape `(batch_size, num_channels, height, width)` for images):
+        /// The predicted denoised sample `(x_{0})` based on the model output from the current timestep.
+        /// `pred_original_sample` can be used to preview progress or for guidance.
+        /// </summary>
         public TensorFloat PredOriginalSample { get; internal set; }
 
         public SchedulerOutput(TensorFloat prevSample) : this(prevSample, null) { }

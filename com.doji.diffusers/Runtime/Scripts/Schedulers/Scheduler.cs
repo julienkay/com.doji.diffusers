@@ -70,6 +70,7 @@ namespace Doji.AI.Diffusers {
         protected int           StepsOffset              { get => Config.StepsOffset.Value;              set => Config.StepsOffset              = value; }
         protected float[]       TrainedBetas             { get => Config.TrainedBetas;                   set => Config.TrainedBetas             = value; }
         protected internal      Spacing TimestepSpacing  { get => Config.TimestepSpacing.Value;          set => Config.TimestepSpacing          = value; }
+        protected float         TimestepScaling          { get => Config.TimestepScaling.Value;          set => Config.TimestepScaling          = value; }
         protected bool          ClipSample               { get => Config.ClipSample.Value;               set => Config.ClipSample               = value; }
         protected float         ClipSampleRange          { get => Config.ClipSampleRange.Value;          set => Config.ClipSampleRange          = value; }
         protected bool          Thresholding             { get => Config.Thresholding.Value;             set => Config.Thresholding             = value; }
@@ -78,6 +79,7 @@ namespace Doji.AI.Diffusers {
         protected float         SampleMaxValue           { get => Config.SampleMaxValue.Value;           set => Config.SampleMaxValue           = value; }
         protected bool          RescaleBetasZeroSnr      { get => Config.RescaleBetasZeroSnr.Value;      set => Config.RescaleBetasZeroSnr      = value; }
         protected Timestep      TimestepType             { get => Config.TimestepType.Value;             set => Config.TimestepType             = value; }
+        protected int           OriginalInferenceSteps   { get => Config.OriginalInferenceSteps.Value;   set => Config.OriginalInferenceSteps   = value; }
         protected bool          UseKarrasSigmas          { get => Config.UseKarrasSigmas.Value;          set => Config.UseKarrasSigmas          = value; }
         protected float?        SigmaMin                 { get => Config.SigmaMin;                       set => Config.SigmaMin                 = value; }
         protected float?        SigmaMax                 { get => Config.SigmaMax;                       set => Config.SigmaMax                 = value; }
@@ -160,10 +162,13 @@ namespace Doji.AI.Diffusers {
         /// This function propagates the diffusion process from the learned model
         /// outputs (most often the predicted noise).
         /// </summary>
-        public virtual SchedulerOutput Step(StepArgs args) {
-            // store args to allow for accessing them using properties for convenience.
+        public abstract SchedulerOutput Step(StepArgs args);
+
+        /// <summary>
+        /// Store args to allow for accessing them using properties for convenience.
+        /// </summary>
+        protected void SetStepArgs(StepArgs args) {
             _args = args;
-            return default;
         }
 
         public virtual TensorFloat AddNoise(TensorFloat originalSamples, TensorFloat noise, TensorFloat timesteps) {
@@ -359,6 +364,7 @@ namespace Doji.AI.Diffusers {
             return GetEnumerator();
         }
 
+
         /// <summary>
         /// Instantiate a Scheduler from a JSON configuration file.
         /// </summary>
@@ -371,7 +377,7 @@ namespace Doji.AI.Diffusers {
         /// This can be used to get a scheduler with the configuration of another one
         /// (in a way casting a certain type of scheduler to another one).
         /// </summary>
-        public static T FromConfig<T>(SchedulerConfig config, BackendType backend) where T : Scheduler {
+        protected static T FromConfig<T>(SchedulerConfig config, BackendType backend) where T : Scheduler {
             return (T)Activator.CreateInstance(typeof(T), config, backend);
         }
     }

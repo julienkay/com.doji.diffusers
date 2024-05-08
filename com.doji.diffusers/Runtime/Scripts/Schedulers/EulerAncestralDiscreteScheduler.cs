@@ -36,7 +36,7 @@ namespace Doji.AI.Diffusers {
 
         /// <inheritdoc/>
         public override SchedulerOutput Step(StepArgs args) {
-            base.Step(args);
+            SetStepArgs(args);
 
             if (!IsScaleInputCalled) {
                 Debug.LogWarning("The `ScaleModelInput()` function should be called before `Step()`.");
@@ -87,5 +87,7 @@ namespace Doji.AI.Diffusers {
         public override void Dispose() {
             base.Dispose();
         }
+
+        public static EulerAncestralDiscreteScheduler FromConfig(SchedulerConfig cfg, BackendType b) => FromConfig<EulerAncestralDiscreteScheduler>(cfg, b);
     }
 }

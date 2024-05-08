@@ -105,7 +105,7 @@ namespace Doji.AI.Diffusers {
 
         /// <inheritdoc/>
         public override SchedulerOutput Step(StepArgs args) {
-            base.Step(args);
+            SetStepArgs(args);
 
             if (NumInferenceSteps == 0) {
                 throw new ArgumentException("Number of inference steps is '0', you need to run 'SetTimesteps' after creating the scheduler");
@@ -194,7 +194,7 @@ namespace Doji.AI.Diffusers {
 
                 if (varianceNoise == null) {
                     int seed = generator.Next();
-                    varianceNoise = _ops.RandomNormal(modelOutput.shape, 0, 1, seed);
+                    varianceNoise = _ops.RandomNormal(modelOutput.shape, 0f, 1f, seed);
                 }
                 var varianceTensor = _ops.Mul(varianceNoise, stdDevT);
 
@@ -246,5 +246,7 @@ namespace Doji.AI.Diffusers {
             AlphasCumprod?.Dispose();
             base.Dispose();
         }
+
+        public static DDIMScheduler FromConfig(SchedulerConfig cfg, BackendType b) => FromConfig<DDIMScheduler>(cfg, b);
     }
 }

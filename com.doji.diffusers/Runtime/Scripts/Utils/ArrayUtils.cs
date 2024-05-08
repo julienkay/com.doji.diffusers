@@ -261,6 +261,25 @@ namespace Doji.AI.Diffusers {
             return result;
         }
 
+        public static int[] Floor(this float[] a) {
+            int[] result = new int[a.Length];
+            for (int i = 0; i < a.Length; i++) {
+                result[i] = (int)MathF.Floor(a[i]);
+            }
+            return result;
+        }
+
+        public static float[] Gather(this float[] a, int[] indices) {
+            if (a.Length != indices.Length) {
+                throw new ArgumentException("Array sizes do not match.");
+            }
+            float[] result = new float[indices.Length];
+            for (int i = 0; i < indices.Length; i++) {
+                result[i] = a[indices[i]];
+            }
+            return result;
+        }
+
         /// <summary>
         /// numpy.full
         /// </summary>
@@ -341,16 +360,21 @@ namespace Doji.AI.Diffusers {
         /// <summary>
         /// numpy.linspace
         /// </summary>
-        public static float[] Linspace(float start, float stop, int num) {
+        public static float[] Linspace(float start, float stop, int num, bool endpoint = true) {
             if (num <= 1) {
                 throw new ArgumentException("Number of elements must be greater than 1.");
             }
 
             float[] result = new float[num];
-            float step = (stop - start) / (num - 1);
+            float step;
+            if (endpoint) {
+                step = (stop - start) / (num - 1);
+            } else {
+                step = (stop - start) / num;
+            }
 
             for (int i = 0; i < num; i++) {
-                result[i] = start + i * step;
+                result[i] = start + step * i;
             }
 
             return result;
