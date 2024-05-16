@@ -57,16 +57,15 @@ namespace Doji.AI.Diffusers {
                 throw new ArgumentException($"Invalid prompt argument {nameof(prompt)}");
             }
 
-            System.Random generator = null;
+            System.Random generator = new System.Random();
             if (latents == null && seed == null) {
-                generator = new System.Random();
                 seed = unchecked((uint)generator.Next());
             }
 
             bool doClassifierFreeGuidance = guidanceScale > 1.0f;
 
             Profiler.BeginSample("Encode Prompt(s)");
-            TensorFloat promptEmbeds = EncodePrompt(prompt, numImagesPerPrompt, doClassifierFreeGuidance, negativePrompt);
+            var embeddings = EncodePrompt(prompt, numImagesPerPrompt, doClassifierFreeGuidance, negativePrompt);
             Profiler.EndSample();
 
             // get the initial random noise unless the user supplied it
@@ -103,7 +102,7 @@ namespace Doji.AI.Diffusers {
                 Profiler.EndSample();
 
                 Profiler.BeginSample("Execute Unet");
-                TensorFloat noisePred = Unet.Execute(latentModelInput, timestep, promptEmbeds);
+                TensorFloat noisePred = Unet.Execute(latentModelInput, timestep, embeddings.PromptEmbeds);
                 Profiler.EndSample();
 
                 // perform guidance
@@ -154,13 +153,15 @@ namespace Doji.AI.Diffusers {
             return outputImage;
         }
 
-        private TensorFloat EncodePrompt(
+        internal override Embeddings EncodePrompt(
             Input prompt,
             int numImagesPerPrompt,
             bool doClassifierFreeGuidance,
             Input negativePrompt = null,
             TensorFloat promptEmbeds = null,
-            TensorFloat negativePromptEmbeds = null)
+            TensorFloat negativePromptEmbeds = null,
+            TensorFloat pooledPromptEmbeds = null,
+            TensorFloat negativePooledPromptEmbeds = null)
         {
             if (promptEmbeds == null) {
                 Profiler.BeginSample("CLIPTokenizer Encode Input");
@@ -239,10 +240,10 @@ namespace Doji.AI.Diffusers {
                 TensorFloat combinedEmbeddings = _ops.Concatenate(negativePromptEmbeds, promptEmbeds, 0);
                 Profiler.EndSample();
 
-                return combinedEmbeddings;
+                return new Embeddings() { PromptEmbeds = combinedEmbeddings };
             }
 
-            return promptEmbeds;
+            return new Embeddings() { PromptEmbeds = promptEmbeds };
         }
 
         private TensorShape GetLatentsShape() {

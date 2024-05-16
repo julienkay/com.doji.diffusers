@@ -246,6 +246,17 @@ namespace Doji.AI.Diffusers {
             throw new NotImplementedException($"{nameof(GenerateAsync)} not implemented for {GetType().Name}.");
         }
 
+        internal abstract Embeddings EncodePrompt(
+            Input prompt,
+            int numImagesPerPrompt,
+            bool doClassifierFreeGuidance,
+            Input negativePrompt = null,
+            TensorFloat promptEmbeds = null,
+            TensorFloat negativePromptEmbeds = null,
+            TensorFloat pooledPromptEmbeds = null,
+            TensorFloat negativePooledPromptEmbeds = null
+        );
+
         public virtual void Dispose() {
             VaeDecoder?.Dispose();
             TextEncoder?.Dispose();
@@ -253,6 +264,13 @@ namespace Doji.AI.Diffusers {
             Unet?.Dispose();
             ImageProcessor?.Dispose();
             _ops?.Dispose();
+        }
+
+        internal struct Embeddings {
+            public TensorFloat PromptEmbeds { get; set; }
+            public TensorFloat NegativePromptEmbeds { get; set; }
+            public TensorFloat PooledPromptEmbeds { get; set; }
+            public TensorFloat NegativePooledPromptEmbeds { get; set; }
         }
     }
 }

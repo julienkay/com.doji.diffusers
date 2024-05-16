@@ -194,7 +194,7 @@ namespace Doji.AI.Diffusers {
             return outputImage;
         }
 
-        private Embeddings EncodePrompt(
+        internal override Embeddings EncodePrompt(
             Input prompt,
             int numImagesPerPrompt,
             bool doClassifierFreeGuidance,
@@ -368,13 +368,6 @@ namespace Doji.AI.Diffusers {
         public override void Dispose() {
             base.Dispose();
             TextEncoder2?.Dispose();
-        }
-
-        private struct Embeddings {
-            public TensorFloat PromptEmbeds { get; set; }
-            public TensorFloat NegativePromptEmbeds { get; set; }
-            public TensorFloat PooledPromptEmbeds { get; set; }
-            public TensorFloat NegativePooledPromptEmbeds { get; set; }
         }
     }
 }

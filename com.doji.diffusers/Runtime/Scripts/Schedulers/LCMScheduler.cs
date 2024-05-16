@@ -141,7 +141,7 @@ namespace Doji.AI.Diffusers {
             BeginIndex = null;
         }
 
-        private (float, float) GetScalingsForBoundaryConditionDiscrete(int timestep) {
+        public (float, float) GetScalingsForBoundaryConditionDiscrete(int timestep) {
             float sigma_data = 0.5f; // Default: 0.5
             float scaled_timestep = timestep * TimestepScaling;
 
