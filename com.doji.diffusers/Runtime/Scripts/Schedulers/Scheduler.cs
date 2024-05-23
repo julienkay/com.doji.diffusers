@@ -51,7 +51,7 @@ namespace Doji.AI.Diffusers {
 
         public abstract int TimestepsLength { get; }
         protected TensorFloat AlphasCumprod { get; set; }
-        protected float[] AlphasCumprodF { get; set; }
+        protected internal float[] AlphasCumprodF { get; set; }
 
         /// <summary>
         /// standard deviation of the initial noise distribution

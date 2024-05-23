@@ -1,4 +1,5 @@
 using Doji.AI.Transformers;
+using System;
 using System.Collections.Generic;
 using Unity.Sentis;
 
@@ -6,7 +7,7 @@ namespace Doji.AI.Diffusers {
 
     public enum CfgType { None, Full, Self, Initialize }
 
-    public class StreamDiffusion {
+    public class StreamDiffusion : IDisposable {
 
         private int Width { get; set; }
         private int Height { get; set; }
@@ -46,6 +47,10 @@ namespace Doji.AI.Diffusers {
 
         private TensorFloat _initNoise;
         private TensorFloat _stockNoise;
+        private TensorFloat c_skip;
+        private TensorFloat c_out;
+        private TensorFloat alpha_prod_t_sqrt;
+        private TensorFloat beta_prod_t_sqrt;
 
         public StreamDiffusion(
             DiffusionPipeline pipe,
@@ -173,59 +178,51 @@ namespace Doji.AI.Diffusers {
 
             var sub_timesteps_tensor = new TensorInt(new TensorShape(sub_timesteps.Length), sub_timesteps);
             int repeats = UseDenoisingBatch ? FrameBffSize : 1;
-            sub_timesteps_tensor = _ops.RepeatInterleave(sub_timesteps_tensor, repeats, dim = 0);
+            sub_timesteps_tensor = _ops.RepeatInterleave(sub_timesteps_tensor, repeats, dim: 0);
 
             var latentsShape = new TensorShape(BatchSize, 4, LatentHeight, LatentWidth);
             _initNoise = _ops.RandomNormal(latentsShape, 0, 1, unchecked((int)seed));
 
             _stockNoise = TensorFloat.AllocZeros(latentsShape);
 
-            List<float> c_skip_list = new List<float>();
-            List<float> c_out_list = new List<float>();
-            foreach (int timestep in sub_timesteps) {
+            float[] c_skip_list = new float[sub_timesteps.Length];
+            float[] c_out_list  = new float[sub_timesteps.Length];
+            for (int i = 0, timestep = sub_timesteps[i]; i < sub_timesteps.Length; i++) {
                 (float c_skip, float c_out) = Scheduler.GetScalingsForBoundaryConditionDiscrete(timestep);
-                c_skip_list.Add(c_skip);
-                c_out_list.Add(c_out);
+                c_skip_list[i] = c_skip;
+                c_out_list[i] = c_out;
             }
 
-            c_skip = (
-                torch.stack(c_skip_list)
-                .view(len(t_list), 1, 1, 1)
-                .to(dtype = dtype, device = device)
-            )
-            c_out = (
-                torch.stack(c_out_list)
-                .view(len(t_list), 1, 1, 1)
-                .to(dtype = dtype, device = device)
-            )
+            c_skip = new TensorFloat(new TensorShape(c_skip_list.Length), c_skip_list);
+            c_skip.Reshape(new TensorShape(c_skip_list.Length, 1, 1, 1));
 
-            alpha_prod_t_sqrt_list = []
-            beta_prod_t_sqrt_list = []
-            for timestep in sub_timesteps:
-                alpha_prod_t_sqrt = scheduler.alphas_cumprod[timestep].sqrt()
-                beta_prod_t_sqrt = (1 - scheduler.alphas_cumprod[timestep]).sqrt()
-                alpha_prod_t_sqrt_list.append(alpha_prod_t_sqrt)
-                beta_prod_t_sqrt_list.append(beta_prod_t_sqrt)
-            alpha_prod_t_sqrt = (
-                torch.stack(alpha_prod_t_sqrt_list)
-                .view(len(t_list), 1, 1, 1)
-                .to(dtype = dtype, device = device)
-            )
-            beta_prod_t_sqrt = (
-                torch.stack(beta_prod_t_sqrt_list)
-                .view(len(t_list), 1, 1, 1)
-                .to(dtype = dtype, device = device)
-            )
-            alpha_prod_t_sqrt = torch.repeat_interleave(
-                alpha_prod_t_sqrt,
-                repeats = frame_bff_size if use_denoising_batch else 1,
-                dim = 0,
-            )
-            beta_prod_t_sqrt = torch.repeat_interleave(
-                beta_prod_t_sqrt,
-                repeats = frame_bff_size if use_denoising_batch else 1,
-                dim = 0,
-            )*/
+            c_out = new TensorFloat(new TensorShape(c_out_list.Length), c_out_list);
+            c_out.Reshape(new TensorShape(c_out_list.Length, 1, 1, 1));
+
+            float[] alpha_prod_t_sqrt_list = new float[sub_timesteps.Length];
+            float[] beta_prod_t_sqrt_list  = new float[sub_timesteps.Length];
+            for (int i = 0, timestep = sub_timesteps[i]; i < sub_timesteps.Length; i++) {
+                float alpha_prod_t_sqrt = MathF.Sqrt(Scheduler.AlphasCumprodF[timestep]);
+                float beta_prod_t_sqrt = MathF.Sqrt(1f - Scheduler.AlphasCumprodF[timestep]);
+                alpha_prod_t_sqrt_list[i] = alpha_prod_t_sqrt;
+                beta_prod_t_sqrt_list[i] = beta_prod_t_sqrt;
+            }
+            alpha_prod_t_sqrt = new TensorFloat(new TensorShape(alpha_prod_t_sqrt_list.Length), alpha_prod_t_sqrt_list);
+            alpha_prod_t_sqrt.Reshape(new TensorShape(alpha_prod_t_sqrt_list.Length, 1, 1, 1));
+            beta_prod_t_sqrt = new TensorFloat(new TensorShape(beta_prod_t_sqrt_list.Length), beta_prod_t_sqrt_list);
+            beta_prod_t_sqrt.Reshape(new TensorShape(beta_prod_t_sqrt_list.Length, 1, 1, 1));
+
+            alpha_prod_t_sqrt = _ops.RepeatInterleave(alpha_prod_t_sqrt, repeats, dim: 0);
+            beta_prod_t_sqrt = _ops.RepeatInterleave(beta_prod_t_sqrt, repeats, dim: 0);
+
+        }
+
+        public void Dispose() {
+            _stockNoise?.Dispose();
+            c_skip?.Dispose();
+            c_out?.Dispose();
+            alpha_prod_t_sqrt?.Dispose();
+            beta_prod_t_sqrt?.Dispose();
         }
 
     }

@@ -50,5 +50,15 @@ namespace Doji.AI.Diffusers.Editor.Tests {
             nonzero.CompleteOperationsAndDownload();
             CollectionAssert.AreEqual(new int[] { 1, 3, 4, 7 }, nonzero.ToReadOnlyArray());
         }
+
+        [Test]
+        public void TestRepeat() {
+            using Ops ops = new Ops(BackendType.GPUCompute);
+            int[] data = new int[] { 1, 2, 3 };
+            using TensorInt test = new TensorInt(new TensorShape(data.Length), data);
+            TensorInt r = ops.RepeatInterleave(test, 2, 0);
+            r.CompleteOperationsAndDownload();
+            CollectionAssert.AreEqual(new int[] { 1, 1, 2, 2, 3, 3 }, r.ToReadOnlyArray());
+        }
     }
 }

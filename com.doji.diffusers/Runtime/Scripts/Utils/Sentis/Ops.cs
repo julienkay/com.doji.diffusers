@@ -48,13 +48,25 @@ namespace Doji.AI.Diffusers {
         }
 
         internal TensorFloat TensorFloatAllocNoData(TensorShape shape) {
-            var tensor = new TensorFloat(shape, null);
+            var tensor = TensorFloat.AllocNoData(shape);
             _pool.Add(tensor);
             return tensor;
         }
 
         internal TensorInt TensorIntAllocNoData(TensorShape shape) {
-            var tensor = new TensorInt(shape, null);
+            var tensor = TensorInt.AllocNoData(shape);
+            _pool.Add(tensor);
+            return tensor;
+        }
+
+        public TensorFloat NewTensorFloat(TensorShape shape, float[] data) {
+            var tensor = new TensorFloat(shape, data);
+            _pool.Add(tensor);
+            return tensor;
+        }
+
+        public TensorInt NewTensorInt(TensorShape shape, int[] data) {
+            var tensor = new TensorInt(shape, data, 0);
             _pool.Add(tensor);
             return tensor;
         }
@@ -253,6 +265,22 @@ namespace Doji.AI.Diffusers {
             return O;
         }
 
+        public T Transpose<T>(T X) where T : Tensor {
+            var O = AllocNoData(X.shape.Transpose(), X.dataType) as T;
+            if (O.shape.HasZeroDims())
+                return O;
+            _backend.Transpose(X, O);
+            return O;
+        }
+
+        public T Transpose<T>(T X, int[] permutations) where T : Tensor {
+            var O = AllocNoData(X.shape.Transpose(permutations), X.dataType) as T;
+            if (O.shape.HasZeroDims())
+                return O;
+            _backend.Transpose(X, O, permutations);
+            return O;
+        }
+
         public Tensor Concat(Tensor[] tensors, int axis) {
             var O = AllocNoData(TensorShapeHelper.ConcatShape(tensors, axis), tensors[0].dataType);
             if (O.shape.HasZeroDims())
@@ -314,6 +342,14 @@ namespace Doji.AI.Diffusers {
             if (O.shape.HasZeroDims())
                 return O;
             _backend.Neg(X, O);
+            return O;
+        }
+
+        public T Tile<T>(T X, ReadOnlySpan<int> repeats) where T : Tensor {
+            var O = AllocNoData(X.shape.Tile(repeats), X.dataType) as T;
+            if (O.shape.HasZeroDims())
+                return O;
+            _backend.Tile(X, O, repeats);
             return O;
         }
 

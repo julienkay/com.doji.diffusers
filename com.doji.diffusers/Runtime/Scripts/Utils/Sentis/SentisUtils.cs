@@ -108,22 +108,74 @@ namespace Doji.AI.Diffusers {
         }
 
         /// <summary>
-        /// numpy.repeat()
+        /// Similar to torch.repeat() or numpy.tile()
         /// </summary>
-        /// <remarks>
-        /// TODO: Implement this using <see cref="Ops.Tile{T}(T, ReadOnlySpan{int})"/>
-        /// to support multiple images per prompt
-        /// </remarks>
         public static TensorFloat Repeat(this Ops ops, TensorFloat tensor, int repeats, int axis) {
             if (repeats <= 0) {
                 throw new ArgumentException($"Repeat count must be greater than zero, was {repeats}.", nameof(repeats));
             }
-            
+
             if (repeats == 1) {
                 return tensor;
             }
 
-            throw new NotImplementedException();
+            int[] r = ArrayUtils.Full(tensor.shape.rank, 1);
+            r[axis] = repeats;
+            return ops.Tile(tensor, r);
+        }
+
+        /// <summary>
+        /// Similar to torch.repeat() or numpy.tile()
+        /// </summary>
+        public static TensorInt Repeat(this Ops ops, TensorInt tensor, int repeats, int axis) {
+            if (repeats <= 0) {
+                throw new ArgumentException($"Repeat count must be greater than zero, was {repeats}.", nameof(repeats));
+            }
+
+            if (repeats == 1) {
+                return tensor;
+            }
+
+            int[] r = ArrayUtils.Full(tensor.shape.rank, 1);
+            r[axis] = repeats;
+            return ops.Tile(tensor, r);
+        }
+
+
+        /// <summary>
+        /// Similar torch.repeat_interleave() or numpy.repeat()
+        /// </summary>
+        public static TensorFloat RepeatInterleave(this Ops ops, TensorFloat tensor, int repeats, int dim) {
+            if (repeats <= 0) {
+                throw new ArgumentException($"Repeat count must be greater than zero, was {repeats}.", nameof(repeats));
+            }
+
+            // implement repeat_interleave using repeat, reshape & transpose ops
+            var repeat = ops.Repeat(tensor, repeats, dim);
+            repeat.Reshape(repeat.shape.Flatten());
+            var flatShape = repeat.shape;
+            repeat.Reshape(new TensorShape(repeats, flatShape.length / repeats));
+            var transpose = ops.Transpose(repeat, new int[] { 1, 0 });
+            transpose.Reshape(flatShape);
+            return transpose;
+        }
+
+        /// <summary>
+        /// Similar torch.repeat_interleave() or numpy.repeat()
+        /// </summary>
+        public static TensorInt RepeatInterleave(this Ops ops, TensorInt tensor, int repeats, int dim) {
+            if (repeats <= 0) {
+                throw new ArgumentException($"Repeat count must be greater than zero, was {repeats}.", nameof(repeats));
+            }
+
+            // implement repeat_interleave using repeat, reshape & transpose ops
+            var repeat = ops.Repeat(tensor, repeats, dim);
+            repeat.Reshape(repeat.shape.Flatten());
+            var flatShape = repeat.shape;
+            repeat.Reshape(new TensorShape(repeats, flatShape.length / repeats));
+            var transpose = ops.Transpose(repeat, new int[] { 1, 0 });
+            transpose.Reshape(flatShape);
+            return transpose;
         }
 
         /// <summary>
