@@ -30,7 +30,7 @@ namespace Doji.AI.Diffusers {
 
         private bool SimilarImageFilter { get; set; }
         private SimilarImageFilter SimilarFilter { get; set; }
-        private object PrevImageResult { get; set; }
+        private TensorFloat PrevImageResult { get; set; }
 
         private DiffusionPipeline Pipe { get; set; }
         private VaeImageProcessor ImageProcessor { get; set; }
@@ -38,6 +38,8 @@ namespace Doji.AI.Diffusers {
         private LCMScheduler Scheduler { get; set; }
         private TextEncoder TextEncoder { get; set; }
         private Unet Unet { get; set; }
+        private VaeEncoder VaeEncoder { get; set; }
+
         private Ops _ops { get; set; }
 
         private int InferenceTimeEma { get; set; }
@@ -61,8 +63,7 @@ namespace Doji.AI.Diffusers {
             bool useDenoisingBatch = true,
             int frameBufferSize = 1,
             CfgType cfgType = CfgType.Self,
-            BackendType backendType = BackendType.GPUCompute)
-        {
+            BackendType backendType = BackendType.GPUCompute) {
             Height = height;
             Width = width;
 
@@ -107,6 +108,7 @@ namespace Doji.AI.Diffusers {
             Scheduler = LCMScheduler.FromConfig(pipe.Scheduler.Config, backendType);
             TextEncoder = pipe.TextEncoder;
             Unet = pipe.Unet;
+            VaeEncoder = null; //TODO: either make pipe an Img2ImgPipeline, or think about making vae required in base class
 
             InferenceTimeEma = 0;
 
@@ -186,7 +188,7 @@ namespace Doji.AI.Diffusers {
             _stockNoise = TensorFloat.AllocZeros(latentsShape);
 
             float[] c_skip_list = new float[sub_timesteps.Length];
-            float[] c_out_list  = new float[sub_timesteps.Length];
+            float[] c_out_list = new float[sub_timesteps.Length];
             for (int i = 0, timestep = sub_timesteps[i]; i < sub_timesteps.Length; i++) {
                 (float c_skip, float c_out) = Scheduler.GetScalingsForBoundaryConditionDiscrete(timestep);
                 c_skip_list[i] = c_skip;
@@ -200,7 +202,7 @@ namespace Doji.AI.Diffusers {
             c_out.Reshape(new TensorShape(c_out_list.Length, 1, 1, 1));
 
             float[] alpha_prod_t_sqrt_list = new float[sub_timesteps.Length];
-            float[] beta_prod_t_sqrt_list  = new float[sub_timesteps.Length];
+            float[] beta_prod_t_sqrt_list = new float[sub_timesteps.Length];
             for (int i = 0, timestep = sub_timesteps[i]; i < sub_timesteps.Length; i++) {
                 float alpha_prod_t_sqrt = MathF.Sqrt(Scheduler.AlphasCumprodF[timestep]);
                 float beta_prod_t_sqrt = MathF.Sqrt(1f - Scheduler.AlphasCumprodF[timestep]);
@@ -214,7 +216,62 @@ namespace Doji.AI.Diffusers {
 
             alpha_prod_t_sqrt = _ops.RepeatInterleave(alpha_prod_t_sqrt, repeats, dim: 0);
             beta_prod_t_sqrt = _ops.RepeatInterleave(beta_prod_t_sqrt, repeats, dim: 0);
+        }
 
+
+        private TensorFloat AddNoise(TensorFloat original_samples, TensorFloat noise, int t_index) {
+            /*noisy_samples = (
+                self.alpha_prod_t_sqrt[t_index] * original_samples
+                + self.beta_prod_t_sqrt[t_index] * noise
+            )
+            return noisy_samples*/
+            throw new NotImplementedException();
+        }
+
+        private TensorFloat EncodeImage(TensorFloat image_tensors) {
+            var img_latent = RetrieveLatents(VaeEncoder.Execute(image_tensors));
+            img_latent = _ops.Mul(img_latent, VaeEncoder.Config.ScalingFactor.Value);
+            TensorFloat x_t_latent = AddNoise(img_latent, _initNoise, 0);
+            return x_t_latent;
+        }
+
+        private TensorFloat RetrieveLatents(TensorFloat latentTensors) {
+            return latentTensors;
+        }
+
+        private TensorFloat decode_image(TensorFloat x_0_pred_out) {
+            /*var output_latent = self.vae.decode(
+                x_0_pred_out / self.vae.config.scaling_factor, return_dict=False
+            )[0]
+            return output_latent*/
+            throw new NotImplementedException();
+        }
+
+        private TensorFloat predict_x0_batch(TensorFloat x_t_latent) {
+            throw new NotImplementedException();
+        }
+
+        private TensorFloat Update(TensorFloat x) {
+            TensorFloat x_t_latent;
+            if (x != null) {
+                x = ImageProcessor.PreProcess(x, Height, Width);
+                if (SimilarImageFilter) {
+                    x = SimilarFilter.Execute(x);
+                    if (x is null) {
+                        return PrevImageResult;
+                    }
+                }
+                x_t_latent = EncodeImage(x);
+            } else {
+                // TODO: check the dimension of x_t_latent
+                x_t_latent = _ops.RandomNormal(new TensorShape(1, 4, LatentHeight, LatentWidth), 0, 1, seed: 42);
+            }
+
+            var x_0_pred_out = predict_x0_batch(x_t_latent);
+            var x_output = decode_image(x_0_pred_out);//.detach().clone();
+
+            PrevImageResult = x_output;
+            return x_output;
         }
 
         public void Dispose() {
