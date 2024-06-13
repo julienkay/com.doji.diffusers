@@ -39,6 +39,7 @@ namespace Doji.AI.Diffusers {
         private TextEncoder TextEncoder { get; set; }
         private Unet Unet { get; set; }
         private VaeEncoder VaeEncoder { get; set; }
+        private VaeDecoder VaeDecoder { get; set; }
 
         private Ops _ops { get; set; }
 
@@ -47,12 +48,20 @@ namespace Doji.AI.Diffusers {
         private float _guidanceScale;
         private float _delta;
 
+        private TensorFloat prompt_embeds;
         private TensorFloat _initNoise;
         private TensorFloat _stockNoise;
         private TensorFloat c_skip;
+        private float[] c_skip_list;
         private TensorFloat c_out;
+        private float[] c_out_list;
         private TensorFloat alpha_prod_t_sqrt;
+        private float[] alpha_prod_t_sqrt_list;
         private TensorFloat beta_prod_t_sqrt;
+        private float[] beta_prod_t_sqrt_list;
+        private TensorInt sub_timesteps_tensor;
+        private int[] sub_timesteps;
+        private TensorFloat x_t_latent_buffer;
 
         public StreamDiffusion(
             DiffusionPipeline pipe,
@@ -63,7 +72,8 @@ namespace Doji.AI.Diffusers {
             bool useDenoisingBatch = true,
             int frameBufferSize = 1,
             CfgType cfgType = CfgType.Self,
-            BackendType backendType = BackendType.GPUCompute) {
+            BackendType backendType = BackendType.GPUCompute)
+        {
             Height = height;
             Width = width;
 
@@ -109,6 +119,7 @@ namespace Doji.AI.Diffusers {
             TextEncoder = pipe.TextEncoder;
             Unet = pipe.Unet;
             VaeEncoder = null; //TODO: either make pipe an Img2ImgPipeline, or think about making vae required in base class
+            VaeDecoder = pipe.VaeDecoder;
 
             InferenceTimeEma = 0;
 
@@ -126,7 +137,6 @@ namespace Doji.AI.Diffusers {
             seed ??= unchecked((uint)generator.Next());
 
             // initialize x_t_latent (it can be any random tensor)
-            TensorFloat x_t_latent_buffer;
             if (NumDenoisingSteps > 1) {
                 x_t_latent_buffer = TensorFloat.AllocZeros(
                     new TensorShape(
@@ -155,7 +165,7 @@ namespace Doji.AI.Diffusers {
                 doClassifierFreeGuidance: do_classifier_free_guidance,
                 negativePrompt: negative_prompt
             );
-            var prompt_embeds = _ops.Repeat(embeddings.PromptEmbeds, BatchSize, axis: 0);
+            prompt_embeds = _ops.Repeat(embeddings.PromptEmbeds, BatchSize, axis: 0);
 
             TensorFloat uncond_prompt_embeds = null;
             if (UseDenoisingBatch && CfgType == CfgType.Full) {
@@ -172,7 +182,7 @@ namespace Doji.AI.Diffusers {
             var timesteps = Scheduler.Timesteps;
 
             // make sub timesteps list based on the indices in the t_list list and the values in the timesteps list
-            int[] sub_timesteps = new int[num_inference_steps];
+            sub_timesteps = new int[num_inference_steps];
             for (int i = 0; i < TList.Count; i++) {
                 int t = TList[i];
                 sub_timesteps[i] = (int)timesteps[t];
@@ -180,15 +190,15 @@ namespace Doji.AI.Diffusers {
 
             var sub_timesteps_tensor = new TensorInt(new TensorShape(sub_timesteps.Length), sub_timesteps);
             int repeats = UseDenoisingBatch ? FrameBffSize : 1;
-            sub_timesteps_tensor = _ops.RepeatInterleave(sub_timesteps_tensor, repeats, dim: 0);
+            this.sub_timesteps_tensor = _ops.RepeatInterleave(sub_timesteps_tensor, repeats, dim: 0);
 
             var latentsShape = new TensorShape(BatchSize, 4, LatentHeight, LatentWidth);
             _initNoise = _ops.RandomNormal(latentsShape, 0, 1, unchecked((int)seed));
 
             _stockNoise = TensorFloat.AllocZeros(latentsShape);
 
-            float[] c_skip_list = new float[sub_timesteps.Length];
-            float[] c_out_list = new float[sub_timesteps.Length];
+            c_skip_list = new float[sub_timesteps.Length];
+            c_out_list = new float[sub_timesteps.Length];
             for (int i = 0, timestep = sub_timesteps[i]; i < sub_timesteps.Length; i++) {
                 (float c_skip, float c_out) = Scheduler.GetScalingsForBoundaryConditionDiscrete(timestep);
                 c_skip_list[i] = c_skip;
@@ -201,8 +211,8 @@ namespace Doji.AI.Diffusers {
             c_out = new TensorFloat(new TensorShape(c_out_list.Length), c_out_list);
             c_out.Reshape(new TensorShape(c_out_list.Length, 1, 1, 1));
 
-            float[] alpha_prod_t_sqrt_list = new float[sub_timesteps.Length];
-            float[] beta_prod_t_sqrt_list = new float[sub_timesteps.Length];
+            alpha_prod_t_sqrt_list = new float[sub_timesteps.Length];
+            beta_prod_t_sqrt_list = new float[sub_timesteps.Length];
             for (int i = 0, timestep = sub_timesteps[i]; i < sub_timesteps.Length; i++) {
                 float alpha_prod_t_sqrt = MathF.Sqrt(Scheduler.AlphasCumprodF[timestep]);
                 float beta_prod_t_sqrt = MathF.Sqrt(1f - Scheduler.AlphasCumprodF[timestep]);
@@ -220,12 +230,108 @@ namespace Doji.AI.Diffusers {
 
 
         private TensorFloat AddNoise(TensorFloat original_samples, TensorFloat noise, int t_index) {
-            /*noisy_samples = (
-                self.alpha_prod_t_sqrt[t_index] * original_samples
-                + self.beta_prod_t_sqrt[t_index] * noise
-            )
-            return noisy_samples*/
-            throw new NotImplementedException();
+            var a = _ops.Mul(alpha_prod_t_sqrt_list[t_index], original_samples);
+            var b = _ops.Mul(beta_prod_t_sqrt[t_index], noise);
+            return _ops.Add(a, b);
+        }
+
+        private TensorFloat scheduler_step_batch(
+            TensorFloat model_pred_batch,
+            TensorFloat x_t_latent_batch,
+            int? idx = null)
+        {
+            // TODO: use t_list to select beta_prod_t_sqrt
+            TensorFloat F_theta;
+            TensorFloat denoised_batch;
+            if (idx == null) {
+                var tmp = _ops.Mul(beta_prod_t_sqrt, model_pred_batch);
+                var tmp2 = _ops.Sub(x_t_latent_batch, tmp);
+                F_theta = _ops.Div(tmp2, alpha_prod_t_sqrt);
+                var tmp3 = _ops.Mul(c_out, F_theta);
+                var tmp4 = _ops.Mul(c_skip, x_t_latent_batch);
+                denoised_batch = _ops.Add(tmp3, tmp4);
+            } else {
+                var tmp = _ops.Mul(beta_prod_t_sqrt_list[idx.Value], model_pred_batch);
+                var tmp2 = _ops.Sub(x_t_latent_batch, tmp);
+                F_theta = _ops.Div(tmp2, alpha_prod_t_sqrt_list[idx.Value]);
+                var tmp3 = _ops.Mul(c_out_list[idx.Value], F_theta);
+                var tmp4 = _ops.Mul(c_skip_list[idx.Value], x_t_latent_batch);
+                denoised_batch = _ops.Add(tmp3, tmp4);
+            }
+            return denoised_batch;
+        }
+
+        private (TensorFloat, TensorFloat) UnetStep(
+            TensorFloat x_t_latent,
+            TensorInt t_list,
+            int? idx = null)
+        {
+            TensorFloat x_t_latent_plus_uc;
+            if (_guidanceScale > 1.0f && CfgType == CfgType.Initialize) {
+                x_t_latent_plus_uc = _ops.Concatenate(_ops.Split(x_t_latent, axis: 0, 0, 1), x_t_latent);
+                t_list = _ops.Concatenate(_ops.Split(t_list, axis: 0, 0, 1), t_list);
+            } else if (_guidanceScale > 1.0f && CfgType == CfgType.Full) {
+                x_t_latent_plus_uc = _ops.Concatenate(x_t_latent, x_t_latent);
+                t_list = _ops.Concatenate(t_list, t_list);
+            } else {
+                x_t_latent_plus_uc = x_t_latent;
+            }
+            var model_pred = Unet.Execute(
+                x_t_latent_plus_uc,
+                t_list,
+                encoderHiddenStates: prompt_embeds
+            );
+
+            TensorFloat noise_pred_text;
+            TensorFloat noise_pred_uncond = null;
+            if (_guidanceScale > 1.0f && CfgType == CfgType.Initialize) {
+                noise_pred_text = _ops.Split(model_pred, axis: 0, start: 1, end: model_pred.shape[0]);
+                _stockNoise = _ops.Concatenate(_ops.Split(model_pred, axis: 0, 0, 1), _ops.Split(_stockNoise, axis: 0, 1, _stockNoise.shape[0]));
+            } else if (_guidanceScale > 1.0f && (CfgType == CfgType.Full)) {
+                (noise_pred_uncond, noise_pred_text) = _ops.SplitHalf(model_pred);
+            } else {
+                noise_pred_text = model_pred;
+            }
+            if (_guidanceScale > 1.0f && (CfgType == CfgType.Self || CfgType == CfgType.Initialize)) {
+                noise_pred_uncond = _ops.Mul(_stockNoise, _delta);
+            }
+            if (_guidanceScale > 1.0 && CfgType != CfgType.None) {
+                var a = _ops.Add(noise_pred_uncond, _guidanceScale);
+                var b = _ops.Sub(noise_pred_text, noise_pred_uncond);
+                    model_pred = _ops.Mul(a, b);
+            } else {
+                model_pred = noise_pred_text;
+            }
+
+            // compute the previous noisy sample x_t -> x_t-1
+            TensorFloat denoised_batch;
+            if (UseDenoisingBatch) {
+                denoised_batch = scheduler_step_batch(model_pred, x_t_latent, idx);
+                if (CfgType == CfgType.Self || CfgType == CfgType.Initialize) {
+                    var scaled_noise = _ops.Mul(beta_prod_t_sqrt, _stockNoise);
+                    var delta_x = scheduler_step_batch(model_pred, scaled_noise, idx);
+                    var a = _ops.Split(alpha_prod_t_sqrt, axis: 0, start: 1, end: alpha_prod_t_sqrt.shape[0]);
+                    TensorShape s = alpha_prod_t_sqrt.shape;
+                    s[0] = 1;
+                    using TensorFloat b = new TensorFloat(s, ArrayUtils.Full(s.length, 1f)); // torch.ones_like()
+                    var alpha_next = _ops.Concatenate(a, b);
+                    delta_x = _ops.Mul(alpha_next, delta_x);
+                    var c = _ops.Split(beta_prod_t_sqrt, axis: 0, start: 1, end: beta_prod_t_sqrt.shape[0]);
+                    s = beta_prod_t_sqrt.shape;
+                    s[0] = 1;
+                    using TensorFloat d = new TensorFloat(s, ArrayUtils.Full(s.length, 1f)); // torch.ones_like()
+                    var beta_next = _ops.Concatenate(c, d);
+                    delta_x = _ops.Div(delta_x, beta_next);
+                    var e = _ops.Split(_initNoise, axis: 0, start: 1, end: _initNoise.shape[0]);
+                    var f = _ops.Split(_stockNoise, axis: 0, start: 0, end: 1);
+                    _initNoise = _ops.Concatenate(e, f);
+                    _stockNoise = _ops.Add(_initNoise, delta_x);
+                }
+            } else {
+                // denoised_batch = self.scheduler.step(model_pred, t_list[0], x_t_latent).denoised
+                denoised_batch = scheduler_step_batch(model_pred, x_t_latent, idx);
+            }
+            return (denoised_batch, model_pred);
         }
 
         private TensorFloat EncodeImage(TensorFloat image_tensors) {
@@ -240,15 +346,64 @@ namespace Doji.AI.Diffusers {
         }
 
         private TensorFloat decode_image(TensorFloat x_0_pred_out) {
-            /*var output_latent = self.vae.decode(
-                x_0_pred_out / self.vae.config.scaling_factor, return_dict=False
-            )[0]
-            return output_latent*/
-            throw new NotImplementedException();
+            var output_latent = VaeDecoder.Execute(_ops.Div(x_0_pred_out, VaeDecoder.Config.ScalingFactor.Value));
+            return output_latent;
         }
 
         private TensorFloat predict_x0_batch(TensorFloat x_t_latent) {
-            throw new NotImplementedException();
+            var prev_latent_batch = x_t_latent_buffer;
+
+            TensorFloat x_0_pred_out = null;
+            if (UseDenoisingBatch) {
+                var t_list = sub_timesteps_tensor;
+                if (NumDenoisingSteps > 1) {
+                    x_t_latent = _ops.Concatenate(x_t_latent, prev_latent_batch, axis: 0);
+                    var a = _ops.Split(_initNoise, axis: 0, start: 0, end: 1);
+                    var b = _ops.Split(_stockNoise, axis: 0, start: 1, end: _stockNoise.shape[0] - 1);
+                    _stockNoise = _ops.Concatenate(a, b, axis: 0);
+
+                }
+                (TensorFloat x_0_pred_batch, TensorFloat model_pred) = UnetStep(x_t_latent, t_list);
+
+                if (NumDenoisingSteps > 1) {
+                    x_0_pred_out = _ops.Split(x_0_pred_batch, axis: 0, x_0_pred_batch.shape[0] - 1, x_0_pred_batch.shape[0]);
+                    if (DoAddNoise) {
+                        var a = _ops.Split(alpha_prod_t_sqrt, axis: 0, 1, alpha_prod_t_sqrt.shape[0]);
+                        var b = _ops.Split(x_0_pred_batch, axis: 0, 0, x_0_pred_batch.shape[0] - 1);
+                        var tmp = _ops.Mul(a, b);
+                        var c = _ops.Split(beta_prod_t_sqrt, axis: 0, 1, beta_prod_t_sqrt.shape[0]);
+                        var d = _ops.Split(_initNoise, axis: 0, 1, _initNoise.shape[0]);
+                        var tmp2 = _ops.Mul(c, d);
+                        x_t_latent_buffer = _ops.Add(tmp, tmp2);
+                    } else {
+                        var a = _ops.Split(alpha_prod_t_sqrt, axis: 0, 1, alpha_prod_t_sqrt.shape[0]);
+                        var b = _ops.Split(x_0_pred_batch, axis: 0, 0, x_0_pred_batch.shape[0] - 1);
+                        x_t_latent_buffer = _ops.Mul(a, b);
+                    }
+                } else {
+                    x_0_pred_out = x_0_pred_batch;
+                    x_t_latent_buffer = null;
+                }
+            } else {
+                _initNoise = x_t_latent;
+                for (int idx = 0; idx < sub_timesteps.Length; idx++) {
+                    TensorInt t = new TensorInt(sub_timesteps[idx]);
+                    t = _ops.Repeat(t, FrameBffSize, 0);
+                    (TensorFloat x_0_pred, TensorFloat model_pred) = UnetStep(x_t_latent, t, idx);
+                    if (idx < sub_timesteps_tensor.shape[0] - 1) {
+                        if (DoAddNoise) {
+                            var randn = _ops.RandomNormal(x_0_pred.shape, 0, 1, seed: 42);
+                            var a = _ops.Mul(alpha_prod_t_sqrt_list[idx + 1], x_0_pred);
+                            var b = _ops.Mul(beta_prod_t_sqrt_list[idx + 1], randn);
+                            x_t_latent = _ops.Add(a, b);
+                        } else {
+                            x_t_latent = _ops.Mul(alpha_prod_t_sqrt_list[idx + 1], x_0_pred);
+                        }
+                    }
+                    x_0_pred_out = x_0_pred;
+                }
+            }
+            return x_0_pred_out;
         }
 
         private TensorFloat Update(TensorFloat x) {
@@ -281,6 +436,5 @@ namespace Doji.AI.Diffusers {
             alpha_prod_t_sqrt?.Dispose();
             beta_prod_t_sqrt?.Dispose();
         }
-
     }
 }

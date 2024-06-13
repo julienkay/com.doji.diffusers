@@ -107,6 +107,10 @@ namespace Doji.AI.Diffusers {
             return ops.Concatenate(tensor1 as Tensor, tensor2 as Tensor, axis) as TensorFloat;
         }
 
+        public static TensorInt Concatenate(this Ops ops, TensorInt tensor1, TensorInt tensor2, int axis = 0) {
+            return ops.Concatenate(tensor1 as Tensor, tensor2 as Tensor, axis) as TensorInt;
+        }
+
         /// <summary>
         /// Similar to torch.repeat() or numpy.tile()
         /// </summary>
@@ -143,7 +147,7 @@ namespace Doji.AI.Diffusers {
 
 
         /// <summary>
-        /// Similar torch.repeat_interleave() or numpy.repeat()
+        /// Similar to torch.repeat_interleave() or numpy.repeat()
         /// </summary>
         public static TensorFloat RepeatInterleave(this Ops ops, TensorFloat tensor, int repeats, int dim) {
             if (repeats <= 0) {
@@ -161,7 +165,7 @@ namespace Doji.AI.Diffusers {
         }
 
         /// <summary>
-        /// Similar torch.repeat_interleave() or numpy.repeat()
+        /// Similar to torch.repeat_interleave() or numpy.repeat()
         /// </summary>
         public static TensorInt RepeatInterleave(this Ops ops, TensorInt tensor, int repeats, int dim) {
             if (repeats <= 0) {
@@ -180,7 +184,7 @@ namespace Doji.AI.Diffusers {
 
         /// <summary>
         /// Alias for <see cref="Ops.Split{T}(T, int, int, int)"/> to match the
-        /// arguments of numpy.split() i.e. providing <paramref name="sections"/>
+        /// arguments of numpy.split() or torch.chunk() i.e. providing <paramref name="sections"/>
         /// that the original tensor is split into.
         /// </summary>
         public static void Split(this Ops ops, Tensor tensor, int sections, int axis = 0, List<TensorFloat> splitTensors = null) {
