@@ -153,10 +153,12 @@ namespace Doji.AI.Diffusers {
             if (repeats <= 0) {
                 throw new ArgumentException($"Repeat count must be greater than zero, was {repeats}.", nameof(repeats));
             }
+            if (tensor.shape.rank > 1) {
+                throw new ArgumentException($"RepeatInterleave not supported yet for tensors with rank > 1");
+            }
 
             // implement repeat_interleave using repeat, reshape & transpose ops
             var repeat = ops.Repeat(tensor, repeats, dim);
-            repeat.Reshape(repeat.shape.Flatten());
             var flatShape = repeat.shape;
             repeat.Reshape(new TensorShape(repeats, flatShape.length / repeats));
             var transpose = ops.Transpose(repeat, new int[] { 1, 0 });
@@ -171,10 +173,12 @@ namespace Doji.AI.Diffusers {
             if (repeats <= 0) {
                 throw new ArgumentException($"Repeat count must be greater than zero, was {repeats}.", nameof(repeats));
             }
+            if (tensor.shape.rank > 1) {
+                throw new ArgumentException($"RepeatInterleave not supported yet for tensors with rank > 1");
+            }
 
             // implement repeat_interleave using repeat, reshape & transpose ops
             var repeat = ops.Repeat(tensor, repeats, dim);
-            repeat.Reshape(repeat.shape.Flatten());
             var flatShape = repeat.shape;
             repeat.Reshape(new TensorShape(repeats, flatShape.length / repeats));
             var transpose = ops.Transpose(repeat, new int[] { 1, 0 });

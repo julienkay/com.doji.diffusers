@@ -1,7 +1,6 @@
 using System;
 using System.Reflection;
 using Unity.Sentis;
-using UnityEngine.Assertions;
 
 namespace Doji.AI.Diffusers {
 

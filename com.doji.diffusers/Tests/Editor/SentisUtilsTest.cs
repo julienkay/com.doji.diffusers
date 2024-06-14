@@ -52,11 +52,13 @@ namespace Doji.AI.Diffusers.Editor.Tests {
         }
 
         [Test]
-        public void TestRepeat() {
+        public void TestRepeatInterlave() {
             using Ops ops = new Ops(BackendType.GPUCompute);
             int[] data = new int[] { 1, 2, 3 };
-            using TensorInt test = new TensorInt(new TensorShape(data.Length), data);
-            TensorInt r = ops.RepeatInterleave(test, 2, 0);
+            TensorShape shape = new TensorShape(data.Length);
+            using TensorInt input = new TensorInt(shape, data);
+            TensorInt r = ops.RepeatInterleave(input, 2, 0);
+            Assert.That(r.shape, Is.EqualTo(new TensorShape(3 * 2)));
             r.CompleteOperationsAndDownload();
             CollectionAssert.AreEqual(new int[] { 1, 1, 2, 2, 3, 3 }, r.ToReadOnlyArray());
         }
