@@ -409,6 +409,14 @@ namespace Doji.AI.Diffusers {
             return O;
         }
 
+        public TensorFloat Cast(TensorInt X) {
+            var O = TensorFloatAllocNoData(X.shape);
+            if (O.shape.HasZeroDims())
+                return O;
+            _backend.Cast(X, O);
+            return O;
+        }
+
         public (TensorFloat values, TensorInt indices) TopK(TensorFloat X, int k, int axis, bool largest, bool sorted) {
             var outputShape = new TensorShape(X.shape);
             outputShape[axis] = k;

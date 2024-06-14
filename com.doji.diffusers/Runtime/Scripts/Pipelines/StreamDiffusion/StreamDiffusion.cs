@@ -276,9 +276,11 @@ namespace Doji.AI.Diffusers {
             } else {
                 x_t_latent_plus_uc = x_t_latent;
             }
+
+            TensorFloat t = _ops.Cast(t_list);
             var model_pred = Unet.Execute(
                 x_t_latent_plus_uc,
-                t_list,
+                t,
                 encoderHiddenStates: prompt_embeds
             );
 
