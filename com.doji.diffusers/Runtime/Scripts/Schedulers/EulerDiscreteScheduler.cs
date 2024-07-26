@@ -85,7 +85,7 @@ namespace Doji.AI.Diffusers {
             var argmax = _ops.ArgMax(cumsum, 0, true);
             var clip = _ops.Clip(cumsum, 0, logSigmas.Length - 2);
             Debug.Assert(clip.shape.Equals(new TensorShape(1)));
-            clip.CompleteOperationsAndDownload();
+            clip.ReadbackAndClone();
 
             int lowIdx = clip.ToReadOnlyArray()[0];
             int highIdx = lowIdx + 1;

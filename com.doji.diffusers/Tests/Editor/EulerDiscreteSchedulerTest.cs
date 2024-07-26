@@ -110,7 +110,7 @@ namespace Doji.AI.Diffusers.Editor.Tests {
                 sample = _scheduler.Step(stepArgs).PrevSample;
             }
 
-            sample.CompleteOperationsAndDownload();
+            sample.ReadbackAndClone();
             CollectionAssert.AreEqual(ExpectedOutput, sample.ToReadOnlyArray(), new FloatArrayComparer(0.00001f));
         }
 

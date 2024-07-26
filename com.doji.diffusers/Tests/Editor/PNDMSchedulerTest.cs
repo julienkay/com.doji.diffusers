@@ -76,7 +76,7 @@ namespace Doji.AI.Diffusers.Editor.Tests {
         /// </summary>
         [Test]
         public void TestBetas() {
-            _scheduler.Betas.CompleteOperationsAndDownload();
+            _scheduler.Betas.ReadbackAndClone();
             var betas = _scheduler.Betas.ToReadOnlyArray();
             CollectionAssert.AreEqual(ExpectedBetas, betas, new FloatArrayComparer(0.00001f));
         }
@@ -129,7 +129,7 @@ namespace Doji.AI.Diffusers.Editor.Tests {
                 sample = scheduler.Step(stepArgs).PrevSample;
             }
 
-            sample.CompleteOperationsAndDownload();
+            sample.ReadbackAndClone();
             CollectionAssert.AreEqual(ExpectedOutput, sample.ToReadOnlyArray(), new FloatArrayComparer(0.00001f));
         }
 

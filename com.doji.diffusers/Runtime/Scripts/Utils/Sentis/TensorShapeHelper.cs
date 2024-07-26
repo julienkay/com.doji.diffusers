@@ -3,6 +3,7 @@ using Unity.Sentis;
 namespace Doji.AI.Diffusers {
 
     internal static class TensorShapeHelper {
+
         public static TensorShape ConcatShape(Tensor[] tensors, int axis) {
             TensorShape output = tensors[0].shape;
 
@@ -14,14 +15,8 @@ namespace Doji.AI.Diffusers {
             return output;
         }
 
-        public static TensorShape BroadcastShape(Tensor[] tensors) {
-            TensorShape output = tensors[0].shape;
-            for (int i = 1; i < tensors.Length; ++i) {
-                TensorShape shape = tensors[i].shape;
-                output = output.Broadcast(shape);
-            }
-
-            return output;
+        public static TensorShape ConcatShape(Tensor tensor1, Tensor tensor2, int axis) {
+            return tensor1.shape.Concat(tensor2.shape, axis);
         }
 
         public static TensorShape BroadcastShape(Tensor a, Tensor b) {

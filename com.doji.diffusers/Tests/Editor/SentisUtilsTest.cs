@@ -28,7 +28,7 @@ namespace Doji.AI.Diffusers.Editor.Tests {
             using Ops ops = new Ops(BackendType.GPUCompute);
             using TensorFloat latents = new TensorFloat(new TensorShape(1, 4, 8, 8), Samples);
             TensorFloat quantile = ops.Quantile(latents, 0.995f, 1);
-            quantile.CompleteOperationsAndDownload();
+            quantile.ReadbackAndClone();
             CollectionAssert.AreEqual(ExpectedQuantile, quantile.ToReadOnlyArray(), new FloatArrayComparer(0.00001f));
         }
         /*
@@ -37,7 +37,7 @@ namespace Doji.AI.Diffusers.Editor.Tests {
             using Ops ops = new Ops(BackendType.GPUCompute);
             using TensorFloat latents = new TensorFloat(new TensorShape(1, 4, 8, 8), Samples);
             TensorFloat sorted = ops.Sort(latents, 1);
-            sorted.CompleteOperationsAndDownload();
+            sorted.ReadbackAndClone();
             CollectionAssert.AreEqual(ExpectedSorted, sorted.ToReadOnlyArray(), new FloatArrayComparer(0.00001f));
         }
         */
@@ -47,7 +47,7 @@ namespace Doji.AI.Diffusers.Editor.Tests {
             float[] data = new float[] { 0, 1, 0, 2, 3, 0, 0, -1 };
             using TensorFloat test = new TensorFloat(new TensorShape(data.Length), data);
             TensorInt nonzero = ops.NonZero(test);
-            nonzero.CompleteOperationsAndDownload();
+            nonzero.ReadbackAndClone();
             CollectionAssert.AreEqual(new int[] { 1, 3, 4, 7 }, nonzero.ToReadOnlyArray());
         }
 
@@ -59,7 +59,7 @@ namespace Doji.AI.Diffusers.Editor.Tests {
             using TensorInt input = new TensorInt(shape, data);
             TensorInt r = ops.RepeatInterleave(input, 2, 0);
             Assert.That(r.shape, Is.EqualTo(new TensorShape(3 * 2)));
-            r.CompleteOperationsAndDownload();
+            r.ReadbackAndClone();
             CollectionAssert.AreEqual(new int[] { 1, 1, 2, 2, 3, 3 }, r.ToReadOnlyArray());
         }
     }

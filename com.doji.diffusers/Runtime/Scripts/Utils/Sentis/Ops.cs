@@ -10,9 +10,6 @@ namespace Doji.AI.Diffusers {
 
         internal IBackend _backend;
 
-        private static Tensor[] _tmpTensorRefs = new Tensor[2];
-        private static TensorFloat[] _tmpTensorFRefs = new TensorFloat[2];
-
         private List<Tensor> _pool = new List<Tensor>();
 
         public Ops(BackendType backend) {
@@ -72,42 +69,20 @@ namespace Doji.AI.Diffusers {
         }
 
         public TensorFloat Max(TensorFloat tensor1, TensorFloat tensor2) {
-            _tmpTensorRefs[0] = tensor1;
-            _tmpTensorRefs[1] = tensor2;
-            var O = TensorFloatAllocNoData(TensorShapeHelper.BroadcastShape(_tmpTensorRefs));
+            var O = TensorFloatAllocNoData(TensorShapeHelper.BroadcastShape(tensor1, tensor2));
             if (O.shape.HasZeroDims()) {
                 return O;
             }
-            _backend.Max(_tmpTensorFRefs, O);
-            return O;
-        }
-
-        public TensorFloat Max(TensorFloat[] tensors) {
-            var O = TensorFloatAllocNoData(TensorShapeHelper.BroadcastShape(tensors));
-            if (O.shape.HasZeroDims()) {
-                return O;
-            }
-            _backend.Max(tensors, O);
+            _backend.Max(tensor1, tensor2, O);
             return O;
         }
 
         public TensorFloat Min(TensorFloat tensor1, TensorFloat tensor2) {
-            _tmpTensorRefs[0] = tensor1;
-            _tmpTensorRefs[1] = tensor2;
-            var O = TensorFloatAllocNoData(TensorShapeHelper.BroadcastShape(_tmpTensorRefs));
+            var O = TensorFloatAllocNoData(TensorShapeHelper.BroadcastShape(tensor1, tensor2));
             if (O.shape.HasZeroDims()) {
                 return O;
             }
-            _backend.Min(_tmpTensorFRefs, O);
-            return O;
-        }
-
-        public TensorFloat Min(TensorFloat[] tensors) {
-            var O = TensorFloatAllocNoData(TensorShapeHelper.BroadcastShape(tensors));
-            if (O.shape.HasZeroDims()) {
-                return O;
-            }
-            _backend.Min(tensors, O);
+            _backend.Min(tensor1, tensor2, O);
             return O;
         }
 
@@ -285,9 +260,24 @@ namespace Doji.AI.Diffusers {
             var O = AllocNoData(TensorShapeHelper.ConcatShape(tensors, axis), tensors[0].dataType);
             if (O.shape.HasZeroDims())
                 return O;
-            _backend.Concat(tensors, O, axis);
+            int currentStart = 0;
+            foreach (var tensor in tensors) {
+                int step = tensor.shape[axis];
+                _backend.SliceSet(tensor, O, axis, currentStart, step);
+                currentStart += step;
+            }
             return O;
         }
+
+        /*public Tensor Concat(Tensor tensor1, Tensor tensor2, int axis) {
+            var O = AllocNoData(TensorShapeHelper.ConcatShape(tensor1, tensor2, axis), tensor1.dataType);
+            if (O.shape.HasZeroDims())
+                return O;
+
+            _backend.SliceSet(tensor1, O, axis, ..., ...);
+            _backend.SliceSet(tensor2, O, axis, ..., ...);
+            return O;
+        }*/
 
         public T Split<T>(T X, int axis, int start = 0, int end = int.MaxValue) where T : Tensor {
             var O = AllocNoData(X.shape.Split(axis, start, end), X.dataType) as T;
@@ -369,27 +359,27 @@ namespace Doji.AI.Diffusers {
             return O;
         }
 
-        public TensorInt ArgMax(TensorFloat X, int axis, bool keepdim, bool selectLastIndex = false) {
-            var O = TensorIntAllocNoData(X.shape.Reduce(axis, keepdim));
+        public TensorInt ArgMax(TensorFloat X, int axis, bool selectLastIndex = false) {
+            var O = TensorIntAllocNoData(X.shape.Reduce(axis));
             if (O.shape.HasZeroDims())
                 return O;
-            _backend.ArgMax(X, O, axis, keepdim, selectLastIndex);
+            _backend.ArgMax(X, O, axis, selectLastIndex);
             return O;
         }
 
-        public TensorInt ArgMax(TensorInt X, int axis, bool keepdim, bool selectLastIndex = false) {
-            var O = TensorIntAllocNoData(X.shape.Reduce(axis, keepdim));
+        public TensorInt ArgMax(TensorInt X, int axis, bool selectLastIndex = false) {
+            var O = TensorIntAllocNoData(X.shape.Reduce(axis));
             if (O.shape.HasZeroDims())
                 return O;
-            _backend.ArgMax(X, O, axis, keepdim, selectLastIndex);
+            _backend.ArgMax(X, O, axis, selectLastIndex);
             return O;
         }
 
-        public TensorInt ArgMin(TensorFloat X, int axis, bool keepdim, bool selectLastIndex) {
-            var O = TensorIntAllocNoData(X.shape.Reduce(axis, keepdim));
+        public TensorInt ArgMin(TensorFloat X, int axis, bool selectLastIndex) {
+            var O = TensorIntAllocNoData(X.shape.Reduce(axis));
             if (O.shape.HasZeroDims())
                 return O;
-            _backend.ArgMin(X, O, axis, keepdim, selectLastIndex);
+            _backend.ArgMin(X, O, axis, selectLastIndex);
             return O;
         }
 
@@ -397,7 +387,7 @@ namespace Doji.AI.Diffusers {
             var O = TensorIntAllocNoData(X.shape.Reduce(axis, keepdim));
             if (O.shape.HasZeroDims())
                 return O;
-            _backend.ArgMin(X, O, axis, keepdim, selectLastIndex);
+            _backend.ArgMin(X, O, axis, selectLastIndex);
             return O;
         }
 
