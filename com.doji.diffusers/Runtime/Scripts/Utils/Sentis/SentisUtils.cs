@@ -159,7 +159,8 @@ namespace Doji.AI.Diffusers {
 
             // implement repeat_interleave using repeat, reshape & transpose ops
             var repeat = ops.Repeat(tensor, repeats, dim);
-            var flatShape = repeat.shape;
+            var flatShape = new TensorShape(repeat.shape.length);
+            repeat.Reshape(flatShape);
             repeat.Reshape(new TensorShape(repeats, flatShape.length / repeats));
             var transpose = ops.Transpose(repeat, new int[] { 1, 0 });
             transpose.Reshape(flatShape);
@@ -179,7 +180,8 @@ namespace Doji.AI.Diffusers {
 
             // implement repeat_interleave using repeat, reshape & transpose ops
             var repeat = ops.Repeat(tensor, repeats, dim);
-            var flatShape = repeat.shape;
+            var flatShape = new TensorShape(repeat.shape.length);
+            repeat.Reshape(flatShape);
             repeat.Reshape(new TensorShape(repeats, flatShape.length / repeats));
             var transpose = ops.Transpose(repeat, new int[] { 1, 0 });
             transpose.Reshape(flatShape);

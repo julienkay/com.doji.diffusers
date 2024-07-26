@@ -211,7 +211,7 @@ namespace Doji.AI.Diffusers {
 
         /// <summary>
         /// Loads the given model into a diffusion pipeline.
-        /// The pipelines components need to be either in .onnx or .sentis format
+        /// The pipeline components need to be either in .onnx or .sentis format
         /// and be present in the Resources or StreamingAssets folder respectively.
         /// </summary>
         public static DiffusionPipeline FromPretrained(DiffusionModel model, BackendType backend = BackendType.GPUCompute) {

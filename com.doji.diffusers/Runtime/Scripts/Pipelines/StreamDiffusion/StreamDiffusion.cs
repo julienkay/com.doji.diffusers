@@ -126,13 +126,14 @@ namespace Doji.AI.Diffusers {
             _ops = new Ops(backendType);
         }
 
-        private void Prepare(
-            Input prompt,
-            Input negative_prompt = null,
+        public void Prepare(
+            string prompt,
+            string negative_prompt = null,
             int num_inference_steps = 50,
             float guidance_scale = 1.2f,
             float delta = 1.0f,
-            uint? seed = null) {
+            uint? seed = null)
+        {
             System.Random generator = new System.Random();
             seed ??= unchecked((uint)generator.Next());
 
@@ -228,7 +229,6 @@ namespace Doji.AI.Diffusers {
             beta_prod_t_sqrt = _ops.RepeatInterleave(beta_prod_t_sqrt, repeats, dim: 0);
         }
 
-
         private TensorFloat AddNoise(TensorFloat original_samples, TensorFloat noise, int t_index) {
             var a = _ops.Mul(alpha_prod_t_sqrt_list[t_index], original_samples);
             var b = _ops.Mul(beta_prod_t_sqrt[t_index], noise);
@@ -278,6 +278,9 @@ namespace Doji.AI.Diffusers {
             }
 
             TensorFloat t = _ops.Cast(t_list);
+            UnityEngine.Debug.Log(x_t_latent_plus_uc.shape);
+            UnityEngine.Debug.Log(t.shape);
+            UnityEngine.Debug.Log(prompt_embeds.shape);
             var model_pred = Unet.Execute(
                 x_t_latent_plus_uc,
                 t,
@@ -408,7 +411,7 @@ namespace Doji.AI.Diffusers {
             return x_0_pred_out;
         }
 
-        private TensorFloat Update(TensorFloat x) {
+        public TensorFloat Update(TensorFloat x = null) {
             TensorFloat x_t_latent;
             if (x != null) {
                 x = ImageProcessor.PreProcess(x, Height, Width);
@@ -421,7 +424,7 @@ namespace Doji.AI.Diffusers {
                 x_t_latent = EncodeImage(x);
             } else {
                 // TODO: check the dimension of x_t_latent
-                x_t_latent = _ops.RandomNormal(new TensorShape(1, 4, LatentHeight, LatentWidth), 0, 1, seed: 42);
+                x_t_latent = _ops.RandomNormal(new TensorShape(1, 4, LatentHeight, LatentWidth), 0, 1, seed: new System.Random().Next());
             }
 
             var x_0_pred_out = predict_x0_batch(x_t_latent);

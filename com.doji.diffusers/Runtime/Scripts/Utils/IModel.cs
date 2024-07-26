@@ -43,11 +43,9 @@ namespace Doji.AI.Diffusers {
         }
 
         protected static C FromPretrained<C>(ModelFile modelFile, ModelFile modelConfig, BackendType backend) where C : IModel<T> {
-            var config = LoadConfig(modelConfig);
-            var model = LoadModel(modelFile);
-            return model == null
-                ? throw new FileNotFoundException($"File '{modelConfig.FileName}' not found for: '{typeof(T).Name}'")
-                : FromConfig<C>(config, model, backend);
+            var config = LoadConfig(modelConfig) ?? throw new FileNotFoundException($"File '{modelConfig.FileName}' not found for: '{typeof(T).Name}'");
+            var model = LoadModel(modelFile) ?? throw new FileNotFoundException($"File '{modelFile.FileName}' not found for: '{typeof(T).Name}'");
+            return FromConfig<C>(config, model, backend);
         }
     }
 }

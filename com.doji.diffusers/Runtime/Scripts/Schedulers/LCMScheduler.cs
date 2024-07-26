@@ -1,11 +1,8 @@
 using static Doji.AI.Diffusers.ArrayUtils;
 using Unity.Sentis;
 using System;
-using System.Net;
-using UnityEngine.SocialPlatforms;
 using UnityEngine;
 using System.Collections.Generic;
-using UnityEditor.PackageManager.UI;
 
 namespace Doji.AI.Diffusers {
 

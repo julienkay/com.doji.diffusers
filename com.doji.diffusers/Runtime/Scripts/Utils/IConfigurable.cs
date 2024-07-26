@@ -7,7 +7,7 @@ using Unity.Sentis;
 namespace Doji.AI.Diffusers {
 
     /// <summary>
-    /// All configuration parameters are stored under <see cref="IConfigurable.IConfig"/>.
+    /// All configuration parameters are stored under <see cref="IConfigurable{T}.Config"/>.
     /// Also provides a <see cref="IConfigurable.FromConfig{C}(Config, BackendType)"/>
     /// method for loading classes that inherit from <see cref="IConfigurable{T}"/>.
     /// </summary>
@@ -52,10 +52,8 @@ namespace Doji.AI.Diffusers {
         }
 
         internal static C FromPretrained<C>(ModelFile file, BackendType backend) where C : IConfigurable<T> {
-            var config = LoadConfig(file);
-            return config == null
-                ? throw new FileNotFoundException($"File '{file.FileName}' not found for: '{typeof(T).Name}'")
-                : FromConfig<C>(config, backend);
+            var config = LoadConfig(file) ?? throw new FileNotFoundException($"File '{file.FileName}' not found for: '{typeof(T).Name}'");
+            return FromConfig<C>(config, backend);
         }
     }
 }
