@@ -5,42 +5,6 @@ namespace Doji.AI.Diffusers.Editor.Tests {
 
     public class SentisUtilsTest {
 
-        private float[] Samples {
-            get {
-                return TestUtils.LoadFromFile("256_latents");
-            }
-        }
-
-        private float[] ExpectedQuantile {
-            get {
-                return TestUtils.LoadFromFile("quantile_test_result_256");
-            }
-        }
-
-        private float[] ExpectedSorted{
-            get {
-                return TestUtils.LoadFromFile("sort_test_result_256");
-            }
-        }
-
-        [Test]
-        public void TestQuantile() {
-            using Ops ops = new Ops(BackendType.GPUCompute);
-            using TensorFloat latents = new TensorFloat(new TensorShape(1, 4, 8, 8), Samples);
-            TensorFloat quantile = ops.Quantile(latents, 0.995f, 1);
-            quantile.ReadbackAndClone();
-            CollectionAssert.AreEqual(ExpectedQuantile, quantile.ToReadOnlyArray(), new FloatArrayComparer(0.00001f));
-        }
-        /*
-        [Test]
-        public void TestSort() {
-            using Ops ops = new Ops(BackendType.GPUCompute);
-            using TensorFloat latents = new TensorFloat(new TensorShape(1, 4, 8, 8), Samples);
-            TensorFloat sorted = ops.Sort(latents, 1);
-            sorted.ReadbackAndClone();
-            CollectionAssert.AreEqual(ExpectedSorted, sorted.ToReadOnlyArray(), new FloatArrayComparer(0.00001f));
-        }
-        */
         [Test]
         public void TestNonzero() {
             using Ops ops = new Ops(BackendType.GPUCompute);
@@ -49,18 +13,6 @@ namespace Doji.AI.Diffusers.Editor.Tests {
             TensorInt nonzero = ops.NonZero(test);
             nonzero.ReadbackAndClone();
             CollectionAssert.AreEqual(new int[] { 1, 3, 4, 7 }, nonzero.ToReadOnlyArray());
-        }
-
-        [Test]
-        public void TestRepeatInterlave() {
-            using Ops ops = new Ops(BackendType.GPUCompute);
-            int[] data = new int[] { 1, 2, 3 };
-            TensorShape shape = new TensorShape(data.Length);
-            using TensorInt input = new TensorInt(shape, data);
-            TensorInt r = ops.RepeatInterleave(input, 2, 0);
-            Assert.That(r.shape, Is.EqualTo(new TensorShape(3 * 2)));
-            r.ReadbackAndClone();
-            CollectionAssert.AreEqual(new int[] { 1, 1, 2, 2, 3, 3 }, r.ToReadOnlyArray());
         }
     }
 }

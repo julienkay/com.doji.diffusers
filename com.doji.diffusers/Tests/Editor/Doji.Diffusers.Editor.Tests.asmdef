@@ -6,7 +6,8 @@
         "UnityEditor.TestRunner",
         "Doji.Diffusers",
         "Unity.Sentis",
-        "Doji.Transformers"
+        "Doji.Transformers",
+        "Doji.SentisUtils"
     ],
     "includePlatforms": [
         "Editor"

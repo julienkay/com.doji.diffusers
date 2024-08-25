@@ -13,6 +13,7 @@
     "com.unity.sentis": "1.6.0-pre.1",
     "com.unity.nuget.newtonsoft-json": "3.2.1",
     "com.doji.transformers": "0.0.1",
+    "com.doji.sentis-utils": "0.0.0",
     "com.doji.pngcs": "0.0.0"
   },
   "author": {

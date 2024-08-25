@@ -1,7 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
 using System;
-using static Doji.AI.Diffusers.ArrayUtils;
+using static Doji.AI.ArrayUtils;
 using Unity.Sentis;
 
 namespace Doji.AI.Diffusers {
@@ -276,8 +276,8 @@ namespace Doji.AI.Diffusers {
         }
 
         private TensorFloat TakeOwnership(TensorFloat X) {
-            TensorFloat O = TensorFloat.AllocNoData(X.shape);
-            _ops._backend.MemCopy(X, O);
+            TensorFloat O = _ops.Copy(X);
+            _ops.TakeOwnership(O);
             return O;
         }
 

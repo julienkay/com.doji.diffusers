@@ -1,4 +1,4 @@
-using static Doji.AI.Diffusers.ArrayUtils;
+using static Doji.AI.ArrayUtils;
 using System;
 using Unity.Sentis;
 using System.Collections.Generic;
