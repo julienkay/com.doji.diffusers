@@ -13,6 +13,20 @@ This is essentially a port of Hugging Face’s [diffusers] library.
 
 It is still ***very*** early though, so as of today only a limited number of pipelines and schedulers are supported (see below).
 
+### Installation
+
+<details>
+  <summary> via OpenUPM </summary>
+  
+  In `Edit -> Project Settings -> Package Manager`, add a new scoped registry:
+
+    Name: Doji
+    URL: https://package.openupm.com
+    Scope(s): com.doji
+ 
+  In the Package Manager install `com.doji.diffusers` either by name or select it in the list under `Package Manager -> My Registries`
+</details>
+
 ### Roadmap
 Some things that might be worked on next are:
 - [x] add/fix classifier-free guidance
