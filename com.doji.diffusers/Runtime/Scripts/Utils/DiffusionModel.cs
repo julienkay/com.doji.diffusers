@@ -20,7 +20,7 @@ namespace Doji.AI.Diffusers {
         /// <summary>
         /// The branch in the HF repository that contains the ONNX files for the diffusion model.
         /// </summary>
-        public string Revision { get; private set; }
+        internal string Revision { get; set; }
 
         /// <summary>
         /// The owner of the repository. (e.g. "stabilityai")
@@ -155,7 +155,7 @@ namespace Doji.AI.Diffusers {
         /// To actually load the file from Resources use <see cref="ResourcePath"/>
         /// </summary>
         public readonly string ResourcesFilePath
-            => Path.Combine("Assets", "Resources", Model.Owner, Model.ModelName, Model.Revision, FileName);
+            => Path.Combine("Assets", "Resources", Model.Owner, Model.ModelName, FileName);
 #endif
 
         /// <summary>
@@ -164,7 +164,7 @@ namespace Doji.AI.Diffusers {
         /// (local to Resources, without file extension)
         /// </summary>
         public readonly string ResourcePath
-            => Path.Combine(Model.Owner, Model.ModelName, Model.Revision, Path.ChangeExtension(FileName, null));
+            => Path.Combine(Model.Owner, Model.ModelName, Path.ChangeExtension(FileName, null));
 
         /// <summary>
         /// The path to the StreamingAssets location of this file.
@@ -176,7 +176,7 @@ namespace Doji.AI.Diffusers {
                 if (ext == ".onnx") {
                     fileName = Path.ChangeExtension(fileName, ".sentis"); // .onnx -> .sentis
                 }
-                return Path.Combine(UnityEngine.Application.streamingAssetsPath, Model.Owner, Model.ModelName, Model.Revision, fileName);
+                return Path.Combine(UnityEngine.Application.streamingAssetsPath, Model.Owner, Model.ModelName, fileName);
             }
         }
            

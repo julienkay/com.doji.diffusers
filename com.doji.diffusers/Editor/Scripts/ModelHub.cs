@@ -136,7 +136,7 @@ namespace Doji.AI.Diffusers.Editor {
         /// and moves all the model files from Resources to the StreamingAssets folder.
         /// </summary>
         private void ConvertModel(DiffusionModel model) {
-            string targetDir = Path.Combine(Application.streamingAssetsPath, model.Owner, model.ModelName, model.Revision);
+            string targetDir = Path.Combine(Application.streamingAssetsPath, model.Owner, model.ModelName);
             Directory.CreateDirectory(targetDir);
 
             foreach (var file in model) {
