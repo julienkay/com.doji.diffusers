@@ -21,7 +21,7 @@ namespace Doji.AI.Diffusers {
         /// The runtime model.
         /// </summary>
         private Model _model;
-        private IWorker _worker;
+        private Worker _worker;
         private ModelOutput _output;
 
         public TextEncoder(Model model, TextEncoderConfig config, BackendType backend = BackendType.GPUCompute) {
@@ -37,10 +37,10 @@ namespace Doji.AI.Diffusers {
             }
 
             _model = textEncoder;
-            _worker = WorkerFactory.CreateWorker(Backend, _model);
+            _worker = new Worker(_model, Backend);
         }
 
-        public ModelOutput Execute(TensorInt inputIds) {
+        public ModelOutput Execute(Tensor<int> inputIds) {
             if (inputIds is null) {
                 throw new ArgumentNullException(nameof(inputIds));
             }
@@ -51,12 +51,12 @@ namespace Doji.AI.Diffusers {
                 throw new NullReferenceException($"{nameof(_worker)} was null");
             }
 
-            _worker.Execute(inputIds);
+            _worker.Schedule(inputIds);
             _output.GetOutputs(_model, _worker);
             return _output;
         }
 
-        public async Task<ModelOutput> ExecuteAsync(TensorInt inputIds) {
+        public async Task<ModelOutput> ExecuteAsync(Tensor<int> inputIds) {
             if (inputIds is null) {
                 throw new ArgumentNullException(nameof(inputIds));
             }
@@ -67,7 +67,7 @@ namespace Doji.AI.Diffusers {
                 throw new NullReferenceException($"{nameof(_worker)} was null");
             }
 
-            var schedule = _worker.ExecuteLayerByLayer(inputIds);
+            var schedule = _worker.ScheduleIterable(inputIds);
             int i = 0;
             while (schedule.MoveNext()) {
                 if (++i % 100 == 0) {

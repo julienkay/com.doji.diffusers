@@ -31,14 +31,14 @@ namespace Doji.AI.Diffusers.Editor.Tests {
                 Callback = TestPredictedNoise,
             };
 
-            TensorFloat generated = _pipeline.Generate(p);
+            Tensor<float> generated = _pipeline.Generate(p);
 
             //TestUtils.ToFile(_pipeline, generated);   
         }
 
-        private void TestPredictedNoise(int i, float t, TensorFloat latents) {
+        private void TestPredictedNoise(int i, float t, Tensor<float> latents) {
             latents.ReadbackAndClone();
-            CollectionAssert.AreEqual(GetLatents(i), latents.ToReadOnlyArray(), new FloatArrayComparer(0.00001f), $"Latents differ at step {i}");
+            CollectionAssert.AreEqual(GetLatents(i), latents.DownloadToArray(), new FloatArrayComparer(0.00001f), $"Latents differ at step {i}");
         }
 
         /// <summary>
@@ -66,9 +66,9 @@ namespace Doji.AI.Diffusers.Editor.Tests {
             TestUtils.ToFile(_pipeline, generated);   
         }
 
-        private void TestPredictedNoiseLarge(int i, float t, TensorFloat latents) {
+        private void TestPredictedNoiseLarge(int i, float t, Tensor<float> latents) {
             latents.ReadbackAndClone();
-            CollectionAssert.AreEqual(GetLatentsLarge(i), latents.ToReadOnlyArray(), new FloatArrayComparer(0.0001f), $"Latents differ at step {i}");
+            CollectionAssert.AreEqual(GetLatentsLarge(i), latents.DownloadToArray(), new FloatArrayComparer(0.0001f), $"Latents differ at step {i}");
         }
 
         [Test]

@@ -8,13 +8,13 @@ namespace Doji.AI.Diffusers.Editor.Tests {
         /// <summary>
         /// Loads deterministic random samples with shape (1, 4, 8, 8)
         /// </summary>
-        protected TensorFloat Latents {
+        protected Tensor<float> Latents {
             get {
                 return TestUtils.LoadTensorFromFile("256_latents", new TensorShape(1, 4, 8, 8));
             }
         }
 
-        protected TensorFloat LatentsLarge {
+        protected Tensor<float> LatentsLarge {
             get {
                 return TestUtils.LoadTensorFromFile("16384_latents", new TensorShape(1, 4, 64, 64));
             }

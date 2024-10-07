@@ -18,7 +18,7 @@ namespace Doji.AI.Diffusers {
 
         public ModelOutput() : base() { }
 
-        public void GetOutputs(Model model, IWorker worker) {
+        public void GetOutputs(Model model, Worker worker) {
             Clear();
             int i = 0;
             foreach (var output in model.outputs) {

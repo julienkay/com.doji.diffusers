@@ -68,9 +68,9 @@ namespace Doji.AI.Diffusers {
         }
 
         public float SigmaToT(float sigma, float[] logSigmas) {
-            using TensorFloat sigmaT = new TensorFloat(sigma);
-            using TensorFloat logSigmasT = new TensorFloat(new TensorShape(logSigmas.Length), logSigmas);
-            using TensorFloat zero = new TensorFloat(0f);
+            using Tensor<float> sigmaT = new Tensor<float>(new TensorShape(), new[] { sigma });
+            using Tensor<float> logSigmasT = new Tensor<float>(new TensorShape(logSigmas.Length), logSigmas);
+            using Tensor<float> zero = new Tensor<float>(new TensorShape(), new[] { 0f });
 
             // get log sigma
             float logSigma = MathF.Log(MathF.Max(sigma, 1e-10f));
@@ -87,7 +87,7 @@ namespace Doji.AI.Diffusers {
             Debug.Assert(clip.shape.Equals(new TensorShape(1)));
             clip.ReadbackAndClone();
 
-            int lowIdx = clip.ToReadOnlyArray()[0];
+            int lowIdx = clip.DownloadToArray()[0];
             int highIdx = lowIdx + 1;
 
             float low = logSigmas[lowIdx];
@@ -159,7 +159,7 @@ namespace Doji.AI.Diffusers {
             // 1. compute predicted original sample (x_0) from sigma-scaled predicted noise
             // NOTE: "original_sample" should not be an expected prediction_type but is left in for
             // backwards compatibility
-            TensorFloat predOriginalSample;
+            Tensor<float> predOriginalSample;
             if (PredictionType == Prediction.Sample) {
                 predOriginalSample = modelOutput;
             } else if (PredictionType == Prediction.Epsilon) {
@@ -173,9 +173,9 @@ namespace Doji.AI.Diffusers {
             }
 
             // 2. Convert to an ODE derivative
-            TensorFloat derivative = _ops.Div(_ops.Sub(sample, predOriginalSample), sigmaHat);
+            Tensor<float> derivative = _ops.Div(_ops.Sub(sample, predOriginalSample), sigmaHat);
             float dt = Sigmas[StepIndex.Value + 1] - sigmaHat;
-            TensorFloat prevSample = _ops.Add(sample, _ops.Mul(derivative, dt));
+            Tensor<float> prevSample = _ops.Add(sample, _ops.Mul(derivative, dt));
 
             // Increase step index by one
             StepIndex++;

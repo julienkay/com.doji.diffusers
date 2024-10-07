@@ -60,7 +60,7 @@ namespace Doji.AI.Diffusers {
 
             float[] alphas = Sub(1f, Betas);
             AlphasCumprodF = alphas.CumProd();
-            AlphasCumprod = new TensorFloat(new TensorShape(alphas.Length), AlphasCumprodF);
+            AlphasCumprod = new Tensor<float>(new TensorShape(alphas.Length), AlphasCumprodF);
 
             // At every step in ddim, we are looking into the previous alphas_cumprod
             // For the final step, there is no previous alphas_cumprod because we are already at 0
@@ -178,7 +178,7 @@ namespace Doji.AI.Diffusers {
             (float c_skip, float c_out) = GetScalingsForBoundaryConditionDiscrete((int)timestep);
 
             // 4. Compute the predicted original sample x_0 based on the model parameterization
-            TensorFloat predOriginalSample;
+            Tensor<float> predOriginalSample;
 
             if (PredictionType == Prediction.Epsilon) { // noise-prediction
                 var tmp = _ops.Sub(sample, _ops.Mul(MathF.Sqrt(beta_prod_t), modelOutput));
@@ -210,7 +210,7 @@ namespace Doji.AI.Diffusers {
             // 7. Sample and inject noise z ~ N(0, I) for MultiStep Inference
             // Noise is not used on the final timestep of the timestep schedule.
             // This also means that noise is not used for one-step sampling.
-            TensorFloat prevSample;
+            Tensor<float> prevSample;
             if (StepIndex != NumInferenceSteps - 1) {
                 int seed = generator.Next();
                 var noise = _ops.RandomNormal(modelOutput.shape, 0, 1f, seed);
@@ -234,7 +234,7 @@ namespace Doji.AI.Diffusers {
         /// pixels from saturation at each step. We find that dynamic thresholding results in significantly better
         /// photorealism as well as better image-text alignment, especially when using very large guidance weights."
         /// </summary>
-        private TensorFloat ThresholdSample(TensorFloat sample) {
+        private Tensor<float> ThresholdSample(Tensor<float> sample) {
             var shape = sample.shape;
             int batch_size = shape[0];
             int channels = shape[1];

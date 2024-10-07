@@ -19,7 +19,7 @@ namespace Doji.AI.Diffusers {
         /// </summary>
         private Model _model;
 
-        private IWorker _worker;
+        private Worker _worker;
         private Dictionary<string, Tensor> _inputs = new Dictionary<string, Tensor>();
 
         public Unet(Model model, UnetConfig config, BackendType backend = BackendType.GPUCompute) {
@@ -34,13 +34,13 @@ namespace Doji.AI.Diffusers {
             }
 
             _model = unet;
-            _worker = WorkerFactory.CreateWorker(Backend, _model);
+            _worker = new Worker(_model, Backend);
         }
 
-        public TensorFloat Execute(
-            TensorFloat sample,
+        public Tensor<float> Execute(
+            Tensor<float> sample,
             Tensor timestep,
-            TensorFloat encoderHiddenStates,
+            Tensor<float> encoderHiddenStates,
             Tensor textEmbeds = null,
             Tensor timeIds = null)
         {
@@ -75,14 +75,14 @@ namespace Doji.AI.Diffusers {
                 _inputs["time_ids"] = timeIds;
             }
 
-            _worker.Execute(_inputs);
-            return _worker.PeekOutput("out_sample") as TensorFloat;
+            _worker.Schedule(_inputs);
+            return _worker.PeekOutput("out_sample") as Tensor<float>;
         }
 
-        public async Task<TensorFloat> ExecuteAsync(
-            TensorFloat sample,
+        public async Task<Tensor<float>> ExecuteAsync(
+            Tensor<float> sample,
             Tensor timestep,
-            TensorFloat encoderHiddenStates,
+            Tensor<float> encoderHiddenStates,
             Tensor textEmbeds = null,
             Tensor timeIds = null)
         {
@@ -117,7 +117,7 @@ namespace Doji.AI.Diffusers {
                 _inputs["time_ids"] = timeIds;
             }
 
-            var schedule = _worker.ExecuteLayerByLayer(_inputs);
+            var schedule = _worker.ScheduleIterable(_inputs);
             int i = 0;
             while (schedule.MoveNext()) {
                 if (++i % 300 == 0) {
@@ -125,7 +125,7 @@ namespace Doji.AI.Diffusers {
                 }
             }
 
-            return _worker.PeekOutput("out_sample") as TensorFloat;
+            return _worker.PeekOutput("out_sample") as Tensor<float>;
         }
 
         public Tensor CreateTimestep(TensorShape shape, float t) {
@@ -135,9 +135,9 @@ namespace Doji.AI.Diffusers {
             DataType dType = _model.inputs[1].dataType;
             switch (dType) {
                 case DataType.Float:
-                    return new TensorFloat(shape, ArrayUtils.Full(shape.length, (float)t));
+                    return new Tensor<float>(shape, ArrayUtils.Full(shape.length, (float)t));
                 case DataType.Int:
-                    return new TensorInt(shape, ArrayUtils.Full(shape.length, (int)t));
+                    return new Tensor<int>(shape, ArrayUtils.Full(shape.length, (int)t));
                 default:
                     throw new ArgumentException($"This unet models expects timesteps with data type '{_model.inputs[1].dataType}', " +
                         $"which is not supported yet.");

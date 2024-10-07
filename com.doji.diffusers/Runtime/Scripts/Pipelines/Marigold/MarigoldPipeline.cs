@@ -7,6 +7,7 @@ using UnityEngine;
 namespace Doji.AI.Diffusers {
 
     /// <summary>
+    /// Experimental!!!
     /// Pipeline for monocular depth estimation using Marigold
     /// <seealso href="https://marigoldmonodepth.github.io"/>
     /// </summary>
@@ -38,7 +39,7 @@ namespace Doji.AI.Diffusers {
         private System.Random _generator;
 
         private Ops _ops;
-        private TensorFloat _emptyTextEmbed;
+        private Tensor<float> _emptyTextEmbed;
 
         public MarigoldPipeline(
             VaeEncoder vaeEncoder,
@@ -59,7 +60,7 @@ namespace Doji.AI.Diffusers {
         }
 
 
-        public TensorFloat Generate(
+        public Tensor<float> Generate(
             Texture2D inputImage,
             int processingRes = 768,
             bool matchInputRes = true,
@@ -73,7 +74,7 @@ namespace Doji.AI.Diffusers {
             }
             //TODO: do any image resizing + normalization
 
-            using TensorFloat input = TextureConverter.ToTensor(inputImage);
+            using Tensor<float> input = TextureConverter.ToTensor(inputImage);
             var x = Generate(input, inputImage.width, inputImage.height, processingRes, matchInputRes, denoisingSteps, ensembleSize, batchSize, colorMap);
 
             throw new NotImplementedException();
@@ -96,8 +97,8 @@ namespace Doji.AI.Diffusers {
         /// <param name="batchSize"></param>
         /// <param name="colorMap"></param>
         /// <returns></returns>
-        public TensorFloat Generate(
-            TensorFloat inputImage,
+        public Tensor<float> Generate(
+            Tensor<float> inputImage,
             int height,
             int width,
             int processingRes = 768,
@@ -107,7 +108,7 @@ namespace Doji.AI.Diffusers {
             int batchSize = 0,
             string colorMap = "Spectral",
             uint? seed = null,
-            TensorFloat latents = null)
+            Tensor<float> latents = null)
         {
             if (inputImage== null) {
                 throw new ArgumentNullException(nameof(inputImage));
@@ -124,7 +125,7 @@ namespace Doji.AI.Diffusers {
 
             //TODO: check inputs
             //TODO: Resize image + make sure it's normalized
-            TensorFloat rgb = inputImage;
+            Tensor<float> rgb = inputImage;
 
             // ----------------- Predicting depth -----------------
             // Batch repeated input image
@@ -144,7 +145,7 @@ namespace Doji.AI.Diffusers {
         /// <summary>
         /// Perform an individual depth prediction without ensembling.
         /// </summary>
-        private TensorFloat SingleInfer(TensorFloat rgb) {
+        private Tensor<float> SingleInfer(Tensor<float> rgb) {
             // set timesteps
             Scheduler.SetTimesteps(_steps);
 
@@ -155,7 +156,7 @@ namespace Doji.AI.Diffusers {
             uint seed = unchecked((uint)new System.Random().Next());
             var latentsShape = new TensorShape(_batchSize, 4, _inputHeight, _inputWidth);
             var latents = _ops.RandomNormal(latentsShape, 0, 1, unchecked((int)seed));
-            TensorFloat depthLatents = latents;
+            Tensor<float> depthLatents = latents;
 
             // batched empty text embedding
             if (_emptyTextEmbed == null) {
@@ -199,11 +200,11 @@ namespace Doji.AI.Diffusers {
                 truncation: Truncation.LongestFirst
             );
             int[] inputIds = textInputs.InputIds.ToArray();
-            using var textIdTensor = new TensorInt(new TensorShape(_batchSize, inputIds.Length), inputIds);
-            _emptyTextEmbed = TextEncoder.Execute(textIdTensor)[0] as TensorFloat;
+            using var textIdTensor = new Tensor<int>(new TensorShape(_batchSize, inputIds.Length), inputIds);
+            _emptyTextEmbed = TextEncoder.Execute(textIdTensor)[0] as Tensor<float>;
         }
 
-        private TensorFloat EncodeRGB(TensorFloat rgb) {
+        private Tensor<float> EncodeRGB(Tensor<float> rgb) {
             var h = VaeEncoder.Execute(rgb);
             throw new NotImplementedException();
             /*
@@ -217,7 +218,7 @@ namespace Doji.AI.Diffusers {
         /// <summary>
         /// Decode depth latent into depth map.
         /// </summary>
-        private TensorFloat DecodeDepth(TensorFloat depthLatents) {
+        private Tensor<float> DecodeDepth(Tensor<float> depthLatents) {
             // scale latent
             depthLatents = _ops.Div(depthLatents, DEPTH_SCALE);
             // decode

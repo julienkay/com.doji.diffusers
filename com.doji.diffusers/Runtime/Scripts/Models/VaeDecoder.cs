@@ -18,7 +18,7 @@ namespace Doji.AI.Diffusers {
         /// </summary>
         private Model _model;
 
-        private IWorker _worker;
+        private Worker _worker;
 
         public VaeDecoder(Model model, VaeConfig config, BackendType backend = BackendType.GPUCompute) {
             Config = config ?? new VaeConfig();
@@ -32,10 +32,10 @@ namespace Doji.AI.Diffusers {
             }
 
             _model = vaeDecoder;
-            _worker = WorkerFactory.CreateWorker(Backend, _model);
+            _worker = new Worker(_model, Backend);
         }
 
-        public TensorFloat Execute(TensorFloat latentSample) {
+        public Tensor<float> Execute(Tensor<float> latentSample) {
             if (latentSample is null) {
                 throw new ArgumentNullException(nameof(latentSample));
             }
@@ -46,11 +46,11 @@ namespace Doji.AI.Diffusers {
                 throw new NullReferenceException($"{nameof(_worker)} was null");
             }
 
-            _worker.Execute(latentSample);
-            return _worker.PeekOutput("sample") as TensorFloat;
+            _worker.Schedule(latentSample);
+            return _worker.PeekOutput("sample") as Tensor<float>;
         }
 
-        public async Task<TensorFloat> ExecuteAsync(TensorFloat latentSample) {
+        public async Task<Tensor<float>> ExecuteAsync(Tensor<float> latentSample) {
             if (latentSample is null) {
                 throw new ArgumentNullException(nameof(latentSample));
             }
@@ -61,7 +61,7 @@ namespace Doji.AI.Diffusers {
                 throw new NullReferenceException($"{nameof(_worker)} was null");
             }
 
-            var schedule = _worker.ExecuteLayerByLayer(latentSample);
+            var schedule = _worker.ScheduleIterable(latentSample);
             int i = 0;
             while (schedule.MoveNext()) {
                 if (++i % 50 == 0) {
@@ -69,7 +69,7 @@ namespace Doji.AI.Diffusers {
                 }
             }
 
-            return _worker.PeekOutput("sample") as TensorFloat;
+            return _worker.PeekOutput("sample") as Tensor<float>;
         }
 
         /// <summary>

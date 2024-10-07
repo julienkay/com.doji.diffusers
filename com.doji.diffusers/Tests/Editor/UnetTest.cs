@@ -74,13 +74,13 @@ namespace Doji.AI.Diffusers.Editor.Tests {
             using Unet unet = LoadUnet_1_5();
 
             int t = 901;
-            using TensorFloat latentInputTensor = new TensorFloat(new TensorShape(1, 4, 8, 8), Samples);
-            using TensorFloat promptEmbeds = new TensorFloat(new TensorShape(1, 77, 768), PromptEmbeds_1_5);
+            using Tensor<float> latentInputTensor = new Tensor<float>(new TensorShape(1, 4, 8, 8), Samples);
+            using Tensor<float> promptEmbeds = new Tensor<float>(new TensorShape(1, 77, 768), PromptEmbeds_1_5);
             using Tensor timestep = unet.CreateTimestep(new TensorShape(1), t);
 
-            TensorFloat noisePred = unet.Execute(latentInputTensor, timestep, promptEmbeds);
+            Tensor<float> noisePred = unet.Execute(latentInputTensor, timestep, promptEmbeds);
             noisePred.ReadbackAndClone();
-            float[] unetOutput = noisePred.ToReadOnlyArray();
+            float[] unetOutput = noisePred.DownloadToArray();
 
             CollectionAssert.AreEqual(ExpectedOutput, unetOutput, new FloatArrayComparer(0.00001f));
         }
@@ -90,13 +90,13 @@ namespace Doji.AI.Diffusers.Editor.Tests {
             using Unet unet = LoadUnet_1_5();
 
             int t = 901;
-            using TensorFloat latentInputTensor = new TensorFloat(new TensorShape(1, 4, 64, 64), SamplesLarge);
-            using TensorFloat promptEmbeds = new TensorFloat(new TensorShape(1, 77, 768), PromptEmbeds_1_5);
+            using Tensor<float> latentInputTensor = new Tensor<float>(new TensorShape(1, 4, 64, 64), SamplesLarge);
+            using Tensor<float> promptEmbeds = new Tensor<float>(new TensorShape(1, 77, 768), PromptEmbeds_1_5);
             using Tensor timestep = unet.CreateTimestep(new TensorShape(1), t);
 
-            TensorFloat noisePred = unet.Execute(latentInputTensor, timestep, promptEmbeds);
+            Tensor<float> noisePred = unet.Execute(latentInputTensor, timestep, promptEmbeds);
             noisePred.ReadbackAndClone();
-            float[] unetOutput = noisePred.ToReadOnlyArray();
+            float[] unetOutput = noisePred.DownloadToArray();
 
             CollectionAssert.AreEqual(ExpectedOutputLarge_1_5, unetOutput, new FloatArrayComparer(0.00001f));
         }
@@ -106,13 +106,13 @@ namespace Doji.AI.Diffusers.Editor.Tests {
             using Unet unet = LoadUnet_2_1();
 
             int t = 901;
-            using TensorFloat latentInputTensor = new TensorFloat(new TensorShape(1, 4, 64, 64), SamplesLarge);
-            using TensorFloat promptEmbeds = new TensorFloat(new TensorShape(1, 77, 1024), PromptEmbeds_2_1);
+            using Tensor<float> latentInputTensor = new Tensor<float>(new TensorShape(1, 4, 64, 64), SamplesLarge);
+            using Tensor<float> promptEmbeds = new Tensor<float>(new TensorShape(1, 77, 1024), PromptEmbeds_2_1);
             using Tensor timestep = unet.CreateTimestep(new TensorShape(1), t);
 
-            TensorFloat noisePred = unet.Execute(latentInputTensor, timestep, promptEmbeds);
+            Tensor<float> noisePred = unet.Execute(latentInputTensor, timestep, promptEmbeds);
             noisePred.ReadbackAndClone();
-            float[] unetOutput = noisePred.ToReadOnlyArray();
+            float[] unetOutput = noisePred.DownloadToArray();
 
             CollectionAssert.AreEqual(ExpectedOutputLarge_2_1, unetOutput, new FloatArrayComparer(0.0001f));
         }

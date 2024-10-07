@@ -17,7 +17,7 @@ namespace Doji.AI.Diffusers {
         /// </summary>
         private Model _model;
 
-        private IWorker _worker;
+        private Worker _worker;
 
         public VaeEncoder(Model model, VaeConfig config, BackendType backend = BackendType.GPUCompute) {
             Config = config ?? new VaeConfig();
@@ -31,13 +31,13 @@ namespace Doji.AI.Diffusers {
             }
 
             _model = vaeEncoder;
-            _worker = WorkerFactory.CreateWorker(Backend, _model);
+            _worker = new Worker(_model, Backend);
         }
 
         /// <summary>
         /// Encodes the image.
         /// </summary>
-        public TensorFloat Execute(TensorFloat sample) {
+        public Tensor<float> Execute(Tensor<float> sample) {
             if (sample is null) {
                 throw new ArgumentNullException(nameof(sample));
             }
@@ -48,8 +48,8 @@ namespace Doji.AI.Diffusers {
                 throw new NullReferenceException($"{nameof(_worker)} was null");
             }
 
-            _worker.Execute(sample);
-            return _worker.PeekOutput("latent_sample") as TensorFloat;
+            _worker.Schedule(sample);
+            return _worker.PeekOutput("latent_sample") as Tensor<float>;
         }
 
         /// <summary>

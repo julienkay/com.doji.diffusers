@@ -50,7 +50,7 @@ namespace Doji.AI.Diffusers {
         public SchedulerConfig Config { get; protected set; }
 
         public abstract int TimestepsLength { get; }
-        protected TensorFloat AlphasCumprod { get; set; }
+        protected Tensor<float> AlphasCumprod { get; set; }
         protected internal float[] AlphasCumprodF { get; set; }
 
         /// <summary>
@@ -86,29 +86,29 @@ namespace Doji.AI.Diffusers {
 
 
         /// <summary>
-        /// Arguments passed into <see cref="Scheduler.Step(TensorFloat, float, TensorFloat)"/> method.
+        /// Arguments passed into <see cref="Scheduler.Step(Tensor<float>, float, Tensor<float>)"/> method.
         /// </summary>
         public struct StepArgs {
             
-            public TensorFloat modelOutput;
+            public Tensor<float> modelOutput;
             public float timestep;
-            public TensorFloat sample;
+            public Tensor<float> sample;
             public float eta;
             public bool useClippedModelOutput;
             public System.Random generator;
-            public TensorFloat varianceNoise;
+            public Tensor<float> varianceNoise;
             public float s_churn;
             public float s_tmin;
             public float s_tmax;
             public float s_noise;
 
-            public StepArgs(TensorFloat modelOutput,
+            public StepArgs(Tensor<float> modelOutput,
                             float timestep,
-                            TensorFloat sample,
+                            Tensor<float> sample,
                             float eta = 0.0f,
                             bool useClippedModelOutput = false,
                             System.Random generator = null,
-                            TensorFloat varianceNoise = null,
+                            Tensor<float> varianceNoise = null,
                             float s_churn = 0.0f,
                             float s_tmin = 0.0f,
                             float s_tmax = float.PositiveInfinity,
@@ -132,13 +132,13 @@ namespace Doji.AI.Diffusers {
 
 #pragma warning disable IDE1006 // Naming Styles
         /* StepArgs accessors for convenience */
-        protected TensorFloat   modelOutput           { get => _args.modelOutput; }
+        protected Tensor<float>   modelOutput           { get => _args.modelOutput; }
         protected float         timestep              { get => _args.timestep; }
-        protected TensorFloat   sample                { get => _args.sample;        set => _args.sample = value; }
+        protected Tensor<float>   sample                { get => _args.sample;        set => _args.sample = value; }
         protected float         eta                   { get => _args.eta; }
         protected bool          useClippedModelOutput { get => _args.useClippedModelOutput; }
         protected System.Random generator             { get => _args.generator;     set => _args.generator = value; }
-        protected TensorFloat   varianceNoise         { get => _args.varianceNoise; set => _args.varianceNoise = value; }
+        protected Tensor<float>   varianceNoise         { get => _args.varianceNoise; set => _args.varianceNoise = value; }
         protected float s_churn { get => _args.s_churn; }
         protected float s_tmin  { get => _args.s_tmin; }
         protected float s_tmax  { get => _args.s_tmax; }
@@ -171,8 +171,8 @@ namespace Doji.AI.Diffusers {
             _args = args;
         }
 
-        public virtual TensorFloat AddNoise(TensorFloat originalSamples, TensorFloat noise, TensorFloat timesteps) {
-            var alphasCumprod = _ops.GatherElements(AlphasCumprod, _ops.Cast(timesteps) as TensorInt, 0);
+        public virtual Tensor<float> AddNoise(Tensor<float> originalSamples, Tensor<float> noise, Tensor<float> timesteps) {
+            var alphasCumprod = _ops.GatherElements(AlphasCumprod, _ops.Cast(timesteps) as Tensor<int>, 0);
             var sqrtAlphaProd = _ops.Sqrt(alphasCumprod);
             while (sqrtAlphaProd.shape.rank < originalSamples.shape.rank) {
                 sqrtAlphaProd.Reshape(sqrtAlphaProd.shape.Unsqueeze(-1)); // unsqueeze
@@ -350,7 +350,7 @@ namespace Doji.AI.Diffusers {
         /// Ensures interchangeability with schedulers that need to scale
         /// the denoising model input depending on the current timestep.
         /// </summary>
-        public virtual TensorFloat ScaleModelInput(TensorFloat sample, float t) {
+        public virtual Tensor<float> ScaleModelInput(Tensor<float> sample, float t) {
             return sample;
         }
 

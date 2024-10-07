@@ -49,8 +49,8 @@ namespace Doji.AI.Diffusers {
             _ops = new Ops(backend);
         }
 
-        public TensorFloat PreProcess(
-            TensorFloat image,
+        public Tensor<float> PreProcess(
+            Tensor<float> image,
             int height = -1,
             int width = -1)
         {
@@ -66,7 +66,7 @@ namespace Doji.AI.Diffusers {
             return image;
         }
 
-        public TensorFloat PostProcess(TensorFloat image, bool? doDenormalize = null) {
+        public Tensor<float> PostProcess(Tensor<float> image, bool? doDenormalize = null) {
             if (doDenormalize == true || _doNormalize) {
                 image = Denormalize(image);
             }
@@ -76,14 +76,14 @@ namespace Doji.AI.Diffusers {
         /// <summary>
         /// Normalize an image tensor from [0,1] to [-1,1].
         /// </summary>
-        private TensorFloat Normalize(TensorFloat image) {
+        private Tensor<float> Normalize(Tensor<float> image) {
             return _ops.Mad(image, 2.0f, -1.0f);
         }
 
         /// <summary>
         /// Denormalize an image tensor from [-1,1] to [0,1].
         /// </summary>
-        private TensorFloat Denormalize(TensorFloat image) {
+        private Tensor<float> Denormalize(Tensor<float> image) {
             return _ops.Mad(image, 0.5f, 0.5f);
         }
 

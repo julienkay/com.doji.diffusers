@@ -6,7 +6,7 @@ using Unity.Sentis;
 namespace Doji.AI.Diffusers {
 
 
-    public delegate void PipelineCallback(int step, float timestep, TensorFloat latents);
+    public delegate void PipelineCallback(int step, float timestep, Tensor<float> latents);
 
     public abstract partial class DiffusionPipeline : IDiffusionPipeline, IDisposable {
 
@@ -41,10 +41,10 @@ namespace Doji.AI.Diffusers {
         protected int numImagesPerPrompt { get => _parameters.NumImagesPerPrompt.Value; set => _parameters.NumImagesPerPrompt = value; }
         protected float eta { get => _parameters.Eta.Value; set => _parameters.Eta = value; }
         protected uint? seed { get => _parameters.Seed; set => _parameters.Seed = value; }
-        protected TensorFloat latents { get => _parameters.Latents; set => _parameters.Latents = value; }
+        protected Tensor<float> latents { get => _parameters.Latents; set => _parameters.Latents = value; }
         protected float guidanceRescale { get => _parameters.GuidanceRescale.Value; set => _parameters.GuidanceRescale = value; }
         protected PipelineCallback callback { get => _parameters.Callback; set => _parameters.Callback = value; }
-        protected TensorFloat image { get => _parameters.Image; set => _parameters.Image = value; }
+        protected Tensor<float> image { get => _parameters.Image; set => _parameters.Image = value; }
         protected float strength { get => _parameters.Strength.Value; set => _parameters.Strength = value; }
         protected float controlnetConditioningScale { get => _parameters.ControlnetConditioningScale.Value; set => _parameters.ControlnetConditioningScale = value; }
         protected bool guessMode { get => _parameters.GuessMode.Value; set => _parameters.GuessMode = value; }
@@ -176,7 +176,7 @@ namespace Doji.AI.Diffusers {
         /// </summary>
         /// <param name="parameters">the parameters used to generate the image</param>
         /// <returns>the resulting image tensor</returns>
-        public abstract TensorFloat Generate(Parameters parameters);
+        public abstract Tensor<float> Generate(Parameters parameters);
 
         // TODO: this should be moved to ITxt2Img pipeline, because these defaults only
         // make sense for that (e.g. no image parameters). Maybe 'FromPretrained' should
@@ -189,7 +189,7 @@ namespace Doji.AI.Diffusers {
         /// For more control and advanced pipeline usage, pass parameters via the
         /// <see cref="Generate(Parameters)"/> method instead.
         /// </remarks>
-        public TensorFloat Generate(
+        public Tensor<float> Generate(
             string prompt,
             int? width = null,
             int? height = null,
@@ -218,7 +218,7 @@ namespace Doji.AI.Diffusers {
         /// For more control and advanced pipeline usage, pass parameters via the
         /// <see cref="GenerateAsync(Parameters)"/> method instead.
         /// </remarks>
-        public Task<TensorFloat> GenerateAsync(
+        public Task<Tensor<float>> GenerateAsync(
             string prompt,
             int? width = null,
             int? height = null,
@@ -242,7 +242,7 @@ namespace Doji.AI.Diffusers {
         /// <summary>
         /// Execute the pipeline asynchronously.
         /// </summary>
-        public virtual Task<TensorFloat> GenerateAsync(Parameters parameters) {
+        public virtual Task<Tensor<float>> GenerateAsync(Parameters parameters) {
             throw new NotImplementedException($"{nameof(GenerateAsync)} not implemented for {GetType().Name}.");
         }
 
@@ -251,10 +251,10 @@ namespace Doji.AI.Diffusers {
             int numImagesPerPrompt,
             bool doClassifierFreeGuidance,
             Input negativePrompt = null,
-            TensorFloat promptEmbeds = null,
-            TensorFloat negativePromptEmbeds = null,
-            TensorFloat pooledPromptEmbeds = null,
-            TensorFloat negativePooledPromptEmbeds = null
+            Tensor<float> promptEmbeds = null,
+            Tensor<float> negativePromptEmbeds = null,
+            Tensor<float> pooledPromptEmbeds = null,
+            Tensor<float> negativePooledPromptEmbeds = null
         );
 
         public virtual void Dispose() {
@@ -267,10 +267,10 @@ namespace Doji.AI.Diffusers {
         }
 
         internal struct Embeddings {
-            public TensorFloat PromptEmbeds { get; set; }
-            public TensorFloat NegativePromptEmbeds { get; set; }
-            public TensorFloat PooledPromptEmbeds { get; set; }
-            public TensorFloat NegativePooledPromptEmbeds { get; set; }
+            public Tensor<float> PromptEmbeds { get; set; }
+            public Tensor<float> NegativePromptEmbeds { get; set; }
+            public Tensor<float> PooledPromptEmbeds { get; set; }
+            public Tensor<float> NegativePooledPromptEmbeds { get; set; }
         }
     }
 }

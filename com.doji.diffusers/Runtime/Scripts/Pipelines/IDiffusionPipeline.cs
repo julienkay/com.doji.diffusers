@@ -5,7 +5,7 @@ namespace Doji.AI.Diffusers {
 
     public interface IDiffusionPipeline : IDisposable {
         public Metadata GetMetadata();
-        public TensorFloat Generate(Parameters parameters);
+        public Tensor<float> Generate(Parameters parameters);
     }
 
     public interface ITxt2ImgPipeline : IDiffusionPipeline { }
@@ -20,9 +20,9 @@ namespace Doji.AI.Diffusers {
         /// For more control and advanced pipeline usage, pass parameters via the
         /// <see cref="Generate(Parameters)"/> method instead.
         /// </remarks>
-        public TensorFloat Generate(
+        public Tensor<float> Generate(
             string prompt,
-            TensorFloat image,
+            Tensor<float> image,
             int? numInferenceSteps = null,
             float? guidanceScale = null,
             string negativePrompt = null,

@@ -86,7 +86,7 @@ namespace Doji.AI.Diffusers {
         /// If not provided, a latents tensor will be generated for you using the supplied <see cref="Seed"/>.
         /// </summary>
         [JsonIgnore]
-        public TensorFloat Latents { get; set; }
+        public Tensor<float> Latents { get; set; }
 
         /// <summary>
         /// Guidance rescale factor proposed by <see href="https://arxiv.org/pdf/2305.08891.pdf">
@@ -110,7 +110,7 @@ namespace Doji.AI.Diffusers {
         /// This is a required input for img2img and controlnet pipelines.
         /// </summary>
         [JsonIgnore]
-        public TensorFloat Image { get; set; }
+        public Tensor<float> Image { get; set; }
 
         /// <summary>
         /// Conceptually, indicates how much to transform the reference <see cref="Image"/>. Must be between 0 and 1.

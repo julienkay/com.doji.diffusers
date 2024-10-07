@@ -49,7 +49,7 @@ namespace Doji.AI.Diffusers {
             var sigma = Sigmas[StepIndex.Value];
 
             // 1. compute predicted original sample (x_0) from sigma-scaled predicted noise
-            TensorFloat predOriginalSample;
+            Tensor<float> predOriginalSample;
             if (PredictionType == Prediction.Epsilon) {
                 predOriginalSample = _ops.Sub(sample, _ops.Mul(modelOutput, sigma));
             } else if (PredictionType == Prediction.V_Prediction) {
@@ -68,9 +68,9 @@ namespace Doji.AI.Diffusers {
             float sigmaDown = MathF.Sqrt(MathF.Pow(sigmaTo, 2f) - MathF.Pow(sigmaUp, 2f));
 
             // 2. Convert to an ODE derivative
-            TensorFloat derivative = _ops.Div(_ops.Sub(sample, predOriginalSample), sigma);
+            Tensor<float> derivative = _ops.Div(_ops.Sub(sample, predOriginalSample), sigma);
             float dt = sigmaDown - sigma;
-            TensorFloat prevSample = _ops.Add(sample, _ops.Mul(derivative, dt));
+            Tensor<float> prevSample = _ops.Add(sample, _ops.Mul(derivative, dt));
 
             generator ??= new System.Random();
             uint seed = unchecked((uint)generator.Next());

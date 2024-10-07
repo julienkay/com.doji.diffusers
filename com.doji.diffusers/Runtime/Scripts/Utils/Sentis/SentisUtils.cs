@@ -14,8 +14,9 @@ namespace Doji.AI.Diffusers {
         /// </summary>
         /// <param name="X">The input tensor.</param>
         /// <returns>The computed output tensor.</returns>
-        public static TensorInt NonZero(this Ops ops, TensorFloat X) {
-            BurstTensorData.Pin(X);
+        public static Tensor<int> NonZero(this Ops ops, Tensor<float> X) {
+            throw new System.NotImplementedException();
+            /*ComputeTensorData.Pin(X);
             int nbNonZeroIndices = 0;
             var end = X.shape.length;
             for (int i = 0; i < end; ++i) {
@@ -23,11 +24,11 @@ namespace Doji.AI.Diffusers {
                     nbNonZeroIndices += 1;
             }
 
-            TensorInt nonZeroIndices = TensorInt.AllocZeros(new TensorShape(X.shape.rank, nbNonZeroIndices));
+            Tensor<int> nonZeroIndices = new Tensor<int>(new TensorShape(X.shape.rank, nbNonZeroIndices));
             if (nonZeroIndices.shape.HasZeroDims())
                 return nonZeroIndices;
 
-            BurstTensorData.Pin(nonZeroIndices, clearOnInit: false);
+            ComputeTensorData.Pin(nonZeroIndices, clearOnInit: false);
             int nonZeroIndicesIdx = 0;
             for (var it = new TensorNDIterator(X.shape); it.HasNext(); it.MoveNext()) {
                 if (X[it.index] != 0.0f) {
@@ -37,7 +38,7 @@ namespace Doji.AI.Diffusers {
                 }
             }
 
-            return nonZeroIndices;
+            return nonZeroIndices;*/
         }
     }
 }

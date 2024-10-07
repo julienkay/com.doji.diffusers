@@ -43,7 +43,7 @@ namespace Doji.AI.Diffusers {
 
             float[] alphas = Sub(1f, Betas);
             AlphasCumprodF = alphas.CumProd();
-            AlphasCumprod = new TensorFloat(new TensorShape(alphas.Length), AlphasCumprodF);
+            AlphasCumprod = new Tensor<float>(new TensorShape(alphas.Length), AlphasCumprodF);
 
             if (RescaleBetasZeroSnr) {
                 // Close to 0 without being 0 so first sigma is not inf
@@ -71,7 +71,7 @@ namespace Doji.AI.Diffusers {
         /// Scales the denoising model input by `(sigma**2 + 1) ** 0.5` to match the Euler algorithm.
         /// </summary>
         /// <inheritdoc/>
-        public override TensorFloat ScaleModelInput(TensorFloat sample, float timestep) {
+        public override Tensor<float> ScaleModelInput(Tensor<float> sample, float timestep) {
             if (StepIndex == null) {
                 InitStepIndex(timestep);
             }
@@ -103,17 +103,17 @@ namespace Doji.AI.Diffusers {
             Sigmas = tmp2.Pow(0.5f);
             //var tmp1 = _ops.Sub(1f, AlphasCumprod);
             //var tmp2 = _ops.Div(tmp1, AlphasCumprod);
-            //using TensorFloat pow = new TensorFloat(0.5f);
+            //using Tensor<float> pow = new Tensor<float>(0.5f);
             //var sigmas = _ops.Pow(tmp2, pow);
         }
 
-        public override TensorFloat AddNoise(TensorFloat originalSamples, TensorFloat noise, TensorFloat timesteps) {
+        public override Tensor<float> AddNoise(Tensor<float> originalSamples, Tensor<float> noise, Tensor<float> timesteps) {
             float[] scheduleTimesteps = Timesteps;
 
             int[] stepIndices;
             // BeginIndex is null when pipeline does not implement SetBeginIndex
             if (BeginIndex == null) {
-                float[] timestepsF = timesteps.ToReadOnlyArray();
+                float[] timestepsF = timesteps.DownloadToArray();
                 stepIndices = new int[timestepsF.Length];
                 for (int i = 0; i < timestepsF.Length; i++) {
                     float t = timestepsF[i];
@@ -133,8 +133,8 @@ namespace Doji.AI.Diffusers {
                 }
             }
 
-            using TensorInt indices = new TensorInt(new TensorShape(stepIndices.Length), stepIndices);
-            using TensorFloat sigmas = new TensorFloat(new TensorShape(Sigmas.Length), Sigmas);
+            using Tensor<int> indices = new Tensor<int>(new TensorShape(stepIndices.Length), stepIndices);
+            using Tensor<float> sigmas = new Tensor<float>(new TensorShape(Sigmas.Length), Sigmas);
             var sigma = _ops.GatherElements(sigmas, indices, 0);
             while (sigma.shape.rank < originalSamples.shape.rank) {
                 sigma.Reshape(sigma.shape.Unsqueeze(-1)); // unsqueeze

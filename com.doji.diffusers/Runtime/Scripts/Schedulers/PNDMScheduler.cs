@@ -10,15 +10,15 @@ namespace Doji.AI.Diffusers {
 
     public class PNDMScheduler : SchedulerInt {
 
-        public TensorFloat Betas { get; private set; }
-        public TensorFloat Alphas { get; private set; }
+        public Tensor<float> Betas { get; private set; }
+        public Tensor<float> Alphas { get; private set; }
         public float FinalAlphaCumprod { get; private set; }
 
         public int PndmOrder { get; private set; }
-        public TensorFloat CurModelOutput { get; set; }
+        public Tensor<float> CurModelOutput { get; set; }
         public int Counter { get; set; }
-        public TensorFloat CurSample { get; set; }
-        public List<TensorFloat> Ets { get; private set; }
+        public Tensor<float> CurSample { get; set; }
+        public List<Tensor<float>> Ets { get; private set; }
         public int[] PrkTimesteps { get; set; }
         public int[] PlmsTimesteps { get; set; }
         public bool AcceptsEta { get { return false; } }
@@ -35,14 +35,14 @@ namespace Doji.AI.Diffusers {
             Config.TimestepSpacing   ??= Spacing.Leading;
             Config.StepsOffset       ??= 0;
 
-            Ets = new List<TensorFloat>();
+            Ets = new List<Tensor<float>>();
 
             float[] betas = GetBetas();
-            Betas = new TensorFloat(new TensorShape(betas.Length), betas);
+            Betas = new Tensor<float>(new TensorShape(betas.Length), betas);
             Alphas = _ops.Sub(1.0f, Betas);
             float[] alphas = betas.Select(beta => 1.0f - beta).ToArray();
             AlphasCumprodF = alphas.CumProd();
-            AlphasCumprod = new TensorFloat(new TensorShape(alphas.Length), AlphasCumprodF);
+            AlphasCumprod = new Tensor<float>(new TensorShape(alphas.Length), AlphasCumprodF);
             FinalAlphaCumprod = SetAlphaToOne ? 1.0f : AlphasCumprodF[0];
 
             // For now we only support F-PNDM, i.e. the runge-kutta method
@@ -95,8 +95,8 @@ namespace Doji.AI.Diffusers {
 
         /// <inheritdoc/>
         /// <remarks>
-        /// Calls <see cref="StepPrk(TensorFloat, int, TensorFloat)"/> or
-        /// <see cref="StepPlms(TensorFloat, int, TensorFloat)"/> depending
+        /// Calls <see cref="StepPrk(Tensor<float>, int, Tensor<float>)"/> or
+        /// <see cref="StepPlms(Tensor<float>, int, Tensor<float>)"/> depending
         /// on the internal variable <see cref="Counter"/>.
         /// </remarks>
         public override SchedulerOutput Step(StepArgs args) {
@@ -114,7 +114,7 @@ namespace Doji.AI.Diffusers {
         /// It performs four forward passes to approximate the solution to the
         /// differential equation.
         /// </summary>
-        private SchedulerOutput StepPrk(TensorFloat modelOutput, int timestep, TensorFloat sample) {
+        private SchedulerOutput StepPrk(Tensor<float> modelOutput, int timestep, Tensor<float> sample) {
             if (NumInferenceSteps == 0) {
                 throw new ArgumentException("Number of inference steps is '0', you need to run 'SetTimesteps' after creating the scheduler");
             }
@@ -124,7 +124,7 @@ namespace Doji.AI.Diffusers {
             timestep = PrkTimesteps[Counter / 4 * 4];
 
             if (CurModelOutput == null) {
-                using var init = TensorFloat.AllocZeros(modelOutput.shape);
+                using var init = new Tensor<float>(modelOutput.shape);
                 CurModelOutput = init;
             }
 
@@ -147,9 +147,9 @@ namespace Doji.AI.Diffusers {
             }
 
             // CurSample should not be `null`
-            TensorFloat curSample = (CurSample != null) ? CurSample : sample;
+            Tensor<float> curSample = (CurSample != null) ? CurSample : sample;
 
-            TensorFloat prevSample = GetPrevSample(curSample, timestep, prevTimestep, modelOutput);
+            Tensor<float> prevSample = GetPrevSample(curSample, timestep, prevTimestep, modelOutput);
             Counter++;
 
             return new SchedulerOutput(prevSample);
@@ -160,7 +160,7 @@ namespace Doji.AI.Diffusers {
         /// This function propagates the sample with the linear multistep method.
         /// It performs one forward pass multiple times to approximate the solution.
         /// </summary>
-        private SchedulerOutput StepPlms(TensorFloat modelOutput, int timestep, TensorFloat sample) {
+        private SchedulerOutput StepPlms(Tensor<float> modelOutput, int timestep, Tensor<float> sample) {
             if (NumInferenceSteps == 0) {
                 throw new ArgumentException("Number of inference steps is 0. " +
                     "Make sure to run SetTimesteps() after creating the scheduler");
@@ -215,7 +215,7 @@ namespace Doji.AI.Diffusers {
                 modelOutput = _ops.Div(tmp7, 24f);
             }
 
-            TensorFloat prevSample = GetPrevSample(sample, timestep, prevTimestep, modelOutput);
+            Tensor<float> prevSample = GetPrevSample(sample, timestep, prevTimestep, modelOutput);
             Counter++;
 
             return new SchedulerOutput(prevSample);
@@ -226,7 +226,7 @@ namespace Doji.AI.Diffusers {
         /// this function computes x_(t−δ) using the formula of (9)
         /// Note that x_t needs to be added to both sides of the equation
         /// </summary>
-        private TensorFloat GetPrevSample(TensorFloat sample, int timestep, int prevTimestep, TensorFloat modelOutput) {
+        private Tensor<float> GetPrevSample(Tensor<float> sample, int timestep, int prevTimestep, Tensor<float> modelOutput) {
             // Notation (<variable name> -> <name in paper>
             // alphaProdT -> α_t
             // alphaProdTPrev -> α_(t−δ)
@@ -275,8 +275,8 @@ namespace Doji.AI.Diffusers {
             Ets?.Clear();
         }
 
-        private TensorFloat TakeOwnership(TensorFloat X) {
-            TensorFloat O = _ops.Copy(X);
+        private Tensor<float> TakeOwnership(Tensor<float> X) {
+            Tensor<float> O = _ops.Copy(X);
             _ops.TakeOwnership(O);
             return O;
         }

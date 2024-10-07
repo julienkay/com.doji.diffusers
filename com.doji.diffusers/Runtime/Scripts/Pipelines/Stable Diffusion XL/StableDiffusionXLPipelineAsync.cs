@@ -12,7 +12,7 @@ namespace Doji.AI.Diffusers {
     /// </summary>
     public partial class StableDiffusionXLPipeline {
 
-        public override async Task<TensorFloat> GenerateAsync(Parameters parameters) {
+        public override async Task<Tensor<float>> GenerateAsync(Parameters parameters) {
             InitGenerate(parameters);
 
             _parameters.OriginalSize ??= (height, width);
@@ -47,10 +47,10 @@ namespace Doji.AI.Diffusers {
             PrepareLatents();
 
             // 7. Prepare added time ids & embeddings
-            TensorFloat addTextEmbeds = promptEmbeds.PooledPromptEmbeds;
+            Tensor<float> addTextEmbeds = promptEmbeds.PooledPromptEmbeds;
             float[] timeIds = GetTimeIds(originalSize.Value, cropsCoordsTopLeft.Value, targetSize.Value);
-            using TensorFloat initAddTimeIds = new TensorFloat(new TensorShape(1, timeIds.Length), timeIds);
-            TensorFloat addTimeIds = initAddTimeIds;
+            using Tensor<float> initAddTimeIds = new Tensor<float>(new TensorShape(1, timeIds.Length), timeIds);
+            Tensor<float> addTimeIds = initAddTimeIds;
 
             if (doClassifierFreeGuidance) {
                 promptEmbeds.PromptEmbeds = _ops.Concatenate(promptEmbeds.NegativePromptEmbeds, promptEmbeds.PromptEmbeds, axis: 0);
@@ -64,13 +64,13 @@ namespace Doji.AI.Diffusers {
             int i = 0;
             foreach (float t in Scheduler) {
                 // expand the latents if doing classifier free guidance
-                TensorFloat latentModelInput = doClassifierFreeGuidance ? _ops.Concatenate(latents, latents, 0) : latents;
+                Tensor<float> latentModelInput = doClassifierFreeGuidance ? _ops.Concatenate(latents, latents, 0) : latents;
                 latentModelInput = Scheduler.ScaleModelInput(latentModelInput, t);
 
                 // predict the noise residual
                 using Tensor timestep = Unet.CreateTimestep(new TensorShape(batchSize), t);
 
-                TensorFloat noisePred = await Unet.ExecuteAsync(
+                Tensor<float> noisePred = await Unet.ExecuteAsync(
                     latentModelInput,
                     timestep,
                     promptEmbeds.PromptEmbeds,
@@ -105,14 +105,14 @@ namespace Doji.AI.Diffusers {
                 i++;
             }
 
-            TensorFloat result = _ops.Div(latents, VaeDecoder.Config.ScalingFactor ?? 0.18215f);
+            Tensor<float> result = _ops.Div(latents, VaeDecoder.Config.ScalingFactor ?? 0.18215f);
 
             // batch decode
             if (batchSize > 1) {
                 throw new NotImplementedException();
             }
 
-            TensorFloat outputImage = await VaeDecoder.ExecuteAsync(result);
+            Tensor<float> outputImage = await VaeDecoder.ExecuteAsync(result);
             outputImage = ImageProcessor.PostProcess(outputImage);
 
             return outputImage;
@@ -123,10 +123,10 @@ namespace Doji.AI.Diffusers {
             int numImagesPerPrompt,
             bool doClassifierFreeGuidance,
             Input negativePrompt = null,
-            TensorFloat promptEmbeds = null,
-            TensorFloat negativePromptEmbeds = null,
-            TensorFloat pooledPromptEmbeds = null,
-            TensorFloat negativePooledPromptEmbeds = null)
+            Tensor<float> promptEmbeds = null,
+            Tensor<float> negativePromptEmbeds = null,
+            Tensor<float> pooledPromptEmbeds = null,
+            Tensor<float> negativePooledPromptEmbeds = null)
         {
             if (promptEmbeds == null) {
                 _promptEmbedsList.Clear();
@@ -147,12 +147,12 @@ namespace Doji.AI.Diffusers {
                         $"{tokenizer.ModelMaxLength} tokens.");
                     }
 
-                    using TensorInt textIdTensor = new TensorInt(new TensorShape(batchSize, textInputIds.Length), textInputIds);
+                    using Tensor<int> textIdTensor = new Tensor<int>(new TensorShape(batchSize, textInputIds.Length), textInputIds);
 
                     var _promptEmbeds = await textEncoder.ExecuteAsync(textIdTensor);
 
-                    pooledPromptEmbeds = _promptEmbeds[0] as TensorFloat;
-                    promptEmbeds = _promptEmbeds[-2] as TensorFloat;
+                    pooledPromptEmbeds = _promptEmbeds[0] as Tensor<float>;
+                    promptEmbeds = _promptEmbeds[-2] as Tensor<float>;
 
                     // copy prompt embeds to avoid having to call TakeOwnership and track tensor to Dispose()
                     promptEmbeds = _ops.Copy(promptEmbeds);
@@ -166,9 +166,9 @@ namespace Doji.AI.Diffusers {
             // get unconditional embeddings for classifier free guidance
             bool zeroOutNegativePrompt = negativePrompt is null && Config.ForceZerosForEmptyPrompt;
             if (doClassifierFreeGuidance && negativePromptEmbeds is null && zeroOutNegativePrompt) {
-                using var zeros = TensorFloat.AllocZeros(promptEmbeds.shape);
+                using var zeros = new Tensor<float>(promptEmbeds.shape);
                 negativePromptEmbeds = zeros;
-                using var zerosP = TensorFloat.AllocZeros(pooledPromptEmbeds.shape);
+                using var zerosP = new Tensor<float>(pooledPromptEmbeds.shape);
                 negativePooledPromptEmbeds = zerosP;
             } else if (doClassifierFreeGuidance && negativePromptEmbeds is null) {
                 negativePrompt = negativePrompt ?? "";
@@ -196,12 +196,12 @@ namespace Doji.AI.Diffusers {
                     ) as BatchEncoding;
                     int[] uncondInputIds = uncondInput.InputIds as int[];
 
-                    using TensorInt uncondIdTensor = new TensorInt(new TensorShape(batchSize, uncondInputIds.Length), uncondInputIds);
+                    using Tensor<int> uncondIdTensor = new Tensor<int>(new TensorShape(batchSize, uncondInputIds.Length), uncondInputIds);
 
                     var _negativePromptEmbeds = textEncoder.Execute(uncondIdTensor);
 
-                    negativePooledPromptEmbeds = _negativePromptEmbeds[0] as TensorFloat;
-                    negativePromptEmbeds = _negativePromptEmbeds[-2] as TensorFloat;
+                    negativePooledPromptEmbeds = _negativePromptEmbeds[0] as Tensor<float>;
+                    negativePromptEmbeds = _negativePromptEmbeds[-2] as Tensor<float>;
                     negativePromptEmbeds = _ops.Copy(negativePromptEmbeds);
 
                     // duplicate unconditional embeddings for each generation per prompt

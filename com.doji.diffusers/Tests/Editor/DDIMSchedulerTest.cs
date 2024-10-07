@@ -20,7 +20,7 @@ namespace Doji.AI.Diffusers.Editor.Tests {
         /// <summary>
         /// Loads deterministic random samples with shape (4, 3, 8, 8)
         /// </summary>
-        private TensorFloat DummySamples {
+        private Tensor<float> DummySamples {
             get {
                 return TestUtils.LoadTensorFromFile("scheduler_test_random_samples", new TensorShape(4, 3, 8, 8));
             }
@@ -93,10 +93,10 @@ namespace Doji.AI.Diffusers.Editor.Tests {
             }
 
             sample.ReadbackAndClone();
-            CollectionAssert.AreEqual(ExpectedOutput, sample.ToReadOnlyArray(), new FloatArrayComparer(0.00001f));
+            CollectionAssert.AreEqual(ExpectedOutput, sample.DownloadToArray(), new FloatArrayComparer(0.00001f));
         }
 
-        private TensorFloat Model(TensorFloat sampleTensor, int t) {
+        private Tensor<float> Model(Tensor<float> sampleTensor, int t) {
             return _ops.Mul(sampleTensor, (float)t / (t + 1));
         }
     }

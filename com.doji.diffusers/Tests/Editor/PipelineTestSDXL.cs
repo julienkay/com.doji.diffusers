@@ -27,7 +27,7 @@ namespace Doji.AI.Diffusers.Editor.Tests {
             int width = 1024;
             int height = 1024;
             string prompt = "a cat";
-            using var latents = new TensorFloat(new TensorShape(1, 4, 128, 128), ArrayUtils.Randn(4 * 128 * 128));
+            using var latents = new Tensor<float>(new TensorShape(1, 4, 128, 128), ArrayUtils.Randn(4 * 128 * 128));
 
             Parameters p = new Parameters() {
                 Prompt = prompt,

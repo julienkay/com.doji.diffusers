@@ -32,20 +32,20 @@ namespace Doji.AI.Diffusers.Editor.Tests {
             return floatValues;
         }
 
-        public static TensorFloat LoadTensorFromFile(string fileName) {
+        public static Tensor<float> LoadTensorFromFile(string fileName) {
             float[] data = LoadFromFile(fileName);
-            return new TensorFloat(new TensorShape(data.Length), data);
+            return new Tensor<float>(new TensorShape(data.Length), data);
         }
 
-        public static TensorFloat LoadTensorFromFile(string fileName, TensorShape shape) {
+        public static Tensor<float> LoadTensorFromFile(string fileName, TensorShape shape) {
             float[] data = LoadFromFile(fileName);
-            return new TensorFloat(shape, data);
+            return new Tensor<float>(shape, data);
         }
 
         /// <summary>
         /// Dumps a tensor to a png file.
         /// </summary>
-        public static void ToFile(DiffusionPipeline sd, TensorFloat generated) {
+        public static void ToFile(DiffusionPipeline sd, Tensor<float> generated) {
             var m = sd.GetMetadata();
             int width = m.Parameters.Width.Value;
             int height = m.Parameters.Height.Value;

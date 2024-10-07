@@ -35,7 +35,7 @@ namespace Doji.AI.Diffusers {
 
             float[] alphas = Sub(1f, Betas);
             AlphasCumprodF = alphas.CumProd();
-            AlphasCumprod = new TensorFloat(new TensorShape(alphas.Length), AlphasCumprodF);
+            AlphasCumprod = new Tensor<float>(new TensorShape(alphas.Length), AlphasCumprodF);
 
             // At every step in ddim, we are looking into the previous alphas_cumprod
             // For the final step, there is no previous alphas_cumprod because we are already at 0
@@ -133,7 +133,7 @@ namespace Doji.AI.Diffusers {
 
             // 3. compute predicted original sample from predicted noise also called
             // "predicted x_0" of formula (12) from https://arxiv.org/pdf/2010.02502.pdf
-            TensorFloat predOriginalSample, predEpsilon;
+            Tensor<float> predOriginalSample, predEpsilon;
 
             if (PredictionType == Prediction.Epsilon) {
                 var tmp = _ops.Mul(modelOutput, MathF.Sqrt(betaProdT));
@@ -212,7 +212,7 @@ namespace Doji.AI.Diffusers {
         /// better photorealism as well as better image-text alignment, especially when using very large guidance weights."
         /// <seealso href="https://arxiv.org/abs/2205.11487"/>
         /// </summary>
-        private TensorFloat ThresholdSample(TensorFloat sample) {
+        private Tensor<float> ThresholdSample(Tensor<float> sample) {
             TensorShape shape = sample.shape;
 
             // Flatten sample for doing quantile calculation along each image

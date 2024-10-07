@@ -22,7 +22,7 @@ namespace Doji.AI.Diffusers {
             _ops = new Ops(BackendType.GPUCompute);
         }
 
-        public TensorFloat Execute(TensorFloat x) {
+        public Tensor<float> Execute(Tensor<float> x) {
             return x;
             /*if (PrevTensor == null) {
                 PrevTensor = x; //.detach().clone()

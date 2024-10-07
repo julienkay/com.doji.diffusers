@@ -20,8 +20,8 @@ namespace Doji.AI.Diffusers {
 
         public List<(ClipTokenizer Tokenizer, TextEncoder TextEncoder)> Encoders { get; set; }
 
-        private List<TensorFloat> _promptEmbedsList = new List<TensorFloat>();
-        private List<TensorFloat> _negativePromptEmbedsList = new List<TensorFloat>();
+        private List<Tensor<float>> _promptEmbedsList = new List<Tensor<float>>();
+        private List<Tensor<float>> _negativePromptEmbedsList = new List<Tensor<float>>();
 
         /// <summary>
         /// Initializes a new Stable Diffusion XL pipeline.
@@ -62,7 +62,7 @@ namespace Doji.AI.Diffusers {
             };
         }
 
-        public override TensorFloat Generate(Parameters parameters) {
+        public override Tensor<float> Generate(Parameters parameters) {
             Profiler.BeginSample($"{GetType().Name}.Generate");
 
             InitGenerate(parameters);
@@ -103,10 +103,10 @@ namespace Doji.AI.Diffusers {
             PrepareLatents();
 
             // 7. Prepare added time ids & embeddings
-            TensorFloat addTextEmbeds = promptEmbeds.PooledPromptEmbeds;
+            Tensor<float> addTextEmbeds = promptEmbeds.PooledPromptEmbeds;
             float[] timeIds = GetTimeIds(originalSize.Value, cropsCoordsTopLeft.Value, targetSize.Value);
-            using TensorFloat initAddTimeIds = new TensorFloat(new TensorShape(1, timeIds.Length), timeIds);
-            TensorFloat addTimeIds = initAddTimeIds;
+            using Tensor<float> initAddTimeIds = new Tensor<float>(new TensorShape(1, timeIds.Length), timeIds);
+            Tensor<float> addTimeIds = initAddTimeIds;
 
             if (doClassifierFreeGuidance) {
                 promptEmbeds.PromptEmbeds = _ops.Concatenate(promptEmbeds.NegativePromptEmbeds, promptEmbeds.PromptEmbeds, axis: 0);
@@ -121,7 +121,7 @@ namespace Doji.AI.Diffusers {
             int i = 0;
             foreach (float t in Scheduler) {
                 // expand the latents if doing classifier free guidance
-                TensorFloat latentModelInput = doClassifierFreeGuidance ? _ops.Concatenate(latents, latents, 0) : latents;
+                Tensor<float> latentModelInput = doClassifierFreeGuidance ? _ops.Concatenate(latents, latents, 0) : latents;
                 latentModelInput = Scheduler.ScaleModelInput(latentModelInput, t);
 
                 // predict the noise residual
@@ -130,7 +130,7 @@ namespace Doji.AI.Diffusers {
                 Profiler.EndSample();
 
                 Profiler.BeginSample("Execute Unet");
-                TensorFloat noisePred = Unet.Execute(
+                Tensor<float> noisePred = Unet.Execute(
                     latentModelInput,
                     timestep,
                     promptEmbeds.PromptEmbeds,
@@ -174,7 +174,7 @@ namespace Doji.AI.Diffusers {
             Profiler.EndSample();
 
             Profiler.BeginSample($"Scale Latents");
-            TensorFloat result = _ops.Div(latents, VaeDecoder.Config.ScalingFactor ?? 0.18215f);
+            Tensor<float> result = _ops.Div(latents, VaeDecoder.Config.ScalingFactor ?? 0.18215f);
             Profiler.EndSample();
 
             // batch decode
@@ -183,7 +183,7 @@ namespace Doji.AI.Diffusers {
             }
 
             Profiler.BeginSample($"VaeDecoder Decode Image");
-            TensorFloat outputImage = VaeDecoder.Execute(result);
+            Tensor<float> outputImage = VaeDecoder.Execute(result);
             Profiler.EndSample();
 
             Profiler.BeginSample($"PostProcess Image");
@@ -199,10 +199,10 @@ namespace Doji.AI.Diffusers {
             int numImagesPerPrompt,
             bool doClassifierFreeGuidance,
             Input negativePrompt = null,
-            TensorFloat promptEmbeds = null,
-            TensorFloat negativePromptEmbeds = null,
-            TensorFloat pooledPromptEmbeds = null,
-            TensorFloat negativePooledPromptEmbeds = null)
+            Tensor<float> promptEmbeds = null,
+            Tensor<float> negativePromptEmbeds = null,
+            Tensor<float> pooledPromptEmbeds = null,
+            Tensor<float> negativePooledPromptEmbeds = null)
         {
             if (promptEmbeds == null) {
                 _promptEmbedsList.Clear(); 
@@ -226,15 +226,15 @@ namespace Doji.AI.Diffusers {
                     Profiler.EndSample();
 
                     Profiler.BeginSample("Prepare Text ID Tensor");
-                    using TensorInt textIdTensor = new TensorInt(new TensorShape(batchSize, textInputIds.Length), textInputIds);
+                    using Tensor<int> textIdTensor = new Tensor<int>(new TensorShape(batchSize, textInputIds.Length), textInputIds);
                     Profiler.EndSample();
 
                     Profiler.BeginSample("Execute TextEncoder");
                     var _promptEmbeds = textEncoder.Execute(textIdTensor);
                     Profiler.EndSample();
 
-                    pooledPromptEmbeds = _promptEmbeds[0] as TensorFloat;
-                    promptEmbeds = _promptEmbeds[-2] as TensorFloat;
+                    pooledPromptEmbeds = _promptEmbeds[0] as Tensor<float>;
+                    promptEmbeds = _promptEmbeds[-2] as Tensor<float>;
 
                     // copy prompt embeds to avoid having to call TakeOwnership and track tensor to Dispose()
                     promptEmbeds = _ops.Copy(promptEmbeds);
@@ -251,9 +251,9 @@ namespace Doji.AI.Diffusers {
             // get unconditional embeddings for classifier free guidance
             bool zeroOutNegativePrompt = negativePrompt is null && Config.ForceZerosForEmptyPrompt;
             if (doClassifierFreeGuidance && negativePromptEmbeds is null && zeroOutNegativePrompt) {
-                using var zeros = TensorFloat.AllocZeros(promptEmbeds.shape);
+                using var zeros = new Tensor<float>(promptEmbeds.shape);
                 negativePromptEmbeds = zeros;
-                using var zerosP = TensorFloat.AllocZeros(pooledPromptEmbeds.shape);
+                using var zerosP = new Tensor<float>(pooledPromptEmbeds.shape);
                 negativePooledPromptEmbeds = zerosP;
             } else if (doClassifierFreeGuidance && negativePromptEmbeds is null) {
                 negativePrompt = negativePrompt ?? "";
@@ -284,15 +284,15 @@ namespace Doji.AI.Diffusers {
                     Profiler.EndSample();
 
                     Profiler.BeginSample("Prepare Unconditioned Text ID Tensor");
-                    using TensorInt uncondIdTensor = new TensorInt(new TensorShape(batchSize, uncondInputIds.Length), uncondInputIds);
+                    using Tensor<int> uncondIdTensor = new Tensor<int>(new TensorShape(batchSize, uncondInputIds.Length), uncondInputIds);
                     Profiler.EndSample();
 
                     Profiler.BeginSample("Execute TextEncoder For Unconditioned Input");
                     var _negativePromptEmbeds = textEncoder.Execute(uncondIdTensor);
                     Profiler.EndSample();
 
-                    negativePooledPromptEmbeds = _negativePromptEmbeds[0] as TensorFloat;
-                    negativePromptEmbeds = _negativePromptEmbeds[-2] as TensorFloat;
+                    negativePooledPromptEmbeds = _negativePromptEmbeds[0] as Tensor<float>;
+                    negativePromptEmbeds = _negativePromptEmbeds[-2] as Tensor<float>;
                     negativePromptEmbeds = _ops.Copy(negativePromptEmbeds);
 
                     // duplicate unconditional embeddings for each generation per prompt
@@ -354,12 +354,12 @@ namespace Doji.AI.Diffusers {
         /// Rescale `noise_cfg` according to `guidance_rescale`. Based on findings of <see href="https://arxiv.org/pdf/2305.08891.pdf">
         /// Common Diffusion Noise Schedules and Sample Steps are Flawed</see>. See Section 3.4
         /// </summary>
-        private TensorFloat RescaleNoiseCfg(TensorFloat noiseCfg, TensorFloat noise_pred_text, float guidanceRescale = 0.0f) {
+        private Tensor<float> RescaleNoiseCfg(Tensor<float> noiseCfg, Tensor<float> noise_pred_text, float guidanceRescale = 0.0f) {
             throw new NotImplementedException("guidanceRescale > 0.0f not supported yet.");
-            /*TensorFloat std_text = np.std(noise_pred_text, axis = tuple(range(1, noise_pred_text.ndim)), keepdims = True);
-            TensorFloat std_cfg = np.std(noiseCfg, axis = tuple(range(1, noiseCfg.ndim)), keepdims = True);
+            /*Tensor<float> std_text = np.std(noise_pred_text, axis = tuple(range(1, noise_pred_text.ndim)), keepdims = True);
+            Tensor<float> std_cfg = np.std(noiseCfg, axis = tuple(range(1, noiseCfg.ndim)), keepdims = True);
             // rescale the results from guidance (fixes overexposure)
-            TensorFloat noisePredRescaled = noiseCfg * (std_text / std_cfg);
+            Tensor<float> noisePredRescaled = noiseCfg * (std_text / std_cfg);
             // mix with the original results from guidance by factor guidance_rescale to avoid "plain looking" images
             noiseCfg = guidanceRescale * noisePredRescaled + (1f - guidanceRescale) * noiseCfg;
             return noiseCfg;*/

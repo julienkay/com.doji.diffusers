@@ -42,7 +42,7 @@ namespace Doji.AI.Diffusers {
             };
         }
 
-        public override TensorFloat Generate(Parameters parameters) {
+        public override Tensor<float> Generate(Parameters parameters) {
             Profiler.BeginSample($"{GetType().Name}.Generate");
 
             InitGenerate(parameters);
@@ -93,7 +93,7 @@ namespace Doji.AI.Diffusers {
             int i = 0;
             foreach (float t in Scheduler) {
                 // expand the latents if doing classifier free guidance
-                TensorFloat latentModelInput = doClassifierFreeGuidance ? _ops.Concatenate(latents, latents, 0) : latents;
+                Tensor<float> latentModelInput = doClassifierFreeGuidance ? _ops.Concatenate(latents, latents, 0) : latents;
                 latentModelInput = Scheduler.ScaleModelInput(latentModelInput, t);
 
                 // predict the noise residual
@@ -102,7 +102,7 @@ namespace Doji.AI.Diffusers {
                 Profiler.EndSample();
 
                 Profiler.BeginSample("Execute Unet");
-                TensorFloat noisePred = Unet.Execute(latentModelInput, timestep, embeddings.PromptEmbeds);
+                Tensor<float> noisePred = Unet.Execute(latentModelInput, timestep, embeddings.PromptEmbeds);
                 Profiler.EndSample();
 
                 // perform guidance
@@ -133,7 +133,7 @@ namespace Doji.AI.Diffusers {
             Profiler.EndSample();
 
             Profiler.BeginSample($"Scale Latents");
-            TensorFloat result = _ops.Div(latents, 0.18215f);
+            Tensor<float> result = _ops.Div(latents, 0.18215f);
             Profiler.EndSample();
 
             // batch decode
@@ -142,7 +142,7 @@ namespace Doji.AI.Diffusers {
             }
 
             Profiler.BeginSample($"VaeDecoder Decode Image");
-            TensorFloat outputImage = VaeDecoder.Execute(result);
+            Tensor<float> outputImage = VaeDecoder.Execute(result);
             Profiler.EndSample();
 
             Profiler.BeginSample($"PostProcess Image");
@@ -158,10 +158,10 @@ namespace Doji.AI.Diffusers {
             int numImagesPerPrompt,
             bool doClassifierFreeGuidance,
             Input negativePrompt = null,
-            TensorFloat promptEmbeds = null,
-            TensorFloat negativePromptEmbeds = null,
-            TensorFloat pooledPromptEmbeds = null,
-            TensorFloat negativePooledPromptEmbeds = null)
+            Tensor<float> promptEmbeds = null,
+            Tensor<float> negativePromptEmbeds = null,
+            Tensor<float> pooledPromptEmbeds = null,
+            Tensor<float> negativePooledPromptEmbeds = null)
         {
             if (promptEmbeds == null) {
                 Profiler.BeginSample("CLIPTokenizer Encode Input");
@@ -182,11 +182,11 @@ namespace Doji.AI.Diffusers {
                 Profiler.EndSample();
 
                 Profiler.BeginSample("Prepare Text ID Tensor");
-                using TensorInt textIdTensor = new TensorInt(new TensorShape(batchSize, textInputIds.Length), textInputIds);
+                using Tensor<int> textIdTensor = new Tensor<int>(new TensorShape(batchSize, textInputIds.Length), textInputIds);
                 Profiler.EndSample();
 
                 Profiler.BeginSample("Execute TextEncoder");
-                promptEmbeds = TextEncoder.Execute(textIdTensor)[0] as TensorFloat;
+                promptEmbeds = TextEncoder.Execute(textIdTensor)[0] as Tensor<float>;
                 Profiler.EndSample();
             }
 
@@ -221,12 +221,12 @@ namespace Doji.AI.Diffusers {
                 Profiler.EndSample();
 
                 Profiler.BeginSample("Prepare Unconditioned Text ID Tensor");
-                using TensorInt uncondIdTensor = new TensorInt(new TensorShape(batchSize, uncondInputIds.Length), uncondInputIds);
+                using Tensor<int> uncondIdTensor = new Tensor<int>(new TensorShape(batchSize, uncondInputIds.Length), uncondInputIds);
                 Profiler.EndSample();
 
                 promptEmbeds = _ops.Copy(promptEmbeds); // "take ownership"
                 Profiler.BeginSample("Execute TextEncoder For Unconditioned Input");
-                negativePromptEmbeds = TextEncoder.Execute(uncondIdTensor)[0] as TensorFloat;
+                negativePromptEmbeds = TextEncoder.Execute(uncondIdTensor)[0] as Tensor<float>;
                 Profiler.EndSample();
             }
 
@@ -237,7 +237,7 @@ namespace Doji.AI.Diffusers {
                 // Here we concatenate the unconditional and text embeddings into a single batch
                 // to avoid doing two forward passes
                 Profiler.BeginSample("Concat Prompt Embeds For Classifier-Fee Guidance");
-                TensorFloat combinedEmbeddings = _ops.Concatenate(negativePromptEmbeds, promptEmbeds, 0);
+                Tensor<float> combinedEmbeddings = _ops.Concatenate(negativePromptEmbeds, promptEmbeds, 0);
                 Profiler.EndSample();
 
                 return new Embeddings() { PromptEmbeds = combinedEmbeddings };
