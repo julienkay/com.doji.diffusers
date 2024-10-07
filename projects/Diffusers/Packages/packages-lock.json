@@ -63,7 +63,7 @@
     },
     "com.unity.collections": {
       "version": "2.4.3",
-      "depth": 2,
+      "depth": 1,
       "source": "registry",
       "dependencies": {
         "com.unity.burst": "1.8.13",
@@ -75,7 +75,7 @@
     },
     "com.unity.ext.nunit": {
       "version": "2.0.3",
-      "depth": 4,
+      "depth": 3,
       "source": "registry",
       "dependencies": {},
       "url": "https://packages.unity.com"
@@ -98,7 +98,7 @@
     },
     "com.unity.nuget.mono-cecil": {
       "version": "1.11.4",
-      "depth": 3,
+      "depth": 2,
       "source": "registry",
       "dependencies": {},
       "url": "https://packages.unity.com"
@@ -111,15 +111,14 @@
       "url": "https://packages.unity.com"
     },
     "com.unity.sentis": {
-      "version": "2.1.0",
-      "depth": 1,
-      "source": "registry",
+      "version": "file:../../../../com.unity.sentis/com.unity.sentis",
+      "depth": 0,
+      "source": "local",
       "dependencies": {
         "com.unity.burst": "1.8.17",
         "com.unity.collections": "2.4.3",
         "com.unity.modules.imageconversion": "1.0.0"
-      },
-      "url": "https://packages.unity.com"
+      }
     },
     "com.unity.sharp-zip-lib": {
       "version": "1.3.5-preview",
@@ -130,7 +129,7 @@
     },
     "com.unity.test-framework": {
       "version": "1.4.3",
-      "depth": 3,
+      "depth": 2,
       "source": "registry",
       "dependencies": {
         "com.unity.ext.nunit": "2.0.3",
@@ -141,7 +140,7 @@
     },
     "com.unity.test-framework.performance": {
       "version": "3.0.3",
-      "depth": 3,
+      "depth": 2,
       "source": "registry",
       "dependencies": {
         "com.unity.test-framework": "1.1.31",

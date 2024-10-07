@@ -90,7 +90,7 @@ namespace Doji.AI.Diffusers {
         /// <summary>
         /// Create a pipeline reusing the components of the given pipeline.
         /// </summary>
-        public DiffusionPipeline(DiffusionPipeline pipe) : this(pipe.VaeDecoder, pipe.TextEncoder, pipe.Tokenizer, pipe.Scheduler, pipe.Unet, pipe._ops.backendType) {
+        public DiffusionPipeline(DiffusionPipeline pipe) : this(pipe.VaeDecoder, pipe.TextEncoder, pipe.Tokenizer, pipe.Scheduler, pipe.Unet, pipe._ops.BackendType) {
             ModelInfo = pipe.ModelInfo;
             Config = pipe.Config;
         }

@@ -335,7 +335,7 @@ namespace Doji.AI.Diffusers {
         /// </summary>
         public StableDiffusionImg2ImgPipeline(DiffusionPipeline pipe) : base(pipe) {
             if (pipe is StableDiffusionPipeline) {
-                VaeEncoder = VaeEncoder.FromPretrained(pipe.ModelInfo, pipe._ops.backendType);
+                VaeEncoder = VaeEncoder.FromPretrained(pipe.ModelInfo, pipe._ops.BackendType);
             } else {
                 throw new InvalidOperationException($"Cannot create StableDiffusionImg2ImgPipeline from a {pipe.GetType().Name}.");
             }
@@ -450,7 +450,7 @@ namespace Doji.AI.Diffusers {
             Config = pipe.Config;
 
             if (pipe is StableDiffusionXLPipeline xl) {
-                VaeEncoder = VaeEncoder.FromPretrained(pipe.ModelInfo, pipe._ops.backendType);
+                VaeEncoder = VaeEncoder.FromPretrained(pipe.ModelInfo, pipe._ops.BackendType);
                 Tokenizer2 = xl.Tokenizer2;
                 TextEncoder2 = xl.TextEncoder2;
                 Encoders = xl.Encoders;
