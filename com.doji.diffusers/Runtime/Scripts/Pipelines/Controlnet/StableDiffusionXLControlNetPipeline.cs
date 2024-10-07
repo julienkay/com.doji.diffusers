@@ -231,7 +231,7 @@ namespace Doji.AI.Diffusers {
                         maxLength: tokenizer.ModelMaxLength,
                         truncation: Truncation.LongestFirst
                     ) as InputEncoding;
-                    int[] textInputIds = textInputs.InputIds.ToArray();
+                    int[] textInputIds = textInputs.InputIds.ToArray() ?? throw new Exception("Failed to get input ids from tokenizer.");
                     int[] untruncatedIds = (tokenizer.Encode(text: prompt, padding: Padding.Longest) as InputEncoding).InputIds.ToArray();
 
                     if (untruncatedIds.Length >= textInputIds.Length && !textInputIds.ArrayEqual(untruncatedIds)) {
@@ -294,7 +294,7 @@ namespace Doji.AI.Diffusers {
                         maxLength: maxLength,
                         truncation: Truncation.LongestFirst
                     ) as BatchEncoding;
-                    int[] uncondInputIds = uncondInput.InputIds as int[];
+                    int[] uncondInputIds = uncondInput.InputIds.ToArray();
                     Profiler.EndSample();
 
                     Profiler.BeginSample("Prepare Unconditioned Text ID Tensor");

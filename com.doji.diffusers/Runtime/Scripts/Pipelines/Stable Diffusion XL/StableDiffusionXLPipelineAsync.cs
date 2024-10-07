@@ -194,7 +194,7 @@ namespace Doji.AI.Diffusers {
                         maxLength: maxLength,
                         truncation: Truncation.LongestFirst
                     ) as BatchEncoding;
-                    int[] uncondInputIds = uncondInput.InputIds as int[];
+                    int[] uncondInputIds = uncondInput.InputIds.ToArray();
 
                     using Tensor<int> uncondIdTensor = new Tensor<int>(new TensorShape(batchSize, uncondInputIds.Length), uncondInputIds);
 

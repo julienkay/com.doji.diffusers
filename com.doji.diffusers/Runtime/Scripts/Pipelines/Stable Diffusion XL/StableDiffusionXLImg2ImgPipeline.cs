@@ -297,7 +297,7 @@ namespace Doji.AI.Diffusers {
                         maxLength: maxLength,
                         truncation: Truncation.LongestFirst
                     ) as BatchEncoding;
-                    int[] uncondInputIds = uncondInput.InputIds as int[];
+                    int[] uncondInputIds = uncondInput.InputIds.ToArray();
                     Profiler.EndSample();
 
                     Profiler.BeginSample("Prepare Unconditioned Text ID Tensor");
