@@ -120,12 +120,8 @@ namespace Doji.AI.Diffusers.Editor {
 
             EditorGUILayout.LabelField(model.ModelId);
 
-            if (!ExistsInStreamingAssets(model)) {
-                if (GUILayout.Button("Serialize to StreamingAssets")) {
-                    EditorUtility.DisplayProgressBar("Model Hub - Serialize to StreamingAssets", $"Serializing '{model.ModelId}' to StreamingAssets...", 0.1f);
-                    ConvertModel(model);
-                    EditorUtility.ClearProgressBar();
-                }
+            if (GUILayout.Button("Convert/Quantize")) {
+                ConversionWindow.ShowWindow(model.ModelId);
             }
 
             GUILayout.EndHorizontal();
@@ -134,17 +130,29 @@ namespace Doji.AI.Diffusers.Editor {
         /// <summary>
         /// Converts .onnx files of the given <paramref name="model"/> to .sentis
         /// and moves all the model files from Resources to the StreamingAssets folder.
+        /// It can also optionally quantize the model using the given data type.
         /// </summary>
-        private void ConvertModel(DiffusionModel model) {
+        internal static void ConvertModel(DiffusionModel model, QuantizationType? quantizationType = null) {
             string targetDir = Path.Combine(Application.streamingAssetsPath, model.Owner, model.ModelName);
             Directory.CreateDirectory(targetDir);
 
             foreach (var file in model) {
-                MoveFile(file);
+                ConvertFile(file);
+            }
+
+            if (quantizationType != null) {
+                // rename main folder to disambiguate between differently quantized models
+                Directory.Move(targetDir, $"{targetDir}_{quantizationType.ToString().ToLower()}");
+                File.Delete($"{targetDir}.meta");
             }
         }
 
-        private void MoveFile(ModelFile file) {
+        /// <summary>
+        /// Moves the file to the StreamingAssets folder and if it's an .onnx file, converts it to .sentis format.
+        /// </summary>
+        private static void ConvertFile(ModelFile file, QuantizationType? quantizationType = null) {
+            bool shouldQuantize = quantizationType != null;
+
             if (!File.Exists(file.ResourcesFilePath)) {
                 if (!file.Required) {
                     return;
@@ -171,6 +179,9 @@ namespace Doji.AI.Diffusers.Editor {
                 ModelAsset modelAsset = asset as ModelAsset;
                 Model model = ModelLoader.Load(modelAsset);
                 string path = file.StreamingAssetsPath;
+                if (shouldQuantize) {
+                    ModelQuantizer.QuantizeWeights(quantizationType.Value, ref model);
+                }
                 ModelWriter.Save(path, model);
                 AssetDatabase.Refresh();
                 Resources.UnloadAsset(modelAsset);
