@@ -1,6 +1,4 @@
 using NUnit.Framework;
-using UnityEngine;
-using UnityEngine.TestTools;
 
 namespace Doji.AI.Diffusers.Editor.Tests {
 
@@ -17,10 +15,6 @@ namespace Doji.AI.Diffusers.Editor.Tests {
 
         [Test]
         public void TestSD21() {
-            LogAssert.Expect(LogType.Error, "Thread group count is above the maximum allowed limit. Maximum allowed thread group count is 65535.");
-            LogAssert.Expect(LogType.Error, "Thread group count is above the maximum allowed limit. Maximum allowed thread group count is 65535.");
-            LogAssert.Expect(LogType.Error, "Thread group count is above the maximum allowed limit. Maximum allowed thread group count is 65535.");
-
             using var latents = LatentsLarge;
             Parameters p = new Parameters() {
                 Prompt = "a cat",
