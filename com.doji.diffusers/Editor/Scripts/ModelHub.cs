@@ -137,7 +137,7 @@ namespace Doji.AI.Diffusers.Editor {
             Directory.CreateDirectory(targetDir);
 
             foreach (var file in model) {
-                ConvertFile(file);
+                ConvertFile(file, quantizationType);
             }
 
             if (quantizationType != null) {
