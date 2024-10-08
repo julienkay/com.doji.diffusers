@@ -51,11 +51,11 @@ namespace Doji.AI.Diffusers {
             // 1. compute predicted original sample (x_0) from sigma-scaled predicted noise
             Tensor<float> predOriginalSample;
             if (PredictionType == Prediction.Epsilon) {
-                predOriginalSample = _ops.Sub(sample, _ops.Mul(modelOutput, sigma));
+                predOriginalSample = Ops.Sub(sample, Ops.Mul(modelOutput, sigma));
             } else if (PredictionType == Prediction.V_Prediction) {
                 // * c_out + input * c_skip
-                predOriginalSample = _ops.Add(_ops.Mul(modelOutput, -sigma / MathF.Sqrt(MathF.Pow(sigma, 2f) + 1f)),
-                    _ops.Div(sample, MathF.Pow(sigma, 2f) + 1f));
+                predOriginalSample = Ops.Add(Ops.Mul(modelOutput, -sigma / MathF.Sqrt(MathF.Pow(sigma, 2f) + 1f)),
+                    Ops.Div(sample, MathF.Pow(sigma, 2f) + 1f));
             } else if (PredictionType == Prediction.Sample) {
                 throw new NotImplementedException("'PredictionType' not implemented yet: sample");
             } else {
@@ -68,15 +68,15 @@ namespace Doji.AI.Diffusers {
             float sigmaDown = MathF.Sqrt(MathF.Pow(sigmaTo, 2f) - MathF.Pow(sigmaUp, 2f));
 
             // 2. Convert to an ODE derivative
-            Tensor<float> derivative = _ops.Div(_ops.Sub(sample, predOriginalSample), sigma);
+            Tensor<float> derivative = Ops.Div(Ops.Sub(sample, predOriginalSample), sigma);
             float dt = sigmaDown - sigma;
-            Tensor<float> prevSample = _ops.Add(sample, _ops.Mul(derivative, dt));
+            Tensor<float> prevSample = Ops.Add(sample, Ops.Mul(derivative, dt));
 
             generator ??= new System.Random();
             uint seed = unchecked((uint)generator.Next());
-            var noise = _ops.RandomNormal(modelOutput.shape, 0, 1, unchecked((int)seed));
+            var noise = Ops.RandomNormal(modelOutput.shape, 0, 1, unchecked((int)seed));
 
-            prevSample = _ops.Add(prevSample, _ops.Mul(noise, sigmaUp));
+            prevSample = Ops.Add(prevSample, Ops.Mul(noise, sigmaUp));
 
             // upon completion increase step index by one
             StepIndex++;

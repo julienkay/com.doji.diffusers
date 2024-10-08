@@ -136,22 +136,22 @@ namespace Doji.AI.Diffusers {
             Tensor<float> predOriginalSample, predEpsilon;
 
             if (PredictionType == Prediction.Epsilon) {
-                var tmp = _ops.Mul(modelOutput, MathF.Sqrt(betaProdT));
-                var tmp2 = _ops.Sub(sample, tmp);
-                predOriginalSample = _ops.Div(tmp2, MathF.Sqrt(alphaProdT));
+                var tmp = Ops.Mul(modelOutput, MathF.Sqrt(betaProdT));
+                var tmp2 = Ops.Sub(sample, tmp);
+                predOriginalSample = Ops.Div(tmp2, MathF.Sqrt(alphaProdT));
                 predEpsilon = modelOutput;
             } else if (PredictionType == Prediction.Sample) {
                 predOriginalSample = modelOutput;
-                var tmp = _ops.Mul(predOriginalSample, MathF.Sqrt(alphaProdT));
-                var tmp2 = _ops.Sub(sample, tmp);
-                predEpsilon = _ops.Div(tmp2, MathF.Sqrt(betaProdT));
+                var tmp = Ops.Mul(predOriginalSample, MathF.Sqrt(alphaProdT));
+                var tmp2 = Ops.Sub(sample, tmp);
+                predEpsilon = Ops.Div(tmp2, MathF.Sqrt(betaProdT));
             } else if (PredictionType == Prediction.V_Prediction) {
-                var tmp = _ops.Mul(sample, MathF.Pow(alphaProdT, 0.5f));
-                var tmp2 = _ops.Mul(modelOutput, MathF.Pow(betaProdT, 0.5f));
-                predOriginalSample = _ops.Sub(tmp, tmp2);
-                var tmp3 = _ops.Mul(modelOutput, MathF.Pow(alphaProdT, 0.5f));
-                var tmp4 = _ops.Mul(sample, MathF.Pow(betaProdT, 0.5f));
-                predEpsilon = _ops.Add(tmp3, tmp4);
+                var tmp = Ops.Mul(sample, MathF.Pow(alphaProdT, 0.5f));
+                var tmp2 = Ops.Mul(modelOutput, MathF.Pow(betaProdT, 0.5f));
+                predOriginalSample = Ops.Sub(tmp, tmp2);
+                var tmp3 = Ops.Mul(modelOutput, MathF.Pow(alphaProdT, 0.5f));
+                var tmp4 = Ops.Mul(sample, MathF.Pow(betaProdT, 0.5f));
+                predEpsilon = Ops.Add(tmp3, tmp4);
             } else {
                 throw new ArgumentException(
                     $"prediction_type given as {PredictionType} must be one of {string.Join(", ", Enum.GetNames(typeof(Prediction)))}."
@@ -162,7 +162,7 @@ namespace Doji.AI.Diffusers {
             if (Thresholding) {
                 predOriginalSample = ThresholdSample(predOriginalSample);
             } else if (ClipSample) {
-                predOriginalSample = _ops.Clip(predOriginalSample, -ClipSampleRange, ClipSampleRange);
+                predOriginalSample = Ops.Clip(predOriginalSample, -ClipSampleRange, ClipSampleRange);
             }
 
             // 5. compute variance: "sigma_t(η)" -> see formula (16)
@@ -172,17 +172,17 @@ namespace Doji.AI.Diffusers {
 
             if (useClippedModelOutput) {
                 // the predEpsilon is always re-derived from the clipped x_0 in Glide
-                var tmp = _ops.Mul(predOriginalSample, MathF.Pow(alphaProdT, 0.5f));
-                var tmp2 = _ops.Sub(sample, tmp);
-                predEpsilon = _ops.Div(tmp2, MathF.Pow(betaProdT, 0.5f));
+                var tmp = Ops.Mul(predOriginalSample, MathF.Pow(alphaProdT, 0.5f));
+                var tmp2 = Ops.Sub(sample, tmp);
+                predEpsilon = Ops.Div(tmp2, MathF.Pow(betaProdT, 0.5f));
             }
 
             // 6. compute "direction pointing to x_t" of formula (12) from https://arxiv.org/pdf/2010.02502.pdf
-            var predSampleDirection = _ops.Mul(predEpsilon, MathF.Pow(1.0f - alphaProdTPrev - MathF.Pow(stdDevT, 2f), 0.5f));
+            var predSampleDirection = Ops.Mul(predEpsilon, MathF.Pow(1.0f - alphaProdTPrev - MathF.Pow(stdDevT, 2f), 0.5f));
 
             // 7. compute x_t without "random noise" of formula (12) from https://arxiv.org/pdf/2010.02502.pdf
-            var x_t = _ops.Mul(predOriginalSample, MathF.Pow(alphaProdTPrev, 0.5f));
-            var prevSample = _ops.Add(x_t, predSampleDirection);
+            var x_t = Ops.Mul(predOriginalSample, MathF.Pow(alphaProdTPrev, 0.5f));
+            var prevSample = Ops.Add(x_t, predSampleDirection);
 
             if (eta > 0) {
                 if (varianceNoise != null && generator != null) {
@@ -194,11 +194,11 @@ namespace Doji.AI.Diffusers {
 
                 if (varianceNoise == null) {
                     int seed = generator.Next();
-                    varianceNoise = _ops.RandomNormal(modelOutput.shape, 0f, 1f, seed);
+                    varianceNoise = Ops.RandomNormal(modelOutput.shape, 0f, 1f, seed);
                 }
-                var varianceTensor = _ops.Mul(varianceNoise, stdDevT);
+                var varianceTensor = Ops.Mul(varianceNoise, stdDevT);
 
-                prevSample = _ops.Add(prevSample, varianceTensor);
+                prevSample = Ops.Add(prevSample, varianceTensor);
             }
 
             return new SchedulerOutput(prevSample: prevSample, predOriginalSample: predOriginalSample);
@@ -218,13 +218,13 @@ namespace Doji.AI.Diffusers {
             // Flatten sample for doing quantile calculation along each image
             sample.Reshape(sample.shape.Flatten());
 
-            var absSample = _ops.Abs(sample);  // "a certain percentile absolute pixel value"
+            var absSample = Ops.Abs(sample);  // "a certain percentile absolute pixel value"
 
-            var s = _ops.Quantile(absSample, DynamicThresholdingRatio, 1);
-            s = _ops.Clip(s, 1, SampleMaxValue);  // When clamped to min=1, equivalent to standard clipping to [-1, 1]
+            var s = Ops.Quantile(absSample, DynamicThresholdingRatio, 1);
+            s = Ops.Clip(s, 1, SampleMaxValue);  // When clamped to min=1, equivalent to standard clipping to [-1, 1]
             s.Reshape(s.shape.Unsqueeze(1));  // (batch_size, 1) because clamp will broadcast along dim=0
-            var clip = _ops.Clamp(sample, _ops.Neg(s), s);  // "we threshold xt0 to the range [-s, s] and then divide by s"
-            sample = _ops.Div(clip, s);
+            var clip = Ops.Clamp(sample, Ops.Neg(s), s);  // "we threshold xt0 to the range [-s, s] and then divide by s"
+            sample = Ops.Div(clip, s);
 
             sample.Reshape(shape);
 

@@ -32,7 +32,6 @@ namespace Doji.AI.Diffusers.Editor.Tests {
 
         protected void SetUp(DiffusionModel model) {
             _pipeline = DiffusionPipeline.FromPretrained(model);
-
         }
 
         [OneTimeTearDown]

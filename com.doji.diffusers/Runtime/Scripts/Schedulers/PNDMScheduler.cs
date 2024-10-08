@@ -39,7 +39,7 @@ namespace Doji.AI.Diffusers {
 
             float[] betas = GetBetas();
             Betas = new Tensor<float>(new TensorShape(betas.Length), betas);
-            Alphas = _ops.Sub(1.0f, Betas);
+            Alphas = Ops.Sub(1.0f, Betas);
             float[] alphas = betas.Select(beta => 1.0f - beta).ToArray();
             AlphasCumprodF = alphas.CumProd();
             AlphasCumprod = new Tensor<float>(new TensorShape(alphas.Length), AlphasCumprodF);
@@ -129,20 +129,20 @@ namespace Doji.AI.Diffusers {
             }
 
             if (Counter % 4 == 0) {
-                var tmp = _ops.Div(modelOutput, 6f);
-                CurModelOutput = _ops.Add(CurModelOutput, tmp);
+                var tmp = Ops.Div(modelOutput, 6f);
+                CurModelOutput = Ops.Add(CurModelOutput, tmp);
                 modelOutput = TakeOwnership(modelOutput);
                 Ets.Add(modelOutput);
                 CurSample = sample;
             } else if ((Counter - 1) % 4 == 0) {
-                var tmp = _ops.Div(modelOutput, 3f);
-                CurModelOutput = _ops.Add(CurModelOutput, tmp);
+                var tmp = Ops.Div(modelOutput, 3f);
+                CurModelOutput = Ops.Add(CurModelOutput, tmp);
             } else if ((Counter - 2) % 4 == 0) {
-                var tmp = _ops.Div(modelOutput, 3f);
-                CurModelOutput = _ops.Add(CurModelOutput, tmp);
+                var tmp = Ops.Div(modelOutput, 3f);
+                CurModelOutput = Ops.Add(CurModelOutput, tmp);
             } else if ((Counter - 3) % 4 == 0) {
-                var tmp = _ops.Div(modelOutput, 6f);
-                modelOutput = _ops.Add(CurModelOutput, tmp);
+                var tmp = Ops.Div(modelOutput, 6f);
+                modelOutput = Ops.Add(CurModelOutput, tmp);
                 CurModelOutput = null;
             }
 
@@ -189,30 +189,30 @@ namespace Doji.AI.Diffusers {
             if (Ets.Count == 1 && Counter == 0) {
                 CurSample = sample;
             } else if (Ets.Count == 1 && Counter == 1) {
-                var tmp = _ops.Add(modelOutput, Ets[^1]);
-                modelOutput = _ops.Div(tmp, 2f);
+                var tmp = Ops.Add(modelOutput, Ets[^1]);
+                modelOutput = Ops.Div(tmp, 2f);
                 sample = CurSample;
                 CurSample = null;
             } else if (Ets.Count == 2) {
-                var tmp = _ops.Mul(3f, Ets[^1]);
-                var tmp2 = _ops.Sub(tmp, Ets[^2]);
-                modelOutput = _ops.Div(tmp2, 2f);
+                var tmp = Ops.Mul(3f, Ets[^1]);
+                var tmp2 = Ops.Sub(tmp, Ets[^2]);
+                modelOutput = Ops.Div(tmp2, 2f);
             } else if (Ets.Count == 3) {
-                var tmp = _ops.Mul(23f, Ets[^1]);
-                var tmp2 = _ops.Mul(16f, Ets[^2]);
-                var tmp3 = _ops.Sub(tmp, tmp2);
-                var tmp4 = _ops.Mul(5f, Ets[^3]);
-                var tmp5 = _ops.Add(tmp3, tmp4);
-                modelOutput = _ops.Div(tmp5, 12f);
+                var tmp = Ops.Mul(23f, Ets[^1]);
+                var tmp2 = Ops.Mul(16f, Ets[^2]);
+                var tmp3 = Ops.Sub(tmp, tmp2);
+                var tmp4 = Ops.Mul(5f, Ets[^3]);
+                var tmp5 = Ops.Add(tmp3, tmp4);
+                modelOutput = Ops.Div(tmp5, 12f);
             } else {
-                var tmp = _ops.Mul(55f, Ets[^1]);
-                var tmp2 = _ops.Mul(59f, Ets[^2]);
-                var tmp3 = _ops.Sub(tmp, tmp2);
-                var tmp4 = _ops.Mul(37f, Ets[^3]);
-                var tmp5 = _ops.Add(tmp3, tmp4);
-                var tmp6 = _ops.Mul(9f, Ets[^4]);
-                var tmp7 = _ops.Sub(tmp5, tmp6);
-                modelOutput = _ops.Div(tmp7, 24f);
+                var tmp = Ops.Mul(55f, Ets[^1]);
+                var tmp2 = Ops.Mul(59f, Ets[^2]);
+                var tmp3 = Ops.Sub(tmp, tmp2);
+                var tmp4 = Ops.Mul(37f, Ets[^3]);
+                var tmp5 = Ops.Add(tmp3, tmp4);
+                var tmp6 = Ops.Mul(9f, Ets[^4]);
+                var tmp7 = Ops.Sub(tmp5, tmp6);
+                modelOutput = Ops.Div(tmp7, 24f);
             }
 
             Tensor<float> prevSample = GetPrevSample(sample, timestep, prevTimestep, modelOutput);
@@ -242,9 +242,9 @@ namespace Doji.AI.Diffusers {
             double betaProdTPrev = 1.0 - alphaProdTPrev;
 
             if (PredictionType == Prediction.V_Prediction) {
-                var a = _ops.Mul((float)Math.Sqrt(alphaProdT), modelOutput);
-                var b = _ops.Mul((float)Math.Sqrt(betaProdT), sample);
-                modelOutput = _ops.Add(a, b);
+                var a = Ops.Mul((float)Math.Sqrt(alphaProdT), modelOutput);
+                var b = Ops.Mul((float)Math.Sqrt(betaProdT), sample);
+                modelOutput = Ops.Add(a, b);
             } else if (PredictionType != Prediction.Epsilon) {
                 throw new ArgumentException($"prediction_type given as {PredictionType} must be one of `epsilon` or `v_prediction`");
             }
@@ -260,10 +260,10 @@ namespace Doji.AI.Diffusers {
                 Math.Pow(alphaProdT * betaProdT * alphaProdTPrev, 0.5);
 
             // full formula (9)
-            var tmp = _ops.Mul((float)sampleCoeff, sample);
-            var tmp2 = _ops.Mul((float)(alphaProdTPrev - alphaProdT), modelOutput);
-            var tmp3 = _ops.Div(tmp2, (float)modelOutputDenomCoeff);
-            var prevSample = _ops.Sub(tmp, tmp3);
+            var tmp = Ops.Mul((float)sampleCoeff, sample);
+            var tmp2 = Ops.Mul((float)(alphaProdTPrev - alphaProdT), modelOutput);
+            var tmp3 = Ops.Div(tmp2, (float)modelOutputDenomCoeff);
+            var prevSample = Ops.Sub(tmp, tmp3);
 
             return prevSample;
         }
@@ -276,8 +276,8 @@ namespace Doji.AI.Diffusers {
         }
 
         private Tensor<float> TakeOwnership(Tensor<float> X) {
-            Tensor<float> O = _ops.Copy(X);
-            _ops.TakeOwnership(O);
+            Tensor<float> O = Ops.Copy(X);
+            Ops.TakeOwnership(O);
             return O;
         }
 

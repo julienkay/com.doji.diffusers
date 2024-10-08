@@ -25,13 +25,10 @@ namespace Doji.AI.Diffusers.Editor.Tests {
         public void TestSentisRandomNoise() {
             using Ops ops = new Ops(BackendType.GPUCompute);
             var latents = ops.RandomNormal(new TensorShape(1, 4, 64, 64), 0, 1, new System.Random().Next());
-            latents.ReadbackAndClone();
+            ops.ExecuteCommandBufferAndClear();
             float[] array = latents.DownloadToArray();
-
             Assert.That(Math.Abs(array.Average() - 0), Is.LessThan(0.05));
             Assert.That(Math.Abs(array.Variance() - 1), Is.LessThan(0.05));
-
-            latents.Dispose();
         }
 
         [Test]

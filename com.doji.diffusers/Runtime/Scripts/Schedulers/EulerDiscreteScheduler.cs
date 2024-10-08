@@ -68,6 +68,8 @@ namespace Doji.AI.Diffusers {
         }
 
         public float SigmaToT(float sigma, float[] logSigmas) {
+            using var ops = new Ops(BackendType.CPU);
+
             using Tensor<float> sigmaT = new Tensor<float>(new TensorShape(), new[] { sigma });
             using Tensor<float> logSigmasT = new Tensor<float>(new TensorShape(logSigmas.Length), logSigmas);
             using Tensor<float> zero = new Tensor<float>(new TensorShape(), new[] { 0f });
@@ -76,18 +78,17 @@ namespace Doji.AI.Diffusers {
             float logSigma = MathF.Log(MathF.Max(sigma, 1e-10f));
 
             // get distribution
-            var expanded = _ops.Reshape(logSigmasT, new TensorShape(5, 1));
-            var dists = _ops.Sub(logSigmasT, expanded);
+            var expanded = ops.Reshape(logSigmasT, new TensorShape(5, 1));
+            var dists = ops.Sub(logSigmasT, expanded);
 
             // get sigmas range
-            var greater = _ops.GreaterOrEqual(dists, zero);
-            var cumsum = _ops.CumSum(greater, 0);
-            var argmax = _ops.ArgMax(cumsum, 0, true);
-            var clip = _ops.Clip(cumsum, 0, logSigmas.Length - 2);
+            var greater = ops.GreaterOrEqual(dists, zero);
+            var cumsum = ops.CumSum(greater, 0);
+            var argmax = ops.ArgMax(cumsum, 0, true);
+            var clip = ops.Clip(cumsum, 0, logSigmas.Length - 2);
             Debug.Assert(clip.shape.Equals(new TensorShape(1)));
-            clip.ReadbackAndClone();
 
-            int lowIdx = clip.DownloadToArray()[0];
+            int lowIdx = clip[0];
             int highIdx = lowIdx + 1;
 
             float low = logSigmas[lowIdx];
@@ -146,14 +147,14 @@ namespace Doji.AI.Diffusers {
 
             generator ??= new System.Random();
             uint seed = unchecked((uint)generator.Next());
-            var noise = _ops.RandomNormal(modelOutput.shape, 0, 1, seed);
+            var noise = Ops.RandomNormal(modelOutput.shape, 0, 1, seed);
 
-            var eps = _ops.Mul(noise, s_noise);
+            var eps = Ops.Mul(noise, s_noise);
             float sigmaHat = sigma * (gamma + 1f);
 
             if (gamma > 0f) {
-                var tmp1 = _ops.Mul(eps, MathF.Pow(sigmaHat, 2f) - MathF.Pow(sigma, 2f));
-                sample = _ops.Add(sample, tmp1);
+                var tmp1 = Ops.Mul(eps, MathF.Pow(sigmaHat, 2f) - MathF.Pow(sigma, 2f));
+                sample = Ops.Add(sample, tmp1);
             }
 
             // 1. compute predicted original sample (x_0) from sigma-scaled predicted noise
@@ -163,19 +164,19 @@ namespace Doji.AI.Diffusers {
             if (PredictionType == Prediction.Sample) {
                 predOriginalSample = modelOutput;
             } else if (PredictionType == Prediction.Epsilon) {
-                predOriginalSample = _ops.Sub(sample, _ops.Mul(modelOutput, sigmaHat));
+                predOriginalSample = Ops.Sub(sample, Ops.Mul(modelOutput, sigmaHat));
             } else if (PredictionType == Prediction.V_Prediction) {
                 // denoised = model_output * c_out + input * c_skip
-                predOriginalSample = _ops.Add(_ops.Mul(modelOutput, -sigma / MathF.Sqrt(MathF.Pow(sigma, 2f) + 1f)),
-                    _ops.Div(sample, MathF.Pow(sigma, 2f) + 1f));
+                predOriginalSample = Ops.Add(Ops.Mul(modelOutput, -sigma / MathF.Sqrt(MathF.Pow(sigma, 2f) + 1f)),
+                    Ops.Div(sample, MathF.Pow(sigma, 2f) + 1f));
             } else {
                 throw new ArgumentException($"Invalid prediction_type: {PredictionType}");
             }
 
             // 2. Convert to an ODE derivative
-            Tensor<float> derivative = _ops.Div(_ops.Sub(sample, predOriginalSample), sigmaHat);
+            Tensor<float> derivative = Ops.Div(Ops.Sub(sample, predOriginalSample), sigmaHat);
             float dt = Sigmas[StepIndex.Value + 1] - sigmaHat;
-            Tensor<float> prevSample = _ops.Add(sample, _ops.Mul(derivative, dt));
+            Tensor<float> prevSample = Ops.Add(sample, Ops.Mul(derivative, dt));
 
             // Increase step index by one
             StepIndex++;

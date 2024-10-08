@@ -79,7 +79,6 @@ namespace Doji.AI.Diffusers.Editor.Tests {
             using Tensor timestep = unet.CreateTimestep(new TensorShape(1), t);
 
             Tensor<float> noisePred = unet.Execute(latentInputTensor, timestep, promptEmbeds);
-            noisePred.ReadbackAndClone();
             float[] unetOutput = noisePred.DownloadToArray();
 
             CollectionAssert.AreEqual(ExpectedOutput, unetOutput, new FloatArrayComparer(0.00001f));
@@ -95,7 +94,6 @@ namespace Doji.AI.Diffusers.Editor.Tests {
             using Tensor timestep = unet.CreateTimestep(new TensorShape(1), t);
 
             Tensor<float> noisePred = unet.Execute(latentInputTensor, timestep, promptEmbeds);
-            noisePred.ReadbackAndClone();
             float[] unetOutput = noisePred.DownloadToArray();
 
             CollectionAssert.AreEqual(ExpectedOutputLarge_1_5, unetOutput, new FloatArrayComparer(0.00001f));
@@ -111,7 +109,6 @@ namespace Doji.AI.Diffusers.Editor.Tests {
             using Tensor timestep = unet.CreateTimestep(new TensorShape(1), t);
 
             Tensor<float> noisePred = unet.Execute(latentInputTensor, timestep, promptEmbeds);
-            noisePred.ReadbackAndClone();
             float[] unetOutput = noisePred.DownloadToArray();
 
             CollectionAssert.AreEqual(ExpectedOutputLarge_2_1, unetOutput, new FloatArrayComparer(0.0001f));

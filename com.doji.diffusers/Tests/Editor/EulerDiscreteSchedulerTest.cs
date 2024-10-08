@@ -51,8 +51,9 @@ namespace Doji.AI.Diffusers.Editor.Tests {
                 TimestepSpacing = Spacing.Leading,
                 UseKarrasSigmas = false
             };
-            _scheduler = new EulerDiscreteScheduler(config);
             _ops = new Ops(BackendType.GPUCompute);
+            _scheduler = new EulerDiscreteScheduler(config);
+            _scheduler.Ops = _ops;
         }
 
         [TearDown]
@@ -103,19 +104,21 @@ namespace Doji.AI.Diffusers.Editor.Tests {
             var sample = dummySamples;
             sample = _ops.Mul(_scheduler.InitNoiseSigma, sample);
 
-            foreach (int t in _scheduler.Timesteps) {
+            foreach (float t in _scheduler.Timesteps) {
                 var residual = Model(sample, t);
                 residual = _scheduler.ScaleModelInput(residual, t);
                 var stepArgs = new StepArgs(residual, t, sample);
                 sample = _scheduler.Step(stepArgs).PrevSample;
             }
 
-            sample.ReadbackAndClone();
+            _ops.ExecuteCommandBufferAndClear();
             CollectionAssert.AreEqual(ExpectedOutput, sample.DownloadToArray(), new FloatArrayComparer(0.00001f));
         }
 
-        private Tensor<float> Model(Tensor<float> sampleTensor, int t) {
-            return _ops.Mul(sampleTensor, (float)t / (t + 1));
+        private Tensor<float> Model(Tensor<float> sampleTensor, float t) {
+            var result = _ops.Mul(sampleTensor, t / (t + 1));
+            _ops.ExecuteCommandBufferAndClear();
+            return result;
         }
     }
 }

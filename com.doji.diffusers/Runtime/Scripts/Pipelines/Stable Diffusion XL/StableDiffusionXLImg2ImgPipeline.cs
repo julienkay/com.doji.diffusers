@@ -146,6 +146,8 @@ namespace Doji.AI.Diffusers {
                 using Tensor timestep = Unet.CreateTimestep(new TensorShape(batchSize), t);
                 Profiler.EndSample();
 
+                _ops.ExecuteCommandBufferAndClear();
+
                 Profiler.BeginSample("Execute Unet");
                 Tensor<float> noisePred = Unet.Execute(
                     latentModelInput,
@@ -181,6 +183,7 @@ namespace Doji.AI.Diffusers {
                     int stepIdx = i / Scheduler.Order;
                     if (callback != null) {
                         Profiler.BeginSample($"{GetType()} Callback");
+                        _ops.ExecuteCommandBufferAndClear();
                         callback.Invoke(i / Scheduler.Order, t, latents);
                         Profiler.EndSample();
                     }
@@ -198,6 +201,8 @@ namespace Doji.AI.Diffusers {
             if (batchSize > 1) {
                 throw new NotImplementedException();
             }
+
+            _ops.ExecuteCommandBufferAndClear();
 
             Profiler.BeginSample($"VaeDecoder Decode Image");
             Tensor<float> outputImage = VaeDecoder.Execute(result);
@@ -328,6 +333,7 @@ namespace Doji.AI.Diffusers {
             pooledPromptEmbeds = _ops.Repeat(pooledPromptEmbeds, numImagesPerPrompt, axis: 0);
             negativePooledPromptEmbeds = _ops.Repeat(negativePooledPromptEmbeds, numImagesPerPrompt, axis: 0);
 
+            _ops.ExecuteCommandBufferAndClear();
             return new Embeddings() {
                 PromptEmbeds = promptEmbeds,
                 NegativePromptEmbeds = negativePromptEmbeds,

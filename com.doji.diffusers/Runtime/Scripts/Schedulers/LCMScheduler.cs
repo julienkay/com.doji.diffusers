@@ -181,14 +181,14 @@ namespace Doji.AI.Diffusers {
             Tensor<float> predOriginalSample;
 
             if (PredictionType == Prediction.Epsilon) { // noise-prediction
-                var tmp = _ops.Sub(sample, _ops.Mul(MathF.Sqrt(beta_prod_t), modelOutput));
-                predOriginalSample = _ops.Div(tmp, MathF.Sqrt(alpha_prod_t));
+                var tmp = Ops.Sub(sample, Ops.Mul(MathF.Sqrt(beta_prod_t), modelOutput));
+                predOriginalSample = Ops.Div(tmp, MathF.Sqrt(alpha_prod_t));
             } else if (PredictionType == Prediction.Sample) { // x-prediction
                 predOriginalSample = modelOutput;
             } else if (PredictionType == Prediction.V_Prediction) { // v-prediction
-                var tmp1 = _ops.Mul(MathF.Sqrt(alpha_prod_t), sample);
-                var tmp2 = _ops.Mul(MathF.Sqrt(beta_prod_t), modelOutput);
-                predOriginalSample = _ops.Sub(tmp1, tmp2);
+                var tmp1 = Ops.Mul(MathF.Sqrt(alpha_prod_t), sample);
+                var tmp2 = Ops.Mul(MathF.Sqrt(beta_prod_t), modelOutput);
+                predOriginalSample = Ops.Sub(tmp1, tmp2);
             } else {
                 throw new ArgumentException(
                     $"prediction_type given as {PredictionType} must be one of `epsilon`, `sample` or `v_prediction` for `LCMScheduler`."
@@ -199,13 +199,13 @@ namespace Doji.AI.Diffusers {
             if (Thresholding) {
                 predOriginalSample = ThresholdSample(predOriginalSample);
             } else if (ClipSample) {
-                predOriginalSample = _ops.Clip(predOriginalSample, - ClipSampleRange, ClipSampleRange);
+                predOriginalSample = Ops.Clip(predOriginalSample, - ClipSampleRange, ClipSampleRange);
             }
 
             // 6. Denoise model output using boundary conditions
-            var tmp3 = _ops.Mul(c_out, predOriginalSample);
-            var tmp4 = _ops.Mul(c_skip, sample);
-            var denoised = _ops.Add(tmp3, tmp4);
+            var tmp3 = Ops.Mul(c_out, predOriginalSample);
+            var tmp4 = Ops.Mul(c_skip, sample);
+            var denoised = Ops.Add(tmp3, tmp4);
 
             // 7. Sample and inject noise z ~ N(0, I) for MultiStep Inference
             // Noise is not used on the final timestep of the timestep schedule.
@@ -213,10 +213,10 @@ namespace Doji.AI.Diffusers {
             Tensor<float> prevSample;
             if (StepIndex != NumInferenceSteps - 1) {
                 int seed = generator.Next();
-                var noise = _ops.RandomNormal(modelOutput.shape, 0, 1f, seed);
-                var tmp5 = _ops.Mul(MathF.Sqrt(alpha_prod_t_prev), denoised);
-                var tmp6 = _ops.Mul(Mathf.Sqrt(beta_prod_t_prev), noise);
-                prevSample = _ops.Add(tmp5, tmp6);
+                var noise = Ops.RandomNormal(modelOutput.shape, 0, 1f, seed);
+                var tmp5 = Ops.Mul(MathF.Sqrt(alpha_prod_t_prev), denoised);
+                var tmp6 = Ops.Mul(Mathf.Sqrt(beta_prod_t_prev), noise);
+                prevSample = Ops.Add(tmp5, tmp6);
             } else {
                 prevSample = denoised;
             }
@@ -241,16 +241,16 @@ namespace Doji.AI.Diffusers {
             Debug.Assert(shape.rank == 4, "The ThresholdSample method assumes a rank of 4.");
 
             // Flatten sample for doing quantile calculation along each image
-            sample = _ops.Reshape(sample, new TensorShape(batch_size, channels * shape[2] * shape[3]));
-            var abs_sample = _ops.Abs(sample);  // "a certain percentile absolute pixel value"
+            sample = Ops.Reshape(sample, new TensorShape(batch_size, channels * shape[2] * shape[3]));
+            var abs_sample = Ops.Abs(sample);  // "a certain percentile absolute pixel value"
 
-            var s = _ops.Quantile(abs_sample, DynamicThresholdingRatio, dim: 1);
-            s = _ops.Clip(s, min: 1, max: SampleMaxValue);  // When clamped to min=1, equivalent to standard clipping to [-1, 1]
+            var s = Ops.Quantile(abs_sample, DynamicThresholdingRatio, dim: 1);
+            s = Ops.Clip(s, min: 1, max: SampleMaxValue);  // When clamped to min=1, equivalent to standard clipping to [-1, 1]
             s.Reshape(s.shape.Unsqueeze(1));  // (batch_size, 1) because clamp will broadcast along dim=0
 
-            var neg_s = _ops.Neg(s);
-            var clamped = _ops.Clamp(sample, neg_s, s);  // "we threshold xt0 to the range [-s, s] and then divide by s"
-            sample = _ops.Div(clamped, s);
+            var neg_s = Ops.Neg(s);
+            var clamped = Ops.Clamp(sample, neg_s, s);  // "we threshold xt0 to the range [-s, s] and then divide by s"
+            sample = Ops.Div(clamped, s);
 
             sample.Reshape(shape);
             return sample;

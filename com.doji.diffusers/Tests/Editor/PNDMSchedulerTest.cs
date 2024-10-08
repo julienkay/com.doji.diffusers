@@ -76,7 +76,6 @@ namespace Doji.AI.Diffusers.Editor.Tests {
         /// </summary>
         [Test]
         public void TestBetas() {
-            _scheduler.Betas.ReadbackAndClone();
             var betas = _scheduler.Betas.DownloadToArray();
             CollectionAssert.AreEqual(ExpectedBetas, betas, new FloatArrayComparer(0.00001f));
         }
@@ -120,6 +119,7 @@ namespace Doji.AI.Diffusers.Editor.Tests {
                 SkipPrkSteps = true,
             };
             using var scheduler = new PNDMScheduler(config);
+            scheduler.Ops = _ops;
             scheduler.SetTimesteps(10);
             var sample = DummySamples;
            
@@ -129,12 +129,14 @@ namespace Doji.AI.Diffusers.Editor.Tests {
                 sample = scheduler.Step(stepArgs).PrevSample;
             }
 
-            sample.ReadbackAndClone();
+            _ops.ExecuteCommandBufferAndClear();
             CollectionAssert.AreEqual(ExpectedOutput, sample.DownloadToArray(), new FloatArrayComparer(0.00001f));
         }
 
         private Tensor<float> Model(Tensor<float> sampleTensor, int t) {
-            return _ops.Mul(sampleTensor, (float)t / (t + 1));
+            var result = _ops.Mul(sampleTensor, (float)t / (t + 1));
+            _ops.ExecuteCommandBufferAndClear();
+            return result;
         }
     }
 }

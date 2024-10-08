@@ -62,7 +62,7 @@ namespace Doji.AI.Diffusers {
             if (_doNormalize) {
                 image = Normalize(image);
             }
-
+            _ops.ExecuteCommandBufferAndClear();
             return image;
         }
 
@@ -70,6 +70,7 @@ namespace Doji.AI.Diffusers {
             if (doDenormalize == true || _doNormalize) {
                 image = Denormalize(image);
             }
+            _ops.ExecuteCommandBufferAndClear();
             return image;
         }
 

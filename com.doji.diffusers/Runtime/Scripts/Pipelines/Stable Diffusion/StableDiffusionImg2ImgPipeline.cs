@@ -125,6 +125,8 @@ namespace Doji.AI.Diffusers {
                 using Tensor timestep = Unet.CreateTimestep(new TensorShape(batchSize), t);
                 Profiler.EndSample();
 
+                _ops.ExecuteCommandBufferAndClear();
+
                 Profiler.BeginSample("Execute Unet");
                 Tensor<float> noisePred = Unet.Execute(latentModelInput, timestep, embeddings.PromptEmbeds);
                 Profiler.EndSample();
@@ -148,6 +150,7 @@ namespace Doji.AI.Diffusers {
 
                 if (callback != null) {
                     Profiler.BeginSample($"{GetType()} Callback");
+                    _ops.ExecuteCommandBufferAndClear();
                     callback.Invoke(i / Scheduler.Order, t, latents);
                     Profiler.EndSample();
                 }
@@ -164,6 +167,8 @@ namespace Doji.AI.Diffusers {
             if (batchSize > 1) {
                 throw new NotImplementedException();
             }
+
+            _ops.ExecuteCommandBufferAndClear();
 
             Profiler.BeginSample($"VaeDecoder Decode Image");
             Tensor<float> outputImage = VaeDecoder.Execute(result);
@@ -261,12 +266,11 @@ namespace Doji.AI.Diffusers {
                 // Here we concatenate the unconditional and text embeddings into a single batch
                 // to avoid doing two forward passes
                 Profiler.BeginSample("Concat Prompt Embeds For Classifier-Fee Guidance");
-                Tensor<float> combinedEmbeddings = _ops.Concatenate(negativePromptEmbeds, promptEmbeds, 0);
+                promptEmbeds = _ops.Concatenate(negativePromptEmbeds, promptEmbeds, 0);
                 Profiler.EndSample();
-
-                return new Embeddings() { PromptEmbeds = combinedEmbeddings };
             }
 
+            _ops.ExecuteCommandBufferAndClear();
             return new Embeddings() { PromptEmbeds = promptEmbeds };
         }
 

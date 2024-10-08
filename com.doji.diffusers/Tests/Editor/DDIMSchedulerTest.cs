@@ -49,8 +49,9 @@ namespace Doji.AI.Diffusers.Editor.Tests {
                 StepsOffset = 1,
                 PredictionType = Prediction.V_Prediction,
             };
-            _scheduler = new DDIMScheduler(config);
             _ops = new Ops(BackendType.GPUCompute);
+            _scheduler = new DDIMScheduler(config);
+            _scheduler.Ops = _ops;
         }
 
         [TearDown]
@@ -92,12 +93,14 @@ namespace Doji.AI.Diffusers.Editor.Tests {
                 sample = _scheduler.Step(stepArgs).PrevSample;
             }
 
-            sample.ReadbackAndClone();
+            _ops.ExecuteCommandBufferAndClear();
             CollectionAssert.AreEqual(ExpectedOutput, sample.DownloadToArray(), new FloatArrayComparer(0.00001f));
         }
 
         private Tensor<float> Model(Tensor<float> sampleTensor, int t) {
-            return _ops.Mul(sampleTensor, (float)t / (t + 1));
+            var result = _ops.Mul(sampleTensor, (float)t / (t + 1));
+            _ops.ExecuteCommandBufferAndClear();
+            return result;
         }
     }
 }

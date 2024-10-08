@@ -78,7 +78,7 @@ namespace Doji.AI.Diffusers {
             Unet = unet;
 
             // TODO: When casting between pipeline types, we might want to reuse ops and image processor as well
-            _ops = new Ops(backend);
+            _ops = Scheduler.Ops = new Ops(backend);
             if (VaeDecoder.Config.BlockOutChannels != null) {
                 VaeScaleFactor = 1 << (VaeDecoder.Config.BlockOutChannels.Length - 1);
             } else {
@@ -166,7 +166,7 @@ namespace Doji.AI.Diffusers {
         protected void InitGenerate(Parameters parameters) {
             _ops.FlushTensors();
             ImageProcessor._ops.FlushTensors();
-            Scheduler._ops.FlushTensors();
+            Scheduler.Ops.FlushTensors();
             SetParameterDefaults(parameters);
             CheckInputs();
         }

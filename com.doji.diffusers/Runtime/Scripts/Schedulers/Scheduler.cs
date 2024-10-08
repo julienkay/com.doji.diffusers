@@ -145,11 +145,21 @@ namespace Doji.AI.Diffusers {
         protected float s_noise { get => _args.s_noise; }
 #pragma warning restore IDE1006
 
-        protected internal Ops _ops;
+        protected internal Ops Ops {
+            get => _ops;
+            set {
+                if (_ops != null) {
+                    _ops.ExecuteCommandBufferAndClear();
+                    _ops.Dispose();
+                }
+                _ops = value;
+            }
+        }
+        private Ops _ops;
 
         public Scheduler(SchedulerConfig config, BackendType backend) {
             Config = config ?? new SchedulerConfig();
-            _ops = new Ops(backend);
+            Ops = new Ops(backend);
         }
 
         /// <summary>
@@ -172,21 +182,21 @@ namespace Doji.AI.Diffusers {
         }
 
         public virtual Tensor<float> AddNoise(Tensor<float> originalSamples, Tensor<float> noise, Tensor<float> timesteps) {
-            var alphasCumprod = _ops.GatherElements(AlphasCumprod, _ops.Cast(timesteps) as Tensor<int>, 0);
-            var sqrtAlphaProd = _ops.Sqrt(alphasCumprod);
+            var alphasCumprod = Ops.GatherElements(AlphasCumprod, Ops.Cast(timesteps) as Tensor<int>, 0);
+            var sqrtAlphaProd = Ops.Sqrt(alphasCumprod);
             while (sqrtAlphaProd.shape.rank < originalSamples.shape.rank) {
                 sqrtAlphaProd.Reshape(sqrtAlphaProd.shape.Unsqueeze(-1)); // unsqueeze
             }
 
-            var sqrtOneMinusAlphaProd = _ops.Sqrt(_ops.Sub(1.0f, alphasCumprod));
+            var sqrtOneMinusAlphaProd = Ops.Sqrt(Ops.Sub(1.0f, alphasCumprod));
             while (sqrtOneMinusAlphaProd.shape.rank < originalSamples.shape.rank) {
                 sqrtOneMinusAlphaProd.Reshape(sqrtOneMinusAlphaProd.shape.Unsqueeze(-1)); // unsqueeze
             }
 
-            var tmp1 = _ops.Mul(sqrtAlphaProd, originalSamples);
-            var tmp2 = _ops.Mul(sqrtOneMinusAlphaProd, noise);
-            var noisySamples = _ops.Add(tmp1, tmp2);
-
+            var tmp1 = Ops.Mul(sqrtAlphaProd, originalSamples);
+            var tmp2 = Ops.Mul(sqrtOneMinusAlphaProd, noise);
+            var noisySamples = Ops.Add(tmp1, tmp2);
+            
             return noisySamples;
         }
 
@@ -355,7 +365,7 @@ namespace Doji.AI.Diffusers {
         }
 
         public virtual void Dispose() {
-            _ops?.Dispose();
+            Ops?.Dispose();
         }
 
         public abstract IEnumerator<float> GetEnumerator();

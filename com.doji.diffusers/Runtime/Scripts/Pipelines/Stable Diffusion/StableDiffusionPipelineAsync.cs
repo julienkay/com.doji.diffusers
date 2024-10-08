@@ -59,6 +59,8 @@ namespace Doji.AI.Diffusers {
                 // predict the noise residual
                 using Tensor timestep = Unet.CreateTimestep(new TensorShape(batchSize), t);
 
+                _ops.ExecuteCommandBufferAndClear();
+
                 Tensor<float> noisePred = await Unet.ExecuteAsync(latentModelInput, timestep, promptEmbeds);
 
                 // perform guidance
@@ -75,6 +77,7 @@ namespace Doji.AI.Diffusers {
                 latents = schedulerOutput.PrevSample;
 
                 if (callback != null) {
+                    _ops.ExecuteCommandBufferAndClear();
                     callback.Invoke(i / Scheduler.Order, t, latents);
                 }
 
@@ -87,6 +90,8 @@ namespace Doji.AI.Diffusers {
             if (batchSize > 1) {
                 throw new NotImplementedException();
             }
+
+            _ops.ExecuteCommandBufferAndClear();
 
             Tensor<float> outputImage = await VaeDecoder.ExecuteAsync(result);
             outputImage = ImageProcessor.PostProcess(outputImage, doDenormalize: true);
@@ -163,11 +168,10 @@ namespace Doji.AI.Diffusers {
                 // For classifier free guidance, we need to do two forward passes.
                 // Here we concatenate the unconditional and text embeddings into a single batch
                 // to avoid doing two forward passes
-                Tensor<float> combinedEmbeddings = _ops.Concatenate(negativePromptEmbeds, promptEmbeds, 0);
-
-                return combinedEmbeddings;
+                promptEmbeds = _ops.Concatenate(negativePromptEmbeds, promptEmbeds, 0);
             }
 
+            _ops.ExecuteCommandBufferAndClear();
             return promptEmbeds;
         }
     }

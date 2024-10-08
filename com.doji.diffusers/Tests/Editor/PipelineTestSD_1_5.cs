@@ -1,8 +1,6 @@
 using NUnit.Framework;
 using System;
 using Unity.Sentis;
-using UnityEngine;
-using UnityEngine.TestTools;
 
 namespace Doji.AI.Diffusers.Editor.Tests {
 
@@ -37,7 +35,6 @@ namespace Doji.AI.Diffusers.Editor.Tests {
         }
 
         private void TestPredictedNoise(int i, float t, Tensor<float> latents) {
-            latents.ReadbackAndClone();
             CollectionAssert.AreEqual(GetLatents(i), latents.DownloadToArray(), new FloatArrayComparer(0.00001f), $"Latents differ at step {i}");
         }
 
@@ -67,7 +64,6 @@ namespace Doji.AI.Diffusers.Editor.Tests {
         }
 
         private void TestPredictedNoiseLarge(int i, float t, Tensor<float> latents) {
-            latents.ReadbackAndClone();
             CollectionAssert.AreEqual(GetLatentsLarge(i), latents.DownloadToArray(), new FloatArrayComparer(0.0001f), $"Latents differ at step {i}");
         }
 

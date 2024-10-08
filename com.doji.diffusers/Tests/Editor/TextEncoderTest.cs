@@ -56,7 +56,6 @@ namespace Doji.AI.Diffusers.Editor.Tests {
             using Tensor<int> tokens = new Tensor<int>(new TensorShape(1, inputIds.Count()), inputIds.ToArray());
             using TextEncoder textEncoder = new TextEncoder(model, null);
             Tensor<float> output = textEncoder.Execute(tokens)[0] as Tensor<float>;
-            output.ReadbackAndClone();
             float[] promptEmbeds = output.DownloadToArray();
 
             CollectionAssert.AreEqual(ExpectedEmbeddings_1_5, promptEmbeds, new FloatArrayComparer(0.0001f));
@@ -79,7 +78,6 @@ namespace Doji.AI.Diffusers.Editor.Tests {
             using Tensor<int> tokens = new Tensor<int>(new TensorShape(1, inputIds.Count()), inputIds.ToArray());
             using TextEncoder textEncoder = new TextEncoder(model, null);
             Tensor<float> output = textEncoder.Execute(tokens)[0] as Tensor<float>;
-            output.ReadbackAndClone();
             float[] promptEmbeds = output.DownloadToArray();
 
             CollectionAssert.AreEqual(ExpectedEmbeddings_2_1, promptEmbeds, new FloatArrayComparer(0.0001f));
@@ -102,7 +100,6 @@ namespace Doji.AI.Diffusers.Editor.Tests {
             using Tensor<int> tokens = new Tensor<int>(new TensorShape(1, inputIds.Count()), inputIds.ToArray());
             using TextEncoder textEncoder = new TextEncoder(model, null);
             Tensor<float> output = textEncoder.Execute(tokens)[0] as Tensor<float>;
-            output.ReadbackAndClone();
             float[] promptEmbeds = output.DownloadToArray();
 
             CollectionAssert.AreEqual(UnconditionalEmbeddings, promptEmbeds, new FloatArrayComparer(0.0001f));

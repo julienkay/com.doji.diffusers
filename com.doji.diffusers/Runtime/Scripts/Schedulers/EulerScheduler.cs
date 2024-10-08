@@ -77,7 +77,7 @@ namespace Doji.AI.Diffusers {
             }
 
             float sigma = Sigmas[StepIndex.Value];
-            sample = _ops.Div(sample, MathF.Pow((MathF.Pow(sigma, 2f) + 1f), 0.5f));
+            sample = Ops.Div(sample, MathF.Pow((MathF.Pow(sigma, 2f) + 1f), 0.5f));
 
             IsScaleInputCalled = true;
             return sample;
@@ -135,11 +135,11 @@ namespace Doji.AI.Diffusers {
 
             using Tensor<int> indices = new Tensor<int>(new TensorShape(stepIndices.Length), stepIndices);
             using Tensor<float> sigmas = new Tensor<float>(new TensorShape(Sigmas.Length), Sigmas);
-            var sigma = _ops.GatherElements(sigmas, indices, 0);
+            var sigma = Ops.GatherElements(sigmas, indices, 0);
             while (sigma.shape.rank < originalSamples.shape.rank) {
                 sigma.Reshape(sigma.shape.Unsqueeze(-1)); // unsqueeze
             }
-            var noisySamples = _ops.Add(originalSamples, _ops.Mul(noise, sigma));
+            var noisySamples = Ops.Add(originalSamples, Ops.Mul(noise, sigma));
             return noisySamples;
         }
 
