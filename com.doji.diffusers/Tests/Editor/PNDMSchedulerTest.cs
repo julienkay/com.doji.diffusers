@@ -51,8 +51,9 @@ namespace Doji.AI.Diffusers.Editor.Tests {
                 StepsOffset = 1,
                 TrainedBetas = null
             };
-            _scheduler = new PNDMScheduler(config);
             _ops = new Ops(BackendType.GPUCompute);
+            _scheduler = new PNDMScheduler(config);
+            _scheduler.Ops = _ops;
         }
 
         [TearDown]

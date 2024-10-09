@@ -5,7 +5,6 @@ using Unity.Sentis;
 
 namespace Doji.AI.Diffusers {
 
-
     public delegate void PipelineCallback(int step, float timestep, Tensor<float> latents);
 
     public abstract partial class DiffusionPipeline : IDiffusionPipeline, IDisposable {
@@ -77,7 +76,7 @@ namespace Doji.AI.Diffusers {
             Scheduler = scheduler;
             Unet = unet;
 
-            // TODO: When casting between pipeline types, we might want to reuse ops and image processor as well
+            // share Ops with scheduler
             _ops = Scheduler.Ops = new Ops(backend);
             if (VaeDecoder.Config.BlockOutChannels != null) {
                 VaeScaleFactor = 1 << (VaeDecoder.Config.BlockOutChannels.Length - 1);
@@ -90,7 +89,11 @@ namespace Doji.AI.Diffusers {
         /// <summary>
         /// Create a pipeline reusing the components of the given pipeline.
         /// </summary>
-        public DiffusionPipeline(DiffusionPipeline pipe) : this(pipe.VaeDecoder, pipe.TextEncoder, pipe.Tokenizer, pipe.Scheduler, pipe.Unet, pipe._ops.BackendType) {
+        /// <remarks>
+        /// We create new scheduler instance since it shares the Ops Instance with the pipeline.
+        /// </remarks>
+        internal DiffusionPipeline(DiffusionPipeline pipe)
+            : this(pipe.VaeDecoder, pipe.TextEncoder, pipe.Tokenizer, pipe.Scheduler.Copy(), pipe.Unet, pipe._ops.BackendType) {
             ModelInfo = pipe.ModelInfo;
             Config = pipe.Config;
         }

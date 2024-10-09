@@ -162,6 +162,12 @@ namespace Doji.AI.Diffusers {
             Ops = new Ops(backend);
         }
 
+        public Scheduler Copy() {
+            Scheduler copy = MemberwiseClone() as Scheduler;
+            copy.Ops = new Ops(Ops.BackendType);
+            return copy;
+        }
+
         /// <summary>
         /// Sets the discrete timesteps used for the diffusion chain (to be run before inference).
         /// </summary>
