@@ -125,7 +125,10 @@ namespace Doji.AI.Diffusers {
 
                 using Tensor<int> textIdTensor = new Tensor<int>(new TensorShape(batchSize, textInputIds.Length), textInputIds);
 
-                promptEmbeds = (await TextEncoder.ExecuteAsync(textIdTensor))[0] as Tensor<float>;
+                await TextEncoder.ExecuteAsync(textIdTensor);
+
+                promptEmbeds = TextEncoder.CopyOutput(0) as Tensor<float>;
+                _ops.WaveOwnership(promptEmbeds);
             }
 
             promptEmbeds = _ops.Repeat(promptEmbeds, numImagesPerPrompt, axis: 0);
@@ -158,7 +161,6 @@ namespace Doji.AI.Diffusers {
 
                 using Tensor<int> uncondIdTensor = new Tensor<int>(new TensorShape(batchSize, uncondInputIds.Length), uncondInputIds);
 
-                promptEmbeds = _ops.Copy(promptEmbeds);  // "take ownership"
                 negativePromptEmbeds = (await TextEncoder.ExecuteAsync(uncondIdTensor))[0] as Tensor<float>;
             }
 

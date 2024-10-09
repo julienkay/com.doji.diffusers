@@ -239,10 +239,8 @@ namespace Doji.AI.Diffusers {
                     Profiler.EndSample();
 
                     pooledPromptEmbeds = _promptEmbeds[0] as Tensor<float>;
-                    promptEmbeds = _promptEmbeds[-2] as Tensor<float>;
-
-                    // copy prompt embeds to avoid having to call TakeOwnership and track tensor to Dispose()
-                    promptEmbeds = _ops.Copy(promptEmbeds);
+                    promptEmbeds = textEncoder.CopyOutput(-2) as Tensor<float>;
+                    _ops.WaveOwnership(promptEmbeds);
 
                     Profiler.BeginSample($"Process Input for {numImagesPerPrompt} images per prompt.");
                     promptEmbeds = _ops.Repeat(promptEmbeds, numImagesPerPrompt, axis: 0);
@@ -297,8 +295,8 @@ namespace Doji.AI.Diffusers {
                     Profiler.EndSample();
 
                     negativePooledPromptEmbeds = _negativePromptEmbeds[0] as Tensor<float>;
-                    negativePromptEmbeds = _negativePromptEmbeds[-2] as Tensor<float>;
-                    negativePromptEmbeds = _ops.Copy(negativePromptEmbeds);
+                    negativePromptEmbeds = textEncoder.CopyOutput(-2) as Tensor<float>;
+                    _ops.WaveOwnership(negativePromptEmbeds);
 
                     // duplicate unconditional embeddings for each generation per prompt
                     Profiler.BeginSample($"Process Unconditional Input for {numImagesPerPrompt} images per prompt.");

@@ -191,8 +191,11 @@ namespace Doji.AI.Diffusers {
                 Profiler.EndSample();
 
                 Profiler.BeginSample("Execute TextEncoder");
-                promptEmbeds = TextEncoder.Execute(textIdTensor)[0] as Tensor<float>;
+                TextEncoder.Execute(textIdTensor);
                 Profiler.EndSample();
+
+                promptEmbeds = TextEncoder.CopyOutput(0) as Tensor<float>;
+                _ops.WaveOwnership(promptEmbeds);
             }
 
             promptEmbeds = _ops.Repeat(promptEmbeds, numImagesPerPrompt, axis: 0);
@@ -229,7 +232,6 @@ namespace Doji.AI.Diffusers {
                 using Tensor<int> uncondIdTensor = new Tensor<int>(new TensorShape(batchSize, uncondInputIds.Length), uncondInputIds);
                 Profiler.EndSample();
 
-                promptEmbeds = _ops.Copy(promptEmbeds); // "take ownership"
                 Profiler.BeginSample("Execute TextEncoder For Unconditioned Input");
                 negativePromptEmbeds = TextEncoder.Execute(uncondIdTensor)[0] as Tensor<float>;
                 Profiler.EndSample();

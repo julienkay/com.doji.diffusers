@@ -79,6 +79,14 @@ namespace Doji.AI.Diffusers {
             return _output;
         }
 
+        public Tensor CopyOutput(int index) {
+            // wrap around to allow for negative indexing
+            index = (_output.Count + (index % _output.Count)) % _output.Count;
+            Tensor output = null;
+            _worker.CopyOutput(index, ref output);
+            return output;
+        }
+
         /// <summary>
         /// Instantiate a TextEncoder from a JSON configuration file.
         /// </summary>
