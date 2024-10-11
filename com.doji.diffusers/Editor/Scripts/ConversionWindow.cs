@@ -29,9 +29,9 @@ namespace Doji.AI.Diffusers.Editor {
 
         // Draw dropdown with a "None" option
         private void DrawQuantizationTypeDropdown() {
-            string[] options = new string[] { "None", "Float16", "Uint8" };
+            string[] options = new string[] { "None (Float32)", "Float16", "Uint8" };
             int selectedIndex = _selectedQuantizationType.HasValue ? (int)_selectedQuantizationType.Value + 1 : 0;
-            int newIndex = EditorGUILayout.Popup("Select Quantization Type", selectedIndex, options);
+            int newIndex = EditorGUILayout.Popup("Quantization Type", selectedIndex, options);
             if (newIndex == 0) {
                 _selectedQuantizationType = null;
             } else {
