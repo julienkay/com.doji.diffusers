@@ -119,7 +119,7 @@ namespace Doji.AI.Diffusers {
                 this.sample = sample;
                 this.eta = eta;
                 this.useClippedModelOutput = useClippedModelOutput;
-                this.generator = generator;
+                this.generator = generator ?? new System.Random();
                 this.varianceNoise = varianceNoise;
                 this.s_churn = s_churn;
                 this.s_tmin = s_tmin;

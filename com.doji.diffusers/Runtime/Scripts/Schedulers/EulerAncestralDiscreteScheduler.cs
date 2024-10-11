@@ -72,9 +72,8 @@ namespace Doji.AI.Diffusers {
             float dt = sigmaDown - sigma;
             Tensor<float> prevSample = Ops.Add(sample, Ops.Mul(derivative, dt));
 
-            generator ??= new System.Random();
-            uint seed = unchecked((uint)generator.Next());
-            var noise = Ops.RandomNormal(modelOutput.shape, 0, 1, unchecked((int)seed));
+            int seed = generator.Next();
+            var noise = Ops.RandomNormal(modelOutput.shape, 0, 1, seed);
 
             prevSample = Ops.Add(prevSample, Ops.Mul(noise, sigmaUp));
 
