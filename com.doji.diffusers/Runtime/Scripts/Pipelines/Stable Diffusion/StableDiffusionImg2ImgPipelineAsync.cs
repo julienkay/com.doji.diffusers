@@ -28,7 +28,7 @@ namespace Doji.AI.Diffusers {
             System.Random generator = null;
             if (seed == null) {
                 generator = new System.Random();
-                seed = unchecked((uint)generator.Next());
+                seed = generator.Next();
             }
 
             // set timesteps
@@ -60,7 +60,7 @@ namespace Doji.AI.Diffusers {
             using Tensor<float> timestepsT = new Tensor<float>(new TensorShape(batchSize * numImagesPerPrompt), timesteps);
 
             // add noise to latents using the timesteps
-            var noise = _ops.RandomNormal(initLatents.shape, 0, 1, unchecked((int)seed));
+            var noise = _ops.RandomNormal(initLatents.shape, 0, 1, seed.Value);
             initLatents = Scheduler.AddNoise(initLatents, noise, timestepsT);
 
             latents = initLatents;

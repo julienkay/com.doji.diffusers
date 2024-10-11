@@ -89,7 +89,7 @@ namespace Doji.AI.Diffusers {
             System.Random generator = null;
             if (latents == null && seed == null) {
                 generator = new System.Random();
-                seed = unchecked((uint)generator.Next());
+                seed = generator.Next();
             }
 
             bool doClassifierFreeGuidance = guidanceScale > 1.0f;
@@ -342,7 +342,7 @@ namespace Doji.AI.Diffusers {
             );
 
             if (latents == null) {
-                latents = _ops.RandomNormal(shape, 0, 1, unchecked((int)seed));
+                latents = _ops.RandomNormal(shape, 0, 1, seed.Value);
             } else if (latents.shape != shape) {
                 throw new ArgumentException($"Unexpected latents shape, got {latents.shape}, expected {shape}");
             }

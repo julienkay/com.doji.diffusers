@@ -39,7 +39,7 @@ namespace Doji.AI.Diffusers {
         protected Input negativePrompt { get => _parameters.NegativePrompt; set => _parameters.NegativePrompt = value; }
         protected int numImagesPerPrompt { get => _parameters.NumImagesPerPrompt.Value; set => _parameters.NumImagesPerPrompt = value; }
         protected float eta { get => _parameters.Eta.Value; set => _parameters.Eta = value; }
-        protected uint? seed { get => _parameters.Seed; set => _parameters.Seed = value; }
+        protected int? seed { get => _parameters.Seed; set => _parameters.Seed = value; }
         protected Tensor<float> latents { get => _parameters.Latents; set => _parameters.Latents = value; }
         protected float guidanceRescale { get => _parameters.GuidanceRescale.Value; set => _parameters.GuidanceRescale = value; }
         protected PipelineCallback callback { get => _parameters.Callback; set => _parameters.Callback = value; }
@@ -199,7 +199,7 @@ namespace Doji.AI.Diffusers {
             int? numInferenceSteps = null,
             float? guidanceScale = null,
             string negativePrompt = null,
-            uint? seed = null)
+            int? seed = null)
         {
             Parameters parameters = new Parameters() {
                 Prompt = prompt,
@@ -228,7 +228,7 @@ namespace Doji.AI.Diffusers {
             int? numInferenceSteps = null,
             float? guidanceScale = null,
             string negativePrompt = null,
-            uint? seed = null)
+            int? seed = null)
         {
             Parameters parameters = new Parameters() {
                 Prompt = prompt,

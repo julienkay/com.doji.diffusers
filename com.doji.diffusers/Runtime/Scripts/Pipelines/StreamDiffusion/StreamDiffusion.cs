@@ -135,10 +135,10 @@ namespace Doji.AI.Diffusers {
             int num_inference_steps = 50,
             float guidance_scale = 1.2f,
             float delta = 1.0f,
-            uint? seed = null)
+            int? seed = null)
         {
             System.Random generator = new System.Random();
-            seed ??= unchecked((uint)generator.Next());
+            seed ??= generator.Next();
 
             // initialize x_t_latent (it can be any random tensor)
             if (NumDenoisingSteps > 1) {
@@ -197,7 +197,7 @@ namespace Doji.AI.Diffusers {
             this.sub_timesteps_tensor = _ops.RepeatInterleave(sub_timesteps_tensor, repeats, dim: 0);
 
             var latentsShape = new TensorShape(BatchSize, 4, LatentHeight, LatentWidth);
-            _initNoise = _ops.RandomNormal(latentsShape, 0, 1, unchecked((int)seed));
+            _initNoise = _ops.RandomNormal(latentsShape, 0, 1, seed.Value);
 
             _stockNoise = new Tensor<float>(latentsShape);
 

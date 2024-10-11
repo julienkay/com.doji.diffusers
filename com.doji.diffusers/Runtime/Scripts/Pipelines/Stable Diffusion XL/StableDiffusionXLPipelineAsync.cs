@@ -32,7 +32,7 @@ namespace Doji.AI.Diffusers {
             System.Random generator = null;
             if (latents == null && seed == null) {
                 generator = new System.Random();
-                seed = unchecked((uint)generator.Next());
+                seed = generator.Next();
             }
 
             bool doClassifierFreeGuidance = guidanceScale > 1.0f;

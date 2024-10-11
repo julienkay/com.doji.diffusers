@@ -35,7 +35,7 @@ namespace Doji.AI.Diffusers {
         private int _inputHeight;
         private int _inputWidth;
         private int _batchSize;
-        private uint? _seed;
+        private int? _seed;
         private System.Random _generator;
 
         private Ops _ops;
@@ -107,7 +107,7 @@ namespace Doji.AI.Diffusers {
             int ensembleSize = 10,
             int batchSize = 0,
             string colorMap = "Spectral",
-            uint? seed = null,
+            int? seed = null,
             Tensor<float> latents = null)
         {
             if (inputImage== null) {
@@ -120,7 +120,7 @@ namespace Doji.AI.Diffusers {
             _generator = null;
             if (latents == null && _seed == null) {
                 _generator = new System.Random();
-                _seed = unchecked((uint)_generator.Next());
+                _seed = _generator.Next();
             }
 
             //TODO: check inputs
@@ -153,9 +153,9 @@ namespace Doji.AI.Diffusers {
             var rgbLatent = EncodeRGB(rgb);
 
             // initial depth map (noise)
-            uint seed = unchecked((uint)new System.Random().Next());
+            int seed = new System.Random().Next();
             var latentsShape = new TensorShape(_batchSize, 4, _inputHeight, _inputWidth);
-            var latents = _ops.RandomNormal(latentsShape, 0, 1, unchecked((int)seed));
+            var latents = _ops.RandomNormal(latentsShape, 0, 1, seed);
             Tensor<float> depthLatents = latents;
 
             // batched empty text embedding

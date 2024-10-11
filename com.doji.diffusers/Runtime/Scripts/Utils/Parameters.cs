@@ -79,7 +79,7 @@ namespace Doji.AI.Diffusers {
         /// A seed to use to generate initial noise. Set this to make generation deterministic.
         /// </summary>
         [JsonProperty("seed")]
-        public uint? Seed { get; set; }
+        public int? Seed { get; set; }
 
         /// <summary>
         /// Pre-generated noise, sampled from a Gaussian distribution, to be used as inputs for image generation.
