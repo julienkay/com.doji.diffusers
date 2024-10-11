@@ -154,10 +154,11 @@ namespace Doji.AI.Diffusers {
 
                     using Tensor<int> textIdTensor = new Tensor<int>(new TensorShape(batchSize, textInputIds.Length), textInputIds);
 
-                    var _promptEmbeds = await textEncoder.ExecuteAsync(textIdTensor);
+                    await textEncoder.ExecuteAsync(textIdTensor);
 
-                    pooledPromptEmbeds = _promptEmbeds[0] as Tensor<float>;
+                    pooledPromptEmbeds = textEncoder.CopyOutput(0) as Tensor<float>;
                     promptEmbeds = textEncoder.CopyOutput(-2) as Tensor<float>;
+                    _ops.WaveOwnership(pooledPromptEmbeds);
                     _ops.WaveOwnership(promptEmbeds);
 
                     promptEmbeds = _ops.Repeat(promptEmbeds, numImagesPerPrompt, axis: 0);
@@ -205,7 +206,7 @@ namespace Doji.AI.Diffusers {
                     var _negativePromptEmbeds = textEncoder.Execute(uncondIdTensor);
 
                     negativePooledPromptEmbeds = _negativePromptEmbeds[0] as Tensor<float>;
-                    negativePromptEmbeds = textEncoder.CopyOutput(-2) as Tensor<float>;
+                    negativePromptEmbeds = _negativePromptEmbeds[-2] as Tensor<float>;
                     _ops.WaveOwnership(negativePromptEmbeds);
 
                     // duplicate unconditional embeddings for each generation per prompt
