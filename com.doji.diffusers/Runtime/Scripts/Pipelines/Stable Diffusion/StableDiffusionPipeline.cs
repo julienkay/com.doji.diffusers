@@ -57,11 +57,6 @@ namespace Doji.AI.Diffusers {
                 throw new ArgumentException($"Invalid prompt argument {nameof(prompt)}");
             }
 
-            System.Random generator = new System.Random();
-            if (latents == null && seed == null) {
-                seed = generator.Next();
-            }
-
             bool doClassifierFreeGuidance = guidanceScale > 1.0f;
 
             Profiler.BeginSample("Encode Prompt(s)");

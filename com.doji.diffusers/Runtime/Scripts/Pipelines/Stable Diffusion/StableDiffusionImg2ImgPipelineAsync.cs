@@ -25,12 +25,6 @@ namespace Doji.AI.Diffusers {
                 throw new ArgumentException($"Invalid prompt argument {nameof(prompt)}");
             }
 
-            System.Random generator = null;
-            if (seed == null) {
-                generator = new System.Random();
-                seed = generator.Next();
-            }
-
             // set timesteps
             Scheduler.SetTimesteps(numInferenceSteps);
 

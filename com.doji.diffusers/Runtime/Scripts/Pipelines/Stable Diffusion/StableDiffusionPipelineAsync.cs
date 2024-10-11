@@ -25,12 +25,6 @@ namespace Doji.AI.Diffusers {
                 throw new ArgumentException($"Invalid prompt argument {nameof(prompt)}");
             }
 
-            System.Random generator = null;
-            if (latents == null && seed == null) {
-                generator = new System.Random();
-                seed = generator.Next();
-            }
-
             bool doClassifierFreeGuidance = guidanceScale > 1.0f;
 
             Tensor<float> promptEmbeds = await EncodePromptAsync(prompt, numImagesPerPrompt, doClassifierFreeGuidance, negativePrompt);

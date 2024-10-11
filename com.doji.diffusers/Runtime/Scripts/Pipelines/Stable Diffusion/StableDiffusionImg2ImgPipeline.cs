@@ -62,12 +62,6 @@ namespace Doji.AI.Diffusers {
                 throw new ArgumentException($"The value of strength should be in [0.0, 1.0] but is {strength}");
             }
 
-            System.Random generator = null;
-            if (seed == null) {
-                generator = new System.Random();
-                seed = generator.Next();
-            }
-
             // Prepare timesteps
             Profiler.BeginSample($"{Scheduler.GetType().Name}.SetTimesteps");
             Scheduler.SetTimesteps(numInferenceSteps);

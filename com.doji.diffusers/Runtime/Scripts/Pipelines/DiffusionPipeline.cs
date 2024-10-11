@@ -40,6 +40,7 @@ namespace Doji.AI.Diffusers {
         protected int numImagesPerPrompt { get => _parameters.NumImagesPerPrompt.Value; set => _parameters.NumImagesPerPrompt = value; }
         protected float eta { get => _parameters.Eta.Value; set => _parameters.Eta = value; }
         protected int? seed { get => _parameters.Seed; set => _parameters.Seed = value; }
+        protected System.Random generator { get; set; }
         protected Tensor<float> latents { get => _parameters.Latents; set => _parameters.Latents = value; }
         protected float guidanceRescale { get => _parameters.GuidanceRescale.Value; set => _parameters.GuidanceRescale = value; }
         protected PipelineCallback callback { get => _parameters.Callback; set => _parameters.Callback = value; }
@@ -172,6 +173,16 @@ namespace Doji.AI.Diffusers {
             Scheduler.Ops.FlushTensors();
             SetParameterDefaults(parameters);
             CheckInputs();
+            InitSeed();
+        }
+
+        /// <summary>
+        /// Initializes the <see cref="seed"/> and the random number <see cref="generator"/>.
+        /// Either using a user-supplied seed, or generating a radom one.
+        /// </summary>
+        private void InitSeed() {
+            seed ??= new System.Random().Next();
+            generator = new(seed.Value);
         }
 
         /// <summary>
