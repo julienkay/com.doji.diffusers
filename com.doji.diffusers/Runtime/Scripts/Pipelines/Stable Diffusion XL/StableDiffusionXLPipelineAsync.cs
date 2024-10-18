@@ -163,7 +163,7 @@ namespace Doji.AI.Diffusers {
             }
 
             // get unconditional embeddings for classifier free guidance
-            bool zeroOutNegativePrompt = negativePrompt is null && Config.ForceZerosForEmptyPrompt;
+            bool zeroOutNegativePrompt = negativePrompt is null && _config.ForceZerosForEmptyPrompt;
             if (doClassifierFreeGuidance && negativePromptEmbeds is null && zeroOutNegativePrompt) {
                 using var zeros = new Tensor<float>(promptEmbeds.shape);
                 negativePromptEmbeds = zeros;

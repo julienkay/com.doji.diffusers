@@ -12,6 +12,12 @@ namespace Doji.AI.Diffusers {
     /// </summary>
     public partial class StableDiffusionXLControlNetPipeline : DiffusionPipeline, IControlnetPipeline, IDisposable {
 
+        private StableDiffusionXLPipelineConfig _config;
+        public override PipelineConfig Config {
+            get { return _config; }
+            protected set { _config = value as StableDiffusionXLPipelineConfig; }
+        }
+
         public ClipTokenizer Tokenizer2 { get; private set; }
         public TextEncoder TextEncoder2 { get; private set; }
         public ControlNetModel Controlnet { get; }
@@ -257,7 +263,7 @@ namespace Doji.AI.Diffusers {
             }
 
             // get unconditional embeddings for classifier free guidance
-            bool zeroOutNegativePrompt = negativePrompt is null && Config.ForceZerosForEmptyPrompt;
+            bool zeroOutNegativePrompt = negativePrompt is null && _config.ForceZerosForEmptyPrompt;
             if (doClassifierFreeGuidance && negativePromptEmbeds is null && zeroOutNegativePrompt) {
                 using var zeros = new Tensor<float>(promptEmbeds.shape);
                 negativePromptEmbeds = zeros;

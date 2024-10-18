@@ -10,7 +10,7 @@ namespace Doji.AI.Diffusers {
     public abstract partial class DiffusionPipeline : IDiffusionPipeline, IDisposable {
 
         public DiffusionModel ModelInfo { get; protected set; }
-        public PipelineConfig Config { get; protected set; }
+        public virtual PipelineConfig Config { get; protected set; }
 
         public VaeDecoder VaeDecoder { get; protected set; }
         public ClipTokenizer Tokenizer { get; protected set; }

@@ -15,6 +15,12 @@ namespace Doji.AI.Diffusers {
     /// </remarks>
     public partial class StableDiffusionXLImg2ImgPipeline : DiffusionPipeline, IImg2ImgPipeline, IDisposable {
 
+        private StableDiffusionXLPipelineConfig _config;
+        public override PipelineConfig Config {
+            get { return _config; }
+            protected set { _config = value as StableDiffusionXLPipelineConfig; }
+        }
+
         public VaeEncoder VaeEncoder { get; protected set; }
 
         public ClipTokenizer Tokenizer2 { get; private set; }
@@ -264,7 +270,7 @@ namespace Doji.AI.Diffusers {
             }
 
             // get unconditional embeddings for classifier free guidance
-            bool zeroOutNegativePrompt = negativePrompt is null && Config.ForceZerosForEmptyPrompt;
+            bool zeroOutNegativePrompt = negativePrompt is null && _config.ForceZerosForEmptyPrompt;
             if (doClassifierFreeGuidance && negativePromptEmbeds is null && zeroOutNegativePrompt) {
                 using var zeros = new Tensor<float>(promptEmbeds.shape);
                 negativePromptEmbeds = zeros;
@@ -367,7 +373,7 @@ namespace Doji.AI.Diffusers {
         private (Tensor<float> a, Tensor<float> b) GetAddTimeIds((int, int) originalSize, (int, int) cropsCoordsTopLeft, (int, int) targetSize) {
             float[] timeIds;
             float[] negTimeIds;
-            if (Config.RequiresAestheticsScore) {
+            if (_config.RequiresAestheticsScore) {
                 timeIds = GetTimeIds(originalSize, cropsCoordsTopLeft, aestheticScore);
                 negTimeIds = GetTimeIds(originalSize, cropsCoordsTopLeft, negativeAestheticScore);
 
