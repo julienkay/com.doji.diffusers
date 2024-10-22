@@ -424,6 +424,7 @@ namespace Doji.AI.Diffusers {
 
         public override void Dispose() {
             base.Dispose();
+            VaeEncoder?.Dispose();
             TextEncoder2?.Dispose();
         }
     }

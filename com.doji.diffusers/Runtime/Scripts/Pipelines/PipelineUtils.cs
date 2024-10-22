@@ -221,9 +221,10 @@ namespace Doji.AI.Diffusers {
 
             PipelineConfig config = LoadPipelineConfig(model);
             return config.ClassName switch {
-                "StableDiffusionPipeline"     => StableDiffusionPipeline.FromPretrained(model, backend),
-                "OnnxStableDiffusionPipeline" => StableDiffusionPipeline.FromPretrained(model, backend),
-                "StableDiffusionXLPipeline"   => StableDiffusionXLPipeline.FromPretrained(model, backend),
+                "StableDiffusionPipeline"       => StableDiffusionPipeline.FromPretrained(model, backend),
+                "OnnxStableDiffusionPipeline"   => StableDiffusionPipeline.FromPretrained(model, backend),
+                "StableDiffusionXLPipeline"     => StableDiffusionXLPipeline.FromPretrained(model, backend),
+                "MarigoldPipeline"              => MarigoldDepthPipeline.FromPretrained(model, backend),
                 _ => throw new NotImplementedException($"Unknown diffusion pipeline in config: {config.ClassName}"),
             };
         }
@@ -457,6 +458,39 @@ namespace Doji.AI.Diffusers {
             } else {
                 throw new InvalidOperationException($"Cannot create StableDiffusionXLImg2ImgPipeline from a {pipe.GetType().Name}.");
             }
+        }
+    }
+
+    public partial class MarigoldDepthPipeline {
+        public static new MarigoldDepthPipeline FromPretrained(DiffusionModel model, BackendType backend = BackendType.GPUCompute) {
+            PipelineConfig config = LoadPipelineConfig(model);
+
+            var vocab = LoadVocab(model);
+            var merges = LoadMerges(model);
+            var tokenizerConfig = LoadTokenizerConfig(model);
+            var clipTokenizer = new ClipTokenizer(
+                vocab,
+                merges,
+                tokenizerConfig
+            );
+            var scheduler = Scheduler.FromPretrained(model, backend);
+            var vaeEncoder = VaeEncoder.FromPretrained(model, backend);
+            var vaeDecoder = VaeDecoder.FromPretrained(model, backend);
+            var textEncoder = TextEncoder.FromPretrained(model.TextEncoder, model.TextEncoderConfig, backend);
+            var unet = Unet.FromPretrained(model, backend);
+
+            MarigoldDepthPipeline pipeline = new MarigoldDepthPipeline(
+                vaeEncoder,
+                vaeDecoder,
+                textEncoder,
+                clipTokenizer,
+                scheduler,
+                unet,
+                backend
+            );
+            pipeline.ModelInfo = model;
+            pipeline.Config = config;
+            return pipeline;
         }
     }
 }

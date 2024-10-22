@@ -198,5 +198,53 @@ namespace Doji.AI.Diffusers {
         /// </summary>
         [JsonProperty("negative_aesthetic_score")]
         public float? NegativeAestheticScore { get; set; }
+
+        /* Marigold parameters */
+
+        /// <summary>
+        /// Number of ensemble predictions. Recommended values are 5 and higher for better precision, or 1 for faster inference.
+        /// </summary>
+        [JsonProperty("ensemble_size")]
+        public int? EnsembleSize { get; set; }
+
+        /// <summary>
+        /// Effective processing resolution. When set to `0`, matches the larger input image dimension.
+        /// This produces crisper predictions, but may also lead to the overall loss of global context.
+        /// The default value <see langword="null"/> resolves to the optimal value from the model config.
+        /// </summary>
+        [JsonProperty("processing_resolution")]
+        public int? ProcessingResolution { get; set; }
+
+        /// <summary>
+        /// When enabled, the output prediction is resized to match the input dimensions.
+        /// When disabled, the longer side of the output will equal to <see cref="ProcessingResolution"/>.
+        /// </summary>
+        [JsonProperty("match_input_resolution")]
+        public bool? MatchInputResolution { get; set; }
+
+        /// <summary>
+        /// Resampling method used to resize input images to <see cref="ProcessingResolution"/>.
+        /// </summary>
+        [JsonProperty("resample_method_input")]
+        public ResampleMethod? ResampleMethodInput { get; set; }
+
+        /// <summary>
+        /// Resampling method used to resize output predictions to match the input resolution.
+        /// </summary>
+        [JsonProperty("resample_method_output")]
+        public ResampleMethod? ResampleMethodOutput { get; set; }
+
+        /// <summary>
+        /// Extra arguments for precise ensembling control.
+        /// </summary>
+        [JsonProperty("ensembling_kwargs")]
+        public EnsemblingOptions? EnsemblingOptions { get; set; }
+
+        /// <summary>
+        ///  When enabled, the output's `uncertainty` field contains the predictive uncertainty map,
+        ///  provided that the <see cref="EnsembleSize"/> argument is set to a value above 2.
+        /// </summary>
+        [JsonProperty("output_uncertainty")]
+        public bool? OutputUncertainty { get; set; }
     }
 }

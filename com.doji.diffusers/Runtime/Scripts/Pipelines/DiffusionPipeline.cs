@@ -134,9 +134,13 @@ namespace Doji.AI.Diffusers {
             _parameters.NegativeAestheticScore ??= defaults.NegativeAestheticScore;
         }
 
+        /// <summary>
+        /// The default parameters of this pipeline
+        /// </summary>
+        // override this in subclasses with default values of parameters in __call__ methods
         public abstract Parameters GetDefaultParameters();
 
-        protected void CheckInputs() {
+        protected virtual void CheckInputs() {
             if (this is not IImg2ImgPipeline && (height % 8 != 0 || width % 8 != 0)) {
                 throw new ArgumentException($"`height` and `width` have to be divisible by 8 but are {height} and {width}.");
             }
