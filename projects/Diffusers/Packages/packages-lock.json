@@ -5,7 +5,7 @@
       "depth": 0,
       "source": "local",
       "dependencies": {
-        "com.unity.sentis": "2.1.1",
+        "com.unity.sentis": "2.1.2",
         "com.unity.nuget.newtonsoft-json": "3.2.1",
         "com.doji.transformers": "0.0.1",
         "com.doji.sentis-utils": "0.0.0",
