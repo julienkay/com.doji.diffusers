@@ -203,6 +203,65 @@ namespace Doji.AI.Diffusers {
             // Model invocation: self.unet.
             Tensor<float> predLatents;
 
+            int numImages = 1;
+            for (int i = 0; i < numImages * ensembleSize; i += batchSize) {
+
+                /*
+                // expand the latents if doing classifier free guidance
+                Tensor<float> latentModelInput = doClassifierFreeGuidance ? _ops.Concatenate(latents, latents, 0) : latents;
+                latentModelInput = Scheduler.ScaleModelInput(latentModelInput, t);
+
+                // predict the noise residual
+                Profiler.BeginSample("Prepare Timestep Tensor");
+                using Tensor timestep = Unet.CreateTimestep(new TensorShape(batchSize), t);
+                Profiler.EndSample();
+
+                _ops.ExecuteCommandBufferAndClear();
+
+                Profiler.BeginSample("Execute Unet");
+                Tensor<float> noisePred = Unet.Execute(
+                    latentModelInput,
+                    timestep,
+                    promptEmbeds.PromptEmbeds,
+                    addTextEmbeds,
+                    addTimeIds
+                );
+                Profiler.EndSample();
+
+                // perform guidance
+                if (doClassifierFreeGuidance) {
+                    Profiler.BeginSample("Extend Predicted Noise For Classifier-Free Guidance");
+                    (var noisePredUncond, var noisePredText) = _ops.SplitHalf(noisePred, axis: 0);
+                    var tmp = _ops.Sub(noisePredText, noisePredUncond);
+                    var tmp2 = _ops.Mul(guidanceScale, tmp);
+                    noisePred = _ops.Add(noisePredUncond, tmp2);
+                    if (Math.Abs(guidanceRescale) > 0.0f) {
+                        // Based on 3.4. in https://arxiv.org/pdf/2305.08891.pdf
+                        noisePred = RescaleNoiseCfg(noisePred, noisePredText, guidanceRescale);
+                    }
+                    Profiler.EndSample();
+                }
+
+                // compute the previous noisy sample x_t -> x_t-1
+                Profiler.BeginSample($"{Scheduler.GetType().Name}.Step");
+                var stepArgs = new Scheduler.StepArgs(noisePred, t, latents, eta, generator: generator);
+                var schedulerOutput = Scheduler.Step(stepArgs);
+                latents = schedulerOutput.PrevSample;
+                Profiler.EndSample();
+
+                if (i == Scheduler.TimestepsLength - 1 || ((i + 1) > numWarmupSteps && (i + 1) % Scheduler.Order == 0)) {
+                    int stepIdx = i / Scheduler.Order;
+                    if (callback != null) {
+                        Profiler.BeginSample($"{GetType()} Callback");
+                        _ops.ExecuteCommandBufferAndClear();
+                        callback.Invoke(i / Scheduler.Order, t, latents);
+                        Profiler.EndSample();
+                    }
+                }*/
+
+                i++;
+            }
+
             return null;
         }
 
