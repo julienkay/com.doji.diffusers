@@ -18,13 +18,15 @@ It is still ***very*** early though, so as of today only a limited number of pip
 <details>
   <summary> via OpenUPM </summary>
   
-  In `Edit -> Project Settings -> Package Manager`, add a new scoped registry:
+ 1. In `Edit -> Project Settings -> Package Manager`, add a new scoped registry:
 
-    Name: Doji
-    URL: https://package.openupm.com
-    Scope(s): com.doji
+        Name: Doji
+        URL: https://package.openupm.com
+        Scope(s): com.doji
  
-  In the Package Manager install `com.doji.diffusers` either by name or select it in the list under `Package Manager -> My Registries`
+  4. In the Package Manager install `com.doji.diffusers` either by name or select it in the list under `Package Manager -> My Registries`
+  5. For the time being,  you also have to use a custom fork of Sentis: In the package Manager -> `Package Manager -> Instsall package from git URL-> https://github.com/julienkay/com.unity.sentis.git`
+
 </details>
 
 ### Roadmap
