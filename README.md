@@ -25,7 +25,7 @@ It is still ***very*** early though, so as of today only a limited number of pip
         Scope(s): com.doji
  
   4. In the Package Manager install `com.doji.diffusers` either by name or select it in the list under `Package Manager -> My Registries`
-  5. For the time being,  you also have to use a custom fork of Sentis: In the package Manager -> `Package Manager -> Instsall package from git URL-> https://github.com/julienkay/com.unity.sentis.git`
+  5. For the time being,  you also have to use a custom fork of Sentis: In the package Manager -> `Package Manager -> Install package from git URL-> https://github.com/julienkay/com.unity.sentis.git`
 
 </details>
 
