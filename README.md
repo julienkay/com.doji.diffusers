@@ -1,3 +1,5 @@
+🚧 Experimental! – This package is in an early, exploratory stage and not production-ready. Expect sharp edges, breaking changes, and general chaos.
+
 <a href="https://www.doji-tech.com/">
   <img src="https://www.doji-tech.com/assets/favicon.ico" alt="doji logo" title="Doji" align="right" height="70" />
 </a>
@@ -11,7 +13,7 @@ A Unity package to run pretrained diffusion models with Unity Sentis
 
 This is essentially a port of Hugging Face’s [diffusers] library.
 
-It is still ***very*** early though, so as of today only a limited number of pipelines and schedulers are supported (see below).
+As of today only a limited number of pipelines and schedulers are supported (see below).
 
 ### Installation
 
@@ -29,7 +31,7 @@ It is still ***very*** early though, so as of today only a limited number of pip
 
 </details>
 
-### Roadmap
+### Features/Roadmap
 Some things that might be worked on next are:
 - [x] add/fix classifier-free guidance
 - [ ] support more models
