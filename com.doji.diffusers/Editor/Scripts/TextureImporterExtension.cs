@@ -96,7 +96,12 @@ public class TextureImporterExtension : Editor {
     private void ReadOnlyTextArea(string label, string text) {
         EditorGUILayout.BeginHorizontal();
         EditorGUILayout.LabelField(label, GUILayout.Width(EditorGUIUtility.labelWidth - 4));
-        EditorGUILayout.SelectableLabel(text, EditorStyles.textArea);
+
+        // Calculate the height required for the text
+        GUIStyle style = EditorStyles.textArea;
+        float height = style.CalcHeight(new GUIContent(text), EditorGUIUtility.currentViewWidth - EditorGUIUtility.labelWidth);
+
+        EditorGUILayout.SelectableLabel(text, style, GUILayout.Height(height));
         EditorGUILayout.EndHorizontal();
     }
 
