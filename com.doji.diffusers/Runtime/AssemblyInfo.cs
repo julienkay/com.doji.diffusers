@@ -7,7 +7,7 @@ using System.Runtime.CompilerServices;
 [assembly: AssemblyProduct("Doji.Diffusers")]
 [assembly: AssemblyCopyright("Copyright © Julien Kipp 2023-2024")]
 
-[assembly: AssemblyVersion("0.3.3.0")]
-[assembly: AssemblyFileVersion("0.3.3.0")]
-[assembly: AssemblyInformationalVersion("0.3.3")]
+[assembly: AssemblyVersion("0.3.4.0")]
+[assembly: AssemblyFileVersion("0.3.4.0")]
+[assembly: AssemblyInformationalVersion("0.3.4")]
 [assembly: InternalsVisibleTo("Doji.Diffusers.Editor.Tests")]
