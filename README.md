@@ -1,4 +1,4 @@
-🚧 Experimental! – This package is in an early, exploratory stage and not production-ready. Expect sharp edges, breaking changes, and general chaos.
+> 🚧 Experimental! – This package is in an early, exploratory stage and not production-ready. Expect sharp edges, breaking changes, and general chaos.
 
 <a href="https://www.doji-tech.com/">
   <img src="https://www.doji-tech.com/assets/favicon.ico" alt="doji logo" title="Doji" align="right" height="70" />
