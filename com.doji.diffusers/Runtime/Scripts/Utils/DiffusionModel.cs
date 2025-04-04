@@ -124,7 +124,7 @@ namespace Doji.AI.Diffusers {
             return GetEnumerator();
         }
 
-        public static readonly DiffusionModel SD_1_5 = new DiffusionModel("runwayml/stable-diffusion-v1-5", "onnx");
+        public static readonly DiffusionModel SD_1_5 = new DiffusionModel("julienkay/stable-diffusion-v1-5");
         public static readonly DiffusionModel SD_2_1 = new DiffusionModel("julienkay/stable-diffusion-2-1");
         public static readonly DiffusionModel SD_XL_BASE = new DiffusionModel("stabilityai/stable-diffusion-xl-base-1.0");
         public static readonly DiffusionModel SD_TURBO = new DiffusionModel("julienkay/sd-turbo");
