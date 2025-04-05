@@ -52,7 +52,8 @@ namespace Doji.AI.Diffusers {
         }
 
         internal static C FromPretrained<C>(ModelFile file, BackendType backend) where C : IConfigurable<T> {
-            var config = LoadConfig(file) ?? throw new FileNotFoundException($"File '{file.FileName}' not found for: '{typeof(T).Name}'");
+            var config = LoadConfig(file) ?? throw new Exception($"Config Asset '{file.FileName}' for: '{typeof(T).Name}' could not be loaded. " +
+                $"Both Resources and StreamingAssets folders were checked.");
             return FromConfig<C>(config, backend);
         }
     }
