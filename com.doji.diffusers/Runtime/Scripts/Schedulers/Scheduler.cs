@@ -7,6 +7,10 @@ using System.Collections;
 
 namespace Doji.AI.Diffusers {
 
+    /// <summary>
+    /// Base class for continuous scheduler implementations.
+    /// Timestep values are of type float.
+    /// </summary>
     public abstract class SchedulerFloat : Scheduler {
         public float[] Timesteps { get; protected set; }
         public override int TimestepsLength { get { return Timesteps.Length; } }
@@ -24,6 +28,11 @@ namespace Doji.AI.Diffusers {
         }
     }
 
+
+    /// <summary>
+    /// Base class for discrete scheduler implementations.
+    /// Timestep values are of type int.
+    /// </summary>
     public abstract class SchedulerInt : Scheduler {
         public int[] Timesteps { get; protected set; }
         public override int TimestepsLength { get {  return Timesteps.Length; } }
@@ -145,17 +154,7 @@ namespace Doji.AI.Diffusers {
         protected float s_noise { get => _args.s_noise; }
 #pragma warning restore IDE1006
 
-        protected internal Ops Ops {
-            get => _ops;
-            set {
-                if (_ops != null) {
-                    _ops.ExecuteCommandBufferAndClear();
-                    _ops.Dispose();
-                }
-                _ops = value;
-            }
-        }
-        private Ops _ops;
+        protected internal Ops Ops { get; set; }
 
         public Scheduler(SchedulerConfig config, BackendType backend) {
             Config = config ?? new SchedulerConfig();
@@ -370,9 +369,7 @@ namespace Doji.AI.Diffusers {
             return sample;
         }
 
-        public virtual void Dispose() {
-            Ops?.Dispose();
-        }
+        public virtual void Dispose() { }
 
         public abstract IEnumerator<float> GetEnumerator();
 

@@ -83,10 +83,6 @@ namespace Doji.AI.Diffusers {
             return new SchedulerOutput(prevSample, predOriginalSample);
         }
 
-        public override void Dispose() {
-            base.Dispose();
-        }
-
         public static EulerAncestralDiscreteScheduler FromConfig(SchedulerConfig cfg, BackendType b) => FromConfig<EulerAncestralDiscreteScheduler>(cfg, b);
     }
 }
