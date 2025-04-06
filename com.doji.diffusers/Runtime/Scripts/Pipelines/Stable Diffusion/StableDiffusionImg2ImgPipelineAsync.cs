@@ -7,9 +7,7 @@ using Unity.Sentis;
 
 namespace Doji.AI.Diffusers {
 
-    /// <summary>
-    /// Async Stable Diffusion Image to Image pipeline methods.
-    /// </summary>
+    // Async Stable Diffusion Image to Image pipeline methods.
     public partial class StableDiffusionImg2ImgPipeline {
 
         public override async Task<Tensor<float>> GenerateAsync(Parameters parameters) {

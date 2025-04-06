@@ -45,9 +45,9 @@ namespace Doji.AI.Diffusers {
         protected static C FromPretrained<C>(ModelFile modelFile, ModelFile modelConfig, BackendType backend) where C : IModel<T> {
             var config = LoadConfig(modelConfig);
             if (config == null && modelConfig.Required) {
-                throw new Exception($"The config asset file '{modelConfig.FileName}'for: '{typeof(T).Name} could not be loaded'");
+                throw new Exception($"The config asset file '{modelConfig.FileName}' for: '{typeof(T).Name} could not be loaded'");
             }
-            var model = LoadModel(modelFile) ?? throw new Exception($"Asset '{modelFile.FileName}'for: '{typeof(T).Name}' could not be loaded. " +
+            var model = LoadModel(modelFile) ?? throw new Exception($"Asset '{modelFile.FileName}' for: '{typeof(C).Name}' could not be loaded. " +
                 $"Both Resources and StreamingAssets folders were checked.");
             return FromConfig<C>(config, model, backend);
         }

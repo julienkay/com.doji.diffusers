@@ -203,5 +203,7 @@ namespace Doji.AI.Diffusers {
             FileName = fileName;
             Required = required;
         }
+
+        public override string ToString() => $"{Model} - {FileName} {(!Required ? "(Optional)" : null)}";
     }
 }
