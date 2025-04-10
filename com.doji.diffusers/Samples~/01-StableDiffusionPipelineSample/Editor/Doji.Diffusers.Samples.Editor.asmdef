@@ -1,12 +1,13 @@
 {
-    "name": "Doji.Diffusers.Samples",
+    "name": "Doji.Diffusers.Samples.Editor",
     "rootNamespace": "",
     "references": [
         "GUID:c699e6efead55c6409492ab97b7bcb54",
-        "GUID:c98377141161c7746a178fb5cb1af075",
-        "GUID:6055be8ebefd69e48b49212b09b47b2f"
+        "GUID:e18b3b8f948993d4cb3efc72aa2aa739"
     ],
-    "includePlatforms": [],
+    "includePlatforms": [
+        "Editor"
+    ],
     "excludePlatforms": [],
     "allowUnsafeCode": false,
     "overrideReferences": false,

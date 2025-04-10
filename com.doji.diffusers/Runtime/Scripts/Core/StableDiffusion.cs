@@ -21,10 +21,10 @@ namespace Doji.AI.Diffusers {
         public DiffusionModel Model {
             get => _model;
             set {
-                if (_model != value) {
-                    _model = value;
-                    Initialize();
-                }
+                if (_model == value) return;
+                _model = value;
+                if (Model != null) return;
+                Initialize();
             }
         }
         private DiffusionModel _model;
@@ -32,10 +32,9 @@ namespace Doji.AI.Diffusers {
         public BackendType Backend {
             get => _backend;
             set {
-                if (_backend != value) {
-                    _backend = value;
-                    Initialize();
-                }
+                if (_backend == value) return;
+                _backend = value;
+                Initialize();
             }
         }
         private BackendType _backend = BackendType.GPUCompute;
