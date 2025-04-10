@@ -229,6 +229,7 @@ namespace Doji.AI.Diffusers {
             };
         }
 
+#if UNITY_EDITOR
         /// <summary>
         /// Returns true when this model is found in either StreamingAssets or Resources
         /// </summary>
@@ -242,9 +243,10 @@ namespace Doji.AI.Diffusers {
             return false;
         }
 
-#if UNITY_EDITOR
         /// <summary>
         /// Editor-only check whether a model is in the Resources folder
+        /// Editor-only because it uses File.Exists() (there is no easy way
+        /// to check if a huge file is in Resources without loading it)
         /// </summary>
         public static bool ExistsInResources(DiffusionModel model) {
             // check if at least all required files are present in Resources
