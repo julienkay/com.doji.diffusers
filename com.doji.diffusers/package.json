@@ -1,6 +1,6 @@
 {
   "name": "com.doji.diffusers",
-  "version": "0.3.4",
+  "version": "0.3.5",
   "displayName": "Diffusers",
   "description": "Run diffusion models for image generation with Unity Sentis",
   "keywords": [
