@@ -2,7 +2,7 @@ using Doji.AI.Transformers;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using Unity.Sentis;
+using Unity.InferenceEngine;
 using UnityEngine.Profiling;
 
 namespace Doji.AI.Diffusers {

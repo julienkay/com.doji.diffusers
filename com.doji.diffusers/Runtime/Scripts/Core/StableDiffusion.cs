@@ -1,6 +1,6 @@
 using System;
 using System.Threading.Tasks;
-using Unity.Sentis;
+using Unity.InferenceEngine;
 using UnityEngine;
 using UnityEngine.Profiling;
 

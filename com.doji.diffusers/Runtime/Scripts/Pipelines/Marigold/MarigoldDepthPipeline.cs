@@ -1,7 +1,7 @@
 using Doji.AI.Transformers;
 using System;
 using System.Linq;
-using Unity.Sentis;
+using Unity.InferenceEngine;
 using UnityEngine;
 using UnityEngine.Profiling;
 

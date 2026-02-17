@@ -1,7 +1,7 @@
 using Doji.AI.Transformers;
 using System;
 using System.Threading.Tasks;
-using Unity.Sentis;
+using Unity.InferenceEngine;
 
 namespace Doji.AI.Diffusers {
 

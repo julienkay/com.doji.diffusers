@@ -1,7 +1,7 @@
 using System;
 using System.IO;
 using System.Linq;
-using Unity.Sentis;
+using Unity.InferenceEngine;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.UIElements;

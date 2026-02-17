@@ -1,4 +1,4 @@
-using Unity.Sentis;
+using Unity.InferenceEngine;
 
 namespace Doji.AI.Diffusers {
 

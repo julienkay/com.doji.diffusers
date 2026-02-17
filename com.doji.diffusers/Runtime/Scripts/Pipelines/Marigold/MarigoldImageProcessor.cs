@@ -1,5 +1,5 @@
 using System;
-using Unity.Sentis;
+using Unity.InferenceEngine;
 using UnityEngine;
 
 namespace Doji.AI.Diffusers {
@@ -61,14 +61,14 @@ namespace Doji.AI.Diffusers {
             return image;
         }
 
-        private Unity.Sentis.Layers.InterpolationMode GetInterpolationMode(ResampleMethod mode) {
+        private InterpolationMode GetInterpolationMode(ResampleMethod mode) {
             switch (mode) {
                 case ResampleMethod.Nearest:
-                    return Unity.Sentis.Layers.InterpolationMode.Nearest;
+                    return InterpolationMode.Nearest;
                 case ResampleMethod.Bilinear:
-                    return Unity.Sentis.Layers.InterpolationMode.Linear;
+                    return InterpolationMode.Linear;
                 case ResampleMethod.Bicubic:
-                    return Unity.Sentis.Layers.InterpolationMode.Cubic;
+                    return InterpolationMode.Cubic;
                 case ResampleMethod.NearestExact:
                 case ResampleMethod.Area:
                 default:

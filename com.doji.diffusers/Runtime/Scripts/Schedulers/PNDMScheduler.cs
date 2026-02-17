@@ -2,7 +2,7 @@
 using System.Linq;
 using System;
 using static Doji.AI.ArrayUtils;
-using Unity.Sentis;
+using Unity.InferenceEngine;
 
 namespace Doji.AI.Diffusers {
 

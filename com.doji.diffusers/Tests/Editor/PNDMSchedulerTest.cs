@@ -1,6 +1,6 @@
 using NUnit.Framework;
 using System.Collections;
-using Unity.Sentis;
+using Unity.InferenceEngine;
 using UnityEngine.TestTools.Utils;
 using static Doji.AI.Diffusers.Scheduler;
 

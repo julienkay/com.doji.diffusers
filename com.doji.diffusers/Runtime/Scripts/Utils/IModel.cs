@@ -1,6 +1,6 @@
 using System.IO;
 using System;
-using Unity.Sentis;
+using Unity.InferenceEngine;
 using UnityEngine;
 
 namespace Doji.AI.Diffusers {

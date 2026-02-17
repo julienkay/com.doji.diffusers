@@ -1,6 +1,6 @@
 using Doji.AI.Transformers;
 using Newtonsoft.Json;
-using Unity.Sentis;
+using Unity.InferenceEngine;
 
 namespace Doji.AI.Diffusers {
 

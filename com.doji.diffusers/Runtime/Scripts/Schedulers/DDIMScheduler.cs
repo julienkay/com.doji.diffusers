@@ -1,5 +1,5 @@
 ﻿using static Doji.AI.ArrayUtils;
-using Unity.Sentis;
+using Unity.InferenceEngine;
 using System;
 
 namespace Doji.AI.Diffusers {

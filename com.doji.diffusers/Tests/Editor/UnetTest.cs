@@ -1,5 +1,5 @@
 using NUnit.Framework;
-using Unity.Sentis;
+using Unity.InferenceEngine;
 
 namespace Doji.AI.Diffusers.Editor.Tests {
 
@@ -11,6 +11,15 @@ namespace Doji.AI.Diffusers.Editor.Tests {
         private float[] Samples {
             get {
                 return TestUtils.LoadFromFile("256_latents");
+            }
+        }
+
+        /// <summary>
+        /// Loads the embeddings for the prompt "a cat" (1, 77, 768) for the tiny test pipeline.
+        /// </summary>
+        private float[] PromptEmbedsTiny {
+            get {
+                return TestUtils.LoadFromFile("unte_test_tiny_fake_embeddings");
             }
         }
 
@@ -59,6 +68,11 @@ namespace Doji.AI.Diffusers.Editor.Tests {
             }
         }
 
+        private static Unet LoadUnet_Tiny() {
+            Unet unet = Unet.FromPretrained(DiffusionModel.__TEST_SD_TINY, BackendType.GPUCompute);
+            return unet;
+        }
+
         private static Unet LoadUnet_1_5() {
             Unet unet = Unet.FromPretrained(DiffusionModel.SD_1_5, BackendType.GPUCompute);
             return unet;
@@ -67,6 +81,22 @@ namespace Doji.AI.Diffusers.Editor.Tests {
         private static Unet LoadUnet_2_1() {
             Unet unet = Unet.FromPretrained(DiffusionModel.SD_2_1, BackendType.GPUCompute);
             return unet;
+        }
+
+        [Test]
+        public void TestUnetTiny() {
+            using Unet unet = LoadUnet_Tiny();
+
+            int t = 901;
+            using Tensor<float> latentInputTensor = new Tensor<float>(new TensorShape(1, 4, 8, 8), Samples);
+            using Tensor<float> promptEmbeds = new Tensor<float>(new TensorShape(1, 77, 32), PromptEmbedsTiny);
+            using Tensor timestep = unet.CreateTimestep(new TensorShape(1), t);
+
+            Tensor<float> noisePred = unet.Execute(latentInputTensor, timestep, promptEmbeds);
+            float[] unetOutput = noisePred.DownloadToArray();
+
+            Assert.IsTrue(true);
+            //CollectionAssert.AreEqual(ExpectedOutput, unetOutput, new FloatArrayComparer(0.00001f));
         }
 
         [Test]

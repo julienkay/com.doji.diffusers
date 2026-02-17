@@ -35,7 +35,7 @@ namespace Doji.AI.Diffusers {
         public DiffusionModel(string modelId, string revision = "main") {
             string[] parts = modelId.Split("/");
             if (parts.Length != 2) {
-                throw new ArgumentException("ModelId has invalid format", nameof(modelId));
+                throw new ArgumentException($"ModelId '{modelId}' has invalid format.", nameof(modelId));
             }
             ModelId = modelId;
             Revision = revision;
@@ -124,6 +124,7 @@ namespace Doji.AI.Diffusers {
             return GetEnumerator();
         }
 
+        public static readonly DiffusionModel __TEST_SD_TINY = new DiffusionModel("julienkay/tiny-stable-diffusion-pipe-onnx");
         public static readonly DiffusionModel SD_1_5 = new DiffusionModel("julienkay/stable-diffusion-v1-5");
         public static readonly DiffusionModel SD_2_1 = new DiffusionModel("julienkay/stable-diffusion-2-1");
         public static readonly DiffusionModel SD_XL_BASE = new DiffusionModel("stabilityai/stable-diffusion-xl-base-1.0");

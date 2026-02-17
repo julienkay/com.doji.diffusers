@@ -2,7 +2,7 @@ using Newtonsoft.Json;
 using System.IO;
 using System;
 using UnityEngine;
-using Unity.Sentis;
+using Unity.InferenceEngine;
 
 namespace Doji.AI.Diffusers {
 

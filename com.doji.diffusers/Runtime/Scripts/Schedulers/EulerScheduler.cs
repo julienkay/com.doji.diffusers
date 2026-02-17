@@ -1,6 +1,6 @@
 using static Doji.AI.ArrayUtils;
 using System;
-using Unity.Sentis;
+using Unity.InferenceEngine;
 using System.Collections.Generic;
 
 namespace Doji.AI.Diffusers {
