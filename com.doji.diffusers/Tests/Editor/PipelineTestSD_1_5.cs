@@ -60,7 +60,7 @@ namespace Doji.AI.Diffusers.Editor.Tests {
 
             var generated = _pipeline.Generate(p);
 
-            TestUtils.ToFile(_pipeline, generated);   
+            TestUtils.ToFile(_pipeline, generated);
         }
 
         private void TestPredictedNoiseLarge(int i, float t, Tensor<float> latents) {

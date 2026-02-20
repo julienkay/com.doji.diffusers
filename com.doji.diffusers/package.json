@@ -1,6 +1,6 @@
 {
   "name": "com.doji.diffusers",
-  "version": "0.3.5",
+  "version": "0.3.6",
   "displayName": "Diffusers",
   "description": "Run diffusion models for image generation with Unity Sentis",
   "keywords": [
@@ -12,14 +12,14 @@
   "dependencies": {
     "com.unity.sentis": "2.1.2",
     "com.unity.nuget.newtonsoft-json": "3.2.1",
-    "com.doji.transformers": "0.1.5",
-    "com.doji.sentis-utils": "0.1.0",
+    "com.doji.transformers": "0.1.6",
+    "com.doji.sentis-utils": "0.1.1",
     "com.doji.pngcs": "0.0.0"
   },
   "author": {
     "name": "Doji Technologies",
-    "email": "support@doji-tech.com",
-    "url": "https://www.doji-tech.com/"
+    "url": "https://www.doji-tech.com/",
+    "email": "support@doji-tech.com"
   },
   "samples": [
     {
