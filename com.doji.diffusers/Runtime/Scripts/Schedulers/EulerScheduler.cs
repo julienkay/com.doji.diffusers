@@ -169,5 +169,10 @@ namespace Doji.AI.Diffusers {
                 StepIndex = BeginIndex;
             }
         }
+
+        public override void Dispose() {
+            AlphasCumprod?.Dispose();
+            base.Dispose();
+        }
     }
 }
